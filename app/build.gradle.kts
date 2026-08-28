@@ -1,6 +1,10 @@
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.appdistribution)
 }
 
 android {
@@ -13,13 +17,22 @@ android {
         applicationId = "com.example.mobileclock"
         minSdk = 24
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.02"
+        versionCode = 4
+        versionName = "0.04"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            firebaseAppDistribution {
+                appId = "1:118817012419:android:552bcf49ee11cb5ac94076"
+                serviceCredentialsFile = "C:/WORK/Secrets/mobileclock-cca50210cd68.json"
+                artifactType = "APK"
+                testers = "newiskeep@gmail.com"
+                releaseNotes = "MobileClock ${defaultConfig.versionName}"
+            }
+        }
         release {
             optimization {
                 enable = false
@@ -32,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -51,4 +65,10 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+// The Firebase task uploads the debug APK produced by the Android build.
+// Make the IDE run configuration build a fresh APK before each upload.
+tasks.matching { it.name == "appDistributionUploadDebug" }.configureEach {
+    dependsOn("assembleDebug")
 }

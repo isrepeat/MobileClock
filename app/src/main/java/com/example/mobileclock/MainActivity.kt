@@ -35,7 +35,7 @@ fun HelloWorldScreen() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "HelloWorld",
+            text = "HelloWorld v${BuildConfig.VERSION_NAME}",
             color = Color(0xFFFFEB3B),
             fontSize = 36.sp
         )
