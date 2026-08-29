@@ -12,7 +12,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = $PSScriptRoot
+$projectRoot = Split-Path -Parent $PSScriptRoot
 $nativeRoot = Join-Path $projectRoot 'app\src\main\cpp'
 $gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'

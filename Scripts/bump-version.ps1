@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$versionFile = Join-Path $PSScriptRoot 'version.properties'
+$versionFile = Join-Path (Split-Path -Parent $PSScriptRoot) 'version.properties'
 
 if (-not (Test-Path $versionFile)) {
     throw "Version file not found: $versionFile"
