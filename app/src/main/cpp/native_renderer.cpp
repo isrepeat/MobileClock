@@ -1,43 +1,63 @@
-// Android NDK: доступ к нативному окну, которое Kotlin передаёт через JNI.
+// Android NDK: доступ к Surface, EGL/OpenGL ES и файлам из папки assets.
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 #include <jni.h>
 
-#include <stdint.h>
+#include <cstdlib>
+
+// stb_truetype создаёт обычную текстуру-атлас глифов; рисование делает OpenGL ES.
+#define STBTT_STATIC
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "third_party/stb_truetype.h"
 
 namespace {
 
-// Ресурсы EGL/OpenGL существуют только пока жива Android Surface.  Это первый
-// минимальный рендерер с одним экраном, поэтому состояние пока хранится здесь.
+constexpr char kLogTag[] = "MobileClock";
+constexpr int kFirstGlyph = 32; // ASCII-пробел.
+constexpr int kGlyphCount = 96; // Символы ASCII от 32 до 127.
+constexpr int kAtlasWidth = 512;
+constexpr int kAtlasHeight = 512;
+
 EGLDisplay display = EGL_NO_DISPLAY;
 EGLSurface surface = EGL_NO_SURFACE;
 EGLContext context = EGL_NO_CONTEXT;
 ANativeWindow* window = nullptr;
+AAssetManager* assetManager = nullptr;
 GLuint program = 0;
 GLuint vertexBuffer = 0;
+GLuint fontTexture = 0;
+stbtt_bakedchar glyphs[kGlyphCount]{};
 
-// Вершинный шейдер получает уже готовую позицию вершины в диапазоне -1..1.
-// Он не применяет матрицы: для первой версии интерфейса все координаты считаем
-// непосредственно в пространстве экрана OpenGL.
+// Вершина хранит позицию на экране и координату в текстурном атласе.
 constexpr char kVertexShader[] = R"(#version 300 es
 layout (location = 0) in vec2 position;
-void main() { gl_Position = vec4(position, 0.0, 1.0); }
+layout (location = 1) in vec2 textureCoordinate;
+out vec2 uv;
+void main() {
+    uv = textureCoordinate;
+    gl_Position = vec4(position, 0.0, 1.0);
+}
 )";
 
-// Фрагментный шейдер красит каждый пиксель фигуры единым цветом textColor.
-// Позже сюда можно добавить текстуры, прозрачность, градиенты и эффекты.
+// В красном канале текстуры находится непрозрачность символа.
 constexpr char kFragmentShader[] = R"(#version 300 es
 precision mediump float;
+in vec2 uv;
+uniform sampler2D fontAtlas;
 uniform vec4 textColor;
 out vec4 color;
-void main() { color = textColor; }
+void main() {
+    float alpha = texture(fontAtlas, uv).r;
+    color = vec4(textColor.rgb, textColor.a * alpha);
+}
 )";
 
 GLuint compileShader(GLenum type, const char* source) {
-    // OpenGL сначала компилирует два независимых шейдера, а затем соединяет их
-    // в program. Для короткого демо ошибки компиляции пока не выводятся в log.
     const GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
@@ -56,87 +76,131 @@ void makeProgram() {
     glGenBuffers(1, &vertexBuffer);
 }
 
-// Миниатюрный шрифт 5x7. Один элемент — строка символа; младшие пять битов
-// определяют, какие квадратные пиксели нужно нарисовать. Он нужен только для
-// демо, чтобы написать текст без подключения TTF-движка и текстурного атласа.
-constexpr uint8_t kGlyphs[9][7] = {
-    {0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11}, // H
-    {0x1F, 0x10, 0x1E, 0x10, 0x10, 0x10, 0x1F}, // E
-    {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F}, // L
-    {0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E}, // O
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // space
-    {0x0E, 0x10, 0x10, 0x10, 0x10, 0x10, 0x0E}, // C
-    {0x1E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1E}, // D
-    {0x11, 0x0A, 0x04, 0x04, 0x04, 0x0A, 0x11}, // X
-    {0x00, 0x04, 0x04, 0x1F, 0x04, 0x04, 0x00}, // +
-};
-
-int glyphIndex(char character) {
-    // Таблица хранит не все ASCII-символы, а только буквы из текущей строки.
-    // Неизвестный символ заменяем пробелом.
-    switch (character) {
-        case 'H': return 0; case 'E': return 1; case 'L': return 2;
-        case 'O': return 3; case ' ': return 4; case 'C': return 5;
-        case 'D': return 6; case 'X': return 7; case '+': return 8;
-        default: return 4;
+bool makeFontAtlas() {
+    if (assetManager == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "AssetManager was not passed from Kotlin");
+        return false;
     }
+
+    // TTF упакован в APK из app/src/main/assets. NDK читает его без файлового пути.
+    AAsset* fontAsset = AAssetManager_open(assetManager, "Roboto-Regular.ttf", AASSET_MODE_BUFFER);
+    if (fontAsset == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "Cannot open Roboto-Regular.ttf from assets");
+        return false;
+    }
+
+    const auto fontSize = static_cast<size_t>(AAsset_getLength(fontAsset));
+    auto* fontData = static_cast<unsigned char*>(std::malloc(fontSize));
+    if (fontData == nullptr) {
+        AAsset_close(fontAsset);
+        return false;
+    }
+    const int bytesRead = AAsset_read(fontAsset, fontData, fontSize);
+    AAsset_close(fontAsset);
+    if (bytesRead != static_cast<int>(fontSize)) {
+        std::free(fontData);
+        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "Cannot read Roboto-Regular.ttf");
+        return false;
+    }
+
+    // Растеризуем ASCII в bitmap. Для Unicode и нескольких размеров атлас далее
+    // должен пополняться динамически, но принцип отрисовки останется тем же.
+    auto* atlas = static_cast<unsigned char*>(std::malloc(kAtlasWidth * kAtlasHeight));
+    if (atlas == nullptr) {
+        std::free(fontData);
+        return false;
+    }
+    const int bakeResult = stbtt_BakeFontBitmap(
+        fontData, 0, 64.0f, atlas, kAtlasWidth, kAtlasHeight,
+        kFirstGlyph, kGlyphCount, glyphs);
+    std::free(fontData);
+    if (bakeResult <= 0) {
+        std::free(atlas);
+        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "Font atlas is too small");
+        return false;
+    }
+
+    glGenTextures(1, &fontTexture);
+    glBindTexture(GL_TEXTURE_2D, fontTexture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, kAtlasWidth, kAtlasHeight, 0,
+                 GL_RED, GL_UNSIGNED_BYTE, atlas);
+    std::free(atlas);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    return true;
 }
 
-void addQuad(float left, float top, float right, float bottom, float* output) {
-    // В OpenGL видимая область — от -1 до 1 по обеим осям. Квадрат собираем
-    // из двух треугольников: именно треугольники являются базовой примитивной
-    // формой для glDrawArrays.
-    const float quad[] = {left, top, right, top, right, bottom,
-                          left, top, right, bottom, left, bottom};
-    for (int i = 0; i < 12; ++i) output[i] = quad[i];
+void appendVertex(float* vertices, int& offset, float pixelX, float pixelY,
+                  float textureX, float textureY, int width, int height) {
+    // stb использует пиксели от левого верхнего угла, OpenGL — NDC снизу слева.
+    vertices[offset++] = pixelX * 2.0f / width - 1.0f;
+    vertices[offset++] = 1.0f - pixelY * 2.0f / height;
+    vertices[offset++] = textureX;
+    vertices[offset++] = textureY;
 }
 
-void drawText() {
-    // Рисуем "HELLO C++" квадратными пикселями и центрируем по горизонтали.
-    // Размер pixel задан в OpenGL-координатах, поэтому сейчас не зависит от dp.
-    // Для настоящего UI здесь появятся layout в dp и масштабирование экрана.
-    constexpr char text[] = "HELLO C++";
-    constexpr float pixel = 0.025f;
-    constexpr float glyphWidth = 6.0f * pixel;
-    constexpr float textWidth = 9.0f * glyphWidth;
-    float x = -textWidth / 2.0f;
-    constexpr float y = 0.0875f;
+void appendQuad(float* vertices, int& offset, const stbtt_aligned_quad& quad,
+                int width, int height) {
+    appendVertex(vertices, offset, quad.x0, quad.y0, quad.s0, quad.t0, width, height);
+    appendVertex(vertices, offset, quad.x1, quad.y0, quad.s1, quad.t0, width, height);
+    appendVertex(vertices, offset, quad.x1, quad.y1, quad.s1, quad.t1, width, height);
+    appendVertex(vertices, offset, quad.x0, quad.y0, quad.s0, quad.t0, width, height);
+    appendVertex(vertices, offset, quad.x1, quad.y1, quad.s1, quad.t1, width, height);
+    appendVertex(vertices, offset, quad.x0, quad.y1, quad.s0, quad.t1, width, height);
+}
 
-    // Выбираем шейдерную программу и передаём ей цвет текста — тёплый жёлтый.
+void drawText(const char* text, int width, int height) {
+    // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
+    // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
+    float textWidth = 0.0f;
+    for (const char* character = text; *character != '\0'; ++character) {
+        const int index = static_cast<unsigned char>(*character) - kFirstGlyph;
+        if (index >= 0 && index < kGlyphCount) textWidth += glyphs[index].xadvance;
+    }
+
+    float cursorX = (width - textWidth) * 0.5f;
+    float cursorY = height * 0.5f + 22.0f; // Baseline текста.
+    // До 256 ASCII-символов по 6 вершин × 4 числа; для демо этого достаточно.
+    float vertices[256 * 6 * 4]{};
+    int vertexDataSize = 0;
+    for (const char* character = text; *character != '\0'; ++character) {
+        const int index = static_cast<unsigned char>(*character) - kFirstGlyph;
+        if (index < 0 || index >= kGlyphCount) continue;
+        stbtt_aligned_quad quad{};
+        stbtt_GetBakedQuad(glyphs, kAtlasWidth, kAtlasHeight, index,
+                            &cursorX, &cursorY, &quad, 1);
+        appendQuad(vertices, vertexDataSize, quad, width, height);
+    }
+
     glUseProgram(program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fontTexture);
+    glUniform1i(glGetUniformLocation(program, "fontAtlas"), 0);
     glUniform4f(glGetUniformLocation(program, "textColor"), 1.0f, 0.92f, 0.23f, 1.0f);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-    // Временный буфер шести вершин (по две координаты) для одного пикселя.
-    // В дальнейшем выгоднее собрать все символы в один VBO и вызвать draw
-    // один раз, но для ясности демо рисует квадрат сразу.
-    float vertices[12]{};
-    for (char character : text) {
-        const auto& glyph = kGlyphs[glyphIndex(character)];
-        for (int row = 0; row < 7; ++row) {
-            for (int column = 0; column < 5; ++column) {
-                // Проверяем соответствующий бит карты символа: 0 — прозрачный
-                // фон, 1 — рисуем квадратный пиксель.
-                if ((glyph[row] & (1 << (4 - column))) == 0) continue;
-                const float left = x + column * pixel;
-                const float top = y - row * pixel;
-                addQuad(left, top, left + pixel, top - pixel, vertices);
-                glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
-            }
-        }
-        x += glyphWidth;
-    }
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, vertexDataSize * sizeof(float), vertices, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          reinterpret_cast<void*>(2 * sizeof(float)));
+    glDrawArrays(GL_TRIANGLES, 0, vertexDataSize / 4);
 }
 
 void destroyRenderer() {
-    // Surface может исчезнуть при сворачивании приложения, повороте экрана или
-    // закрытии Activity. Нельзя использовать EGL/OpenGL после этого события.
-    // Сначала отсоединяем context от потока, затем освобождаем ресурсы.
-    if (display != EGL_NO_DISPLAY) {
+    // Удаляем OpenGL-ресурсы, пока context ещё привязан к потоку.
+    if (display != EGL_NO_DISPLAY && context != EGL_NO_CONTEXT) {
+        eglMakeCurrent(display, surface, surface, context);
+        if (fontTexture != 0) glDeleteTextures(1, &fontTexture);
+        if (vertexBuffer != 0) glDeleteBuffers(1, &vertexBuffer);
+        if (program != 0) glDeleteProgram(program);
         eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    }
+    if (display != EGL_NO_DISPLAY) {
         if (context != EGL_NO_CONTEXT) eglDestroyContext(display, context);
         if (surface != EGL_NO_SURFACE) eglDestroySurface(display, surface);
         eglTerminate(display);
@@ -148,24 +212,26 @@ void destroyRenderer() {
     window = nullptr;
     program = 0;
     vertexBuffer = 0;
+    fontTexture = 0;
 }
 
 } // namespace
 
-// Kotlin вызывает эту функцию из SurfaceHolder.surfaceChanged(). JNI передаёт
-// Android Surface, а ANativeWindow_fromSurface делает из неё NDK-объект для EGL.
+// Kotlin передаёт Android AssetManager один раз при старте Activity.
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_MainActivity_nativeSetAssetManager(
+    JNIEnv* env, jobject, jobject javaAssetManager) {
+    assetManager = AAssetManager_fromJava(env, javaAssetManager);
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
     JNIEnv* env, jobject, jobject androidSurface, jint width, jint height) {
-    // При смене размера Surface пересоздаём всё состояние, чтобы не держать
-    // ссылку на старое окно.
     destroyRenderer();
     window = ANativeWindow_fromSurface(env, androidSurface);
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(display, nullptr, nullptr);
 
-    // Запрашиваем оконную поверхность с 8 битами на каждый RGB-канал и
-    // поддержкой OpenGL ES 3.0.
     const EGLint configAttributes[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
@@ -176,25 +242,26 @@ Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
     EGLint count;
     eglChooseConfig(display, configAttributes, &config, 1, &count);
 
-    // EGL создаёт context OpenGL ES 3. Затем привязываем его к Surface, чтобы
-    // все последующие gl* вызовы рисовали именно в окно приложения.
     const EGLint contextAttributes[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
     context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttributes);
     surface = eglCreateWindowSurface(display, config, window, nullptr);
     eglMakeCurrent(display, surface, surface, context);
 
-    // Один кадр первого экрана: фон, надпись, затем показ через swap buffers.
     glViewport(0, 0, width, height);
     makeProgram();
+    // Текстурный атлас хранит форму букв в alpha-канале. Без blending OpenGL
+    // всё равно записывает RGB даже при alpha = 0 — это выглядело бы как
+    // заполненные прямоугольники вокруг глифов.
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.40f, 0.40f, 0.40f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    drawText();
+    if (makeFontAtlas()) drawText("Hello from C++", width, height);
     eglSwapBuffers(display, surface);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSurfaceDestroyed(JNIEnv*, jobject) {
-    // Kotlin сообщает, что Surface больше нельзя использовать.
     destroyRenderer();
 }
 

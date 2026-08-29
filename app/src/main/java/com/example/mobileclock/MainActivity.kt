@@ -10,6 +10,8 @@ class MainActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         System.loadLibrary("mobileclock")
+        // Передаём доступ к app/src/main/assets нативному TTF-рендереру.
+        nativeSetAssetManager(assets)
 
         val surfaceView = SurfaceView(this).apply {
             holder.addCallback(this@MainActivity)
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     private external fun nativeSurfaceChanged(surface: Surface, width: Int, height: Int)
+    private external fun nativeSetAssetManager(assetManager: android.content.res.AssetManager)
     private external fun nativeSurfaceDestroyed()
     private external fun nativeTouch(action: Int, x: Float, y: Float)
 }
