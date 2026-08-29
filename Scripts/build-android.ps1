@@ -71,7 +71,15 @@ if ($NativeOnly) {
 # APK first and then uploads exactly that artifact.
 $gradleTask = if ($UploadFirebase) { 'appDistributionUploadDebug' } else { 'assembleDebug' }
 Write-Host "==> Running Gradle task: $gradleTask"
-Invoke-Checked $gradleWrapper @('--no-daemon', $gradleTask)
+# gradlew determines the Android project from the current directory. The .bat
+# launchers live in Scripts, therefore explicitly return to the project root
+# before calling it; otherwise Gradle treats Scripts as a separate project.
+Push-Location $projectRoot
+try {
+    Invoke-Checked $gradleWrapper @('--no-daemon', $gradleTask)
+} finally {
+    Pop-Location
+}
 
 if (-not (Test-Path $apkPath)) {
     throw "Gradle completed but did not produce $apkPath"
