@@ -23,6 +23,13 @@ if (ANDROID)
         "-I${ANDROID_NDK_SYSROOT}/usr/include/aarch64-linux-android"
         "-I${ANDROID_NDK_SYSROOT}/usr/include/c++/v1"
     )
+
+    # CMake is the only compiler of this library.  Gradle later packages this
+    # ready-made .so from jniLibs instead of launching a second CMake build.
+    set_target_properties(mobileclock PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}"
+    )
 endif()
 
 find_library(android-lib android)

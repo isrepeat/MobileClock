@@ -1,4 +1,16 @@
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+import java.io.StringReader
+import java.util.Properties
+
+val versionPropertiesText = providers.fileContents(
+    rootProject.layout.projectDirectory.file("version.properties")
+).asText
+val appVersionCode = versionPropertiesText.map { text ->
+    Properties().apply { load(StringReader(text)) }.getProperty("VERSION_CODE").toInt()
+}
+val appVersionName = versionPropertiesText.map { text ->
+    Properties().apply { load(StringReader(text)) }.getProperty("VERSION_NAME")
+}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -17,16 +29,10 @@ android {
         applicationId = "com.example.mobileclock"
         minSdk = 24
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.05"
+        versionCode = appVersionCode.get()
+        versionName = appVersionName.get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++17"
-            }
-        }
     }
 
     buildTypes {
@@ -52,11 +58,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
     }
 }
 
