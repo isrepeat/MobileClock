@@ -1,43 +1,42 @@
 package com.example.mobileclock
 
 import android.os.Bundle
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.sp
-import com.example.mobileclock.ui.theme.MobileClockTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        System.loadLibrary("mobileclock")
 
-        setContent {
-            MobileClockTheme {
-                HelloWorldScreen()
+        val surfaceView = SurfaceView(this).apply {
+            holder.addCallback(this@MainActivity)
+            setOnTouchListener { _, event ->
+                nativeTouch(event.actionMasked, event.x, event.y)
+                true
             }
         }
+        setContentView(surfaceView)
     }
-}
 
-@Composable
-fun HelloWorldScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF666666)),
-        contentAlignment = Alignment.Center
+    override fun surfaceCreated(holder: SurfaceHolder) = Unit
+
+    override fun surfaceChanged(
+        holder: SurfaceHolder,
+        format: Int,
+        width: Int,
+        height: Int,
     ) {
-        Text(
-            text = "HelloWorld v${BuildConfig.VERSION_NAME}",
-            color = Color(0xFFFFEB3B),
-            fontSize = 36.sp
-        )
+        nativeSurfaceChanged(holder.surface, width, height)
     }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        nativeSurfaceDestroyed()
+    }
+
+    private external fun nativeSurfaceChanged(surface: Surface, width: Int, height: Int)
+    private external fun nativeSurfaceDestroyed()
+    private external fun nativeTouch(action: Int, x: Float, y: Float)
 }

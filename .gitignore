@@ -20,6 +20,7 @@ captures/
 # Generated app packages and metadata
 *.aab
 *.apk
+*.so
 output-metadata.json
 
 # Signing keys
