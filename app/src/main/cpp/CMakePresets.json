@@ -1,0 +1,42 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "android-arm64-debug",
+      "displayName": "Android ARM64 Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/android-arm64-debug",
+      "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug",
+          "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
+          "CMAKE_SYSTEM_NAME": "Android",
+        "CMAKE_ANDROID_NDK": "C:/Program Files (x86)/Android/AndroidNDK/android-ndk-r27c",
+        "CMAKE_TOOLCHAIN_FILE": "C:/Program Files (x86)/Android/AndroidNDK/android-ndk-r27c/build/cmake/android.toolchain.cmake",
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-24",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Windows" ],
+          "intelliSenseMode": "android-clang-arm64",
+          "intelliSenseOptions": {
+            "useCompilerDefaults": true,
+            "additionalCompilerArgs": [
+              "--target=aarch64-none-linux-android24",
+              "--sysroot=C:/Program Files (x86)/Android/AndroidNDK/android-ndk-r27c/toolchains/llvm/prebuilt/windows-x86_64/sysroot",
+              "-DANDROID"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "android-arm64-debug",
+      "displayName": "Build Android ARM64 Debug",
+      "configurePreset": "android-arm64-debug"
+    }
+  ]
+}
