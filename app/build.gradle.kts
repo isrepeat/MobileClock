@@ -32,6 +32,11 @@ android {
         versionCode = appVersionCode.get()
         versionName = appVersionName.get()
 
+        ndk {
+            // В APK для физических устройств включаем только ARM64-библиотеки.
+            abiFilters += "arm64-v8a"
+        }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

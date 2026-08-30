@@ -1,6 +1,23 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("mobileclock")
 
+# Версия Android-пакета хранится в одном месте. CMake следит за этим файлом
+# и генерирует заголовок для нативного UI при каждом изменении версии.
+set(mobileclock_version_file "${CMAKE_CURRENT_SOURCE_DIR}/../version.properties")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${mobileclock_version_file}")
+file(STRINGS "${mobileclock_version_file}" mobileclock_version_line
+    REGEX "^VERSION_NAME=")
+string(REGEX REPLACE "^VERSION_NAME=([^\r\n]+)$" "\\1"
+    mobileclock_package_version "${mobileclock_version_line}")
+if (NOT mobileclock_package_version)
+    message(FATAL_ERROR "VERSION_NAME is missing in ${mobileclock_version_file}")
+endif()
+set(mobileclock_generated_include_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${mobileclock_generated_include_dir}")
+configure_file(BuildVersion.h.in
+    "${mobileclock_generated_include_dir}/BuildVersion.h" @ONLY)
+
 # В пресетах выбран target-specific драйвер NDK, например
 # x86_64-linux-android24-clang++.cmd. Поэтому и компилятор, и IntelliSense
 # получают один и тот же Android target, sysroot и predefined macros напрямую
@@ -86,7 +103,10 @@ add_library(mobileclock SHARED
     ${mobileclock_xaml_source}
     "${mobileclock_xaml_generated}"
 )
-target_include_directories(mobileclock PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(mobileclock PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${mobileclock_generated_include_dir}"
+)
 # Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.
 set_target_properties(mobileclock PROPERTIES
     CXX_STANDARD 17

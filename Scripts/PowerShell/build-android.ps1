@@ -9,9 +9,8 @@ param(
     # Uploads the debug APK to Firebase App Distribution after it is built.
     [switch]$UploadFirebase,
 
-    # Target ABI for the native renderer. Use x86_64 when running in the
-    # Android Emulator; release/device builds continue to default to ARM64.
-    [ValidateSet('arm64-v8a', 'x86_64')]
+    # Проект поддерживает только физические устройства ARM64.
+    [ValidateSet('arm64-v8a')]
     [string]$Architecture = 'arm64-v8a'
 )
 
@@ -67,10 +66,7 @@ Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File | ForEach-Obje
 
 Push-Location $nativeRoot
 try {
-    $cmakePreset = switch ($Architecture) {
-        'arm64-v8a' { 'android-arm64-debug' }
-        'x86_64' { 'android-x86_64-debug' }
-    }
+    $cmakePreset = 'android-arm64-debug'
     Write-Host "==> Building native $Architecture library with CMake"
     if ($Clean) {
         Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset)
