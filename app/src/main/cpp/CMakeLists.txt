@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("mobileclock")
 
+# В пресетах выбран target-specific драйвер NDK, например
+# x86_64-linux-android24-clang++.cmd. Поэтому и компилятор, и IntelliSense
+# получают один и тот же Android target, sysroot и predefined macros напрямую
+# от Clang — без ручного дублирования системных include-путей.
 if (ANDROID)
     # NDK Clang передаёт эти каталоги неявно, но VS 2026 не переносит его
     # implicit include list в CMake IntelliSense. Публикуем их на уровне
@@ -33,35 +37,43 @@ if (ANDROID)
         "SHELL:-I \"${mobileclock_ndk_toolchain}/sysroot/usr/include/${mobileclock_ndk_sysroot_arch_include}\""
         "SHELL:-I \"${mobileclock_ndk_toolchain}/sysroot/usr/include\""
     )
+
+    # VS 2026 пока не разбирает часть overloadable/diagnose_if-обёрток Bionic
+    # fortify. Отключаем их только в Debug; Release сохраняет защиту NDK.
+    add_compile_options(
+        $<$<CONFIG:Debug>:-U_FORTIFY_SOURCE>
+    )
 endif()
-add_library(mobileclock SHARED native_renderer.cpp)
+
+# Подключаем только переносимую часть сабмодуля. Windows/WinRT-компоненты
+# UtilityHelpersLib сюда намеренно не попадают.
+add_subdirectory(third_party/UtilityHelpersLib)
+
+# Единственная нативная библиотека приложения. Gradle лишь упаковывает готовый
+# .so, а компиляция и линковка выполняются этим CMake-проектом.
+add_library(mobileclock SHARED
+    native_renderer.cpp
+    core/logging.cpp
+)
+target_include_directories(mobileclock PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+# Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.
 set_target_properties(mobileclock PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
 
-# The NDK toolchain already supplies this sysroot to Clang.  Listing it on the
-# target also lets Visual Studio IntelliSense discover Android/EGL/JNI headers.
 if (ANDROID)
-    set(ANDROID_NDK_SYSROOT
-        "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/windows-x86_64/sysroot"
-    )
+    set(mobileclock_android_abi "${ANDROID_ABI}")
+    if (NOT mobileclock_android_abi)
+        set(mobileclock_android_abi "${CMAKE_ANDROID_ARCH_ABI}")
+    endif()
 
-    # VS 2026's deprecated Android IntelliSense ignores CMake File API's
-    # `sysroot` field.  Keep the redundant -I flag so the NDK headers also
-    # appear in the target's ordinary compile-command fragments.
-    target_compile_options(mobileclock PRIVATE
-        "-I${ANDROID_NDK_SYSROOT}/usr/include"
-        "-I${ANDROID_NDK_SYSROOT}/usr/include/aarch64-linux-android"
-        "-I${ANDROID_NDK_SYSROOT}/usr/include/c++/v1"
-    )
-
-    # CMake is the only compiler of this library.  Gradle later packages this
-    # ready-made .so from jniLibs instead of launching a second CMake build.
+    # CMake — единственный компилятор библиотеки. Gradle забирает готовый .so
+    # из jniLibs и не запускает вторую, независимую CMake-сборку.
     set_target_properties(mobileclock PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY
-            "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${mobileclock_android_abi}"
     )
 endif()
 
@@ -70,7 +82,14 @@ find_library(egl-lib EGL)
 find_library(glesv3-lib GLESv3)
 find_library(log-lib log)
 
+# Системные Android-библиотеки ищем через NDK, а Logcat-обёртку над spdlog
+# берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
+    utility_helpers::android_logging
+    # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
+    # preset. Линкуем рантайм статически, не требуя отдельный libc++_shared.so.
+    c++_static
+    c++abi
     ${android-lib}
     ${egl-lib}
     ${glesv3-lib}

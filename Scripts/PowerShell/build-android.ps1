@@ -7,12 +7,17 @@ param(
     [switch]$NativeOnly,
 
     # Uploads the debug APK to Firebase App Distribution after it is built.
-    [switch]$UploadFirebase
+    [switch]$UploadFirebase,
+
+    # Target ABI for the native renderer. Use x86_64 when running in the
+    # Android Emulator; release/device builds continue to default to ARM64.
+    [ValidateSet('arm64-v8a', 'x86_64')]
+    [string]$Architecture = 'arm64-v8a'
 )
 
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $nativeRoot = Join-Path $projectRoot 'app\src\main\cpp'
 $gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'
@@ -44,18 +49,22 @@ if (Test-Path $visualStudioCmake) {
 
 Push-Location $nativeRoot
 try {
-    Write-Host '==> Building native ARM64 library with CMake'
-    if ($Clean) {
-        Invoke-Checked $cmake @('--fresh', '--preset', 'android-arm64-debug')
-    } else {
-        Invoke-Checked $cmake @('--preset', 'android-arm64-debug')
+    $cmakePreset = switch ($Architecture) {
+        'arm64-v8a' { 'android-arm64-debug' }
+        'x86_64' { 'android-x86_64-debug' }
     }
-    Invoke-Checked $cmake @('--build', '--preset', 'android-arm64-debug')
+    Write-Host "==> Building native $Architecture library with CMake"
+    if ($Clean) {
+        Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset)
+    } else {
+        Invoke-Checked $cmake @('--preset', $cmakePreset)
+    }
+    Invoke-Checked $cmake @('--build', '--preset', $cmakePreset)
 } finally {
     Pop-Location
 }
 
-$nativeLibrary = Join-Path $projectRoot 'app\src\main\jniLibs\arm64-v8a\libmobileclock.so'
+$nativeLibrary = Join-Path $projectRoot "app\src\main\jniLibs\$Architecture\libmobileclock.so"
 if (-not (Test-Path $nativeLibrary)) {
     throw "CMake completed but did not produce $nativeLibrary"
 }

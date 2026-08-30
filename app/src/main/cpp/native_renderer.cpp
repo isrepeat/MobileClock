@@ -1,7 +1,6 @@
 // Android NDK: доступ к Surface, EGL/OpenGL ES и файлам из папки assets.
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
-#include <android/log.h>
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <EGL/egl.h>
@@ -10,6 +9,8 @@
 
 #include <cstdlib>
 
+#include "core/logging.h"
+
 // stb_truetype создаёт обычную текстуру-атлас глифов; рисование делает OpenGL ES.
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -17,7 +18,6 @@
 
 namespace {
 
-constexpr char kLogTag[] = "MobileClock";
 constexpr int kFirstGlyph = 32; // ASCII-пробел.
 constexpr int kGlyphCount = 96; // Символы ASCII от 32 до 127.
 constexpr int kAtlasWidth = 512;
@@ -78,14 +78,14 @@ void makeProgram() {
 
 bool makeFontAtlas() {
     if (assetManager == nullptr) {
-        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "AssetManager was not passed from Kotlin");
+        mobileclock::core::log().error("AssetManager was not passed from Kotlin");
         return false;
     }
 
     // TTF упакован в APK из app/src/main/assets. NDK читает его без файлового пути.
     AAsset* fontAsset = AAssetManager_open(assetManager, "Roboto-Regular.ttf", AASSET_MODE_BUFFER);
     if (fontAsset == nullptr) {
-        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "Cannot open Roboto-Regular.ttf from assets");
+        mobileclock::core::log().error("Cannot open Roboto-Regular.ttf from assets");
         return false;
     }
 
@@ -99,7 +99,7 @@ bool makeFontAtlas() {
     AAsset_close(fontAsset);
     if (bytesRead != static_cast<int>(fontSize)) {
         std::free(fontData);
-        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "Cannot read Roboto-Regular.ttf");
+        mobileclock::core::log().error("Cannot read Roboto-Regular.ttf");
         return false;
     }
 
@@ -116,7 +116,7 @@ bool makeFontAtlas() {
     std::free(fontData);
     if (bakeResult <= 0) {
         std::free(atlas);
-        __android_log_print(ANDROID_LOG_ERROR, kLogTag, "Font atlas is too small");
+        mobileclock::core::log().error("Font atlas is too small");
         return false;
     }
 
@@ -221,12 +221,16 @@ void destroyRenderer() {
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSetAssetManager(
     JNIEnv* env, jobject, jobject javaAssetManager) {
+    mobileclock::core::initializeLogging();
     assetManager = AAssetManager_fromJava(env, javaAssetManager);
+    mobileclock::core::log().info("Android AssetManager connected");
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
     JNIEnv* env, jobject, jobject androidSurface, jint width, jint height) {
+    mobileclock::core::initializeLogging();
+    mobileclock::core::log().info("Surface changed: {}x{}", width, height);
     destroyRenderer();
     window = ANativeWindow_fromSurface(env, androidSurface);
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -262,6 +266,7 @@ Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSurfaceDestroyed(JNIEnv*, jobject) {
+    mobileclock::core::log().info("Surface destroyed");
     destroyRenderer();
 }
 
