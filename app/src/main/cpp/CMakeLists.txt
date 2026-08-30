@@ -51,9 +51,25 @@ add_subdirectory(third_party/UtilityHelpersLib)
 
 # Единственная нативная библиотека приложения. Gradle лишь упаковывает готовый
 # .so, а компиляция и линковка выполняются этим CMake-проектом.
+file(GLOB mobileclock_xaml_source CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/ui/*.xaml"
+)
+file(GLOB mobileclock_xaml_generated CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/ui/generated/*.xaml.cpp"
+)
+if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated)
+    message(FATAL_ERROR
+        "Generated XAML sources are missing. Run Scripts/PowerShell/build-android.ps1 first.")
+endif()
+set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
+source_group("UI" FILES ${mobileclock_xaml_source})
+source_group("UI\\generated" FILES ${mobileclock_xaml_generated})
+
 add_library(mobileclock SHARED
     native_renderer.cpp
     core/logging.cpp
+    ${mobileclock_xaml_source}
+    "${mobileclock_xaml_generated}"
 )
 target_include_directories(mobileclock PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.
@@ -85,6 +101,7 @@ find_library(log-lib log)
 # Системные Android-библиотеки ищем через NDK, а Logcat-обёртку над spdlog
 # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
+    utility_helpers::xaml_runtime
     utility_helpers::android_logging
     # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
     # preset. Линкуем рантайм статически, не требуя отдельный libc++_shared.so.

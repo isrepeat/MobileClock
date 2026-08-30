@@ -19,6 +19,11 @@ $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $nativeRoot = Join-Path $projectRoot 'app\src\main\cpp'
+$xamlCompilerRoot = Join-Path $nativeRoot 'third_party\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
+$xamlCompilerBuild = Join-Path $projectRoot 'out\xaml-compiler'
+$xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
+$xamlSourceRoot = Join-Path $nativeRoot 'ui'
+$xamlGeneratedRoot = Join-Path $xamlSourceRoot 'generated'
 $gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'
 
@@ -45,6 +50,19 @@ if (Test-Path $visualStudioCmake) {
     $cmake = $visualStudioCmake
 } else {
     $cmake = (Get-Command cmake -ErrorAction Stop).Source
+}
+
+Write-Host '==> Building XamlCompiler host tool'
+Invoke-Checked $cmake @('--fresh', '-S', $xamlCompilerRoot, '-B', $xamlCompilerBuild, '-G', 'Visual Studio 18 2026', '-A', 'x64')
+Invoke-Checked $cmake @('--build', $xamlCompilerBuild, '--config', 'Debug')
+if (-not (Test-Path $xamlCompiler)) {
+    throw "XamlCompiler build completed but did not produce $xamlCompiler"
+}
+
+Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File | ForEach-Object {
+    $generatedPath = Join-Path $xamlGeneratedRoot ($_.Name + '.cpp')
+    Write-Host "==> Compiling $($_.Name) into native UI classes"
+    Invoke-Checked $xamlCompiler @($_.FullName, $generatedPath)
 }
 
 Push-Location $nativeRoot

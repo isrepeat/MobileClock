@@ -1,6 +1,7 @@
 # Gradle files
 .gradle/
 build/
+out/
 
 # Local configuration file (SDK path, etc.)
 local.properties
@@ -17,6 +18,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 app/src/main/cpp/out/
+app/src/main/cpp/ui/generated/
 
 # Создаются Scripts/setup-vs-android-intellisense.bat как hardlink на NDK.
 app/src/main/cpp/cmake/vs-android-drivers/**/clang.exe

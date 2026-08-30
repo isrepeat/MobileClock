@@ -1,0 +1,10 @@
+<StackPanel Id="root"
+            Orientation="Vertical"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Spacing="12">
+    <Button Id="helloButton"
+            Text="Hello World"
+            FontSize="64"
+            Foreground="#FFE93B" />
+</StackPanel>

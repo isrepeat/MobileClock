@@ -10,6 +10,7 @@
 #include <cstdlib>
 
 #include "core/logging.h"
+#include "xaml_runtime/XamlLayout.h"
 
 // stb_truetype создаёт обычную текстуру-атлас глифов; рисование делает OpenGL ES.
 #define STBTT_STATIC
@@ -28,9 +29,14 @@ namespace {
     ANativeWindow* window = nullptr;
     AAssetManager* assetManager = nullptr;
     GLuint program = 0;
+    GLuint solidProgram = 0;
     GLuint vertexBuffer = 0;
     GLuint fontTexture = 0;
     stbtt_bakedchar glyphs[kGlyphCount]{};
+    std::unique_ptr<mobileclock::ui::Element> mainPage;
+    int renderWidth = 0;
+    int renderHeight = 0;
+    bool helloButtonIsBlue = false;
 
     // Вершина хранит позицию на экране и координату в текстурном атласе.
     constexpr char kVertexShader[] = R"(#version 300 es
@@ -56,6 +62,18 @@ namespace {
         }
         )";
 
+    constexpr char kSolidVertexShader[] = R"(#version 300 es
+        layout (location = 0) in vec2 position;
+        void main() { gl_Position = vec4(position, 0.0, 1.0); }
+        )";
+
+    constexpr char kSolidFragmentShader[] = R"(#version 300 es
+        precision mediump float;
+        uniform vec4 color;
+        out vec4 fragmentColor;
+        void main() { fragmentColor = color; }
+        )";
+
     GLuint compileShader(GLenum type, const char* source) {
         const GLuint shader = glCreateShader(type);
         glShaderSource(shader, 1, &source, nullptr);
@@ -73,6 +91,15 @@ namespace {
         glDeleteShader(vertex);
         glDeleteShader(fragment);
         glGenBuffers(1, &vertexBuffer);
+
+        const GLuint solidVertex = compileShader(GL_VERTEX_SHADER, kSolidVertexShader);
+        const GLuint solidFragment = compileShader(GL_FRAGMENT_SHADER, kSolidFragmentShader);
+        solidProgram = glCreateProgram();
+        glAttachShader(solidProgram, solidVertex);
+        glAttachShader(solidProgram, solidFragment);
+        glLinkProgram(solidProgram);
+        glDeleteShader(solidVertex);
+        glDeleteShader(solidFragment);
     }
 
     bool makeFontAtlas() {
@@ -151,7 +178,8 @@ namespace {
         appendVertex(vertices, offset, quad.x0, quad.y1, quad.s0, quad.t1, width, height);
     }
 
-    void drawText(const char* text, int width, int height) {
+    void drawText(const char* text, int width, int height,
+        mobileclock::ui::Color color) {
         // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
         // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
         float textWidth = 0.0f;
@@ -178,7 +206,8 @@ namespace {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fontTexture);
         glUniform1i(glGetUniformLocation(program, "fontAtlas"), 0);
-        glUniform4f(glGetUniformLocation(program, "textColor"), 1.0f, 0.92f, 0.23f, 1.0f);
+        glUniform4f(glGetUniformLocation(program, "textColor"),
+            color.red, color.green, color.blue, color.alpha);
 
         glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, vertexDataSize * sizeof(float), vertices, GL_DYNAMIC_DRAW);
@@ -190,6 +219,37 @@ namespace {
         glDrawArrays(GL_TRIANGLES, 0, vertexDataSize / 4);
     }
 
+    void drawButtonOutline(const mobileclock::ui::Rect& bounds,
+        mobileclock::ui::Color color) {
+        const float left = bounds.x * 2.0f / renderWidth - 1.0f;
+        const float right = (bounds.x + bounds.width) * 2.0f / renderWidth - 1.0f;
+        const float top = 1.0f - bounds.y * 2.0f / renderHeight;
+        const float bottom = 1.0f - (bounds.y + bounds.height) * 2.0f / renderHeight;
+        const float vertices[] = {left, top, right, top, right, bottom, left, bottom};
+
+        glUseProgram(solidProgram);
+        glUniform4f(glGetUniformLocation(solidProgram, "color"),
+            color.red, color.green, color.blue, color.alpha);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+        glLineWidth(2.0f);
+        glDrawArrays(GL_LINE_LOOP, 0, 4);
+    }
+
+    void drawPage() {
+        glClear(GL_COLOR_BUFFER_BIT);
+        if (mainPage == nullptr || mainPage->children().empty() || fontTexture == 0) {
+            return;
+        }
+
+        const auto& button = mainPage->children().front();
+        drawButtonOutline(button->bounds(), button->foreground());
+        drawText(button->text().c_str(), renderWidth, renderHeight, button->foreground());
+        eglSwapBuffers(display, surface);
+    }
+
     void destroyRenderer() {
         // Удаляем OpenGL-ресурсы, пока context ещё привязан к потоку.
         if (display != EGL_NO_DISPLAY && context != EGL_NO_CONTEXT) {
@@ -197,6 +257,7 @@ namespace {
             if (fontTexture != 0) glDeleteTextures(1, &fontTexture);
             if (vertexBuffer != 0) glDeleteBuffers(1, &vertexBuffer);
             if (program != 0) glDeleteProgram(program);
+            if (solidProgram != 0) glDeleteProgram(solidProgram);
             eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         }
         if (display != EGL_NO_DISPLAY) {
@@ -210,6 +271,7 @@ namespace {
         context = EGL_NO_CONTEXT;
         window = nullptr;
         program = 0;
+        solidProgram = 0;
         vertexBuffer = 0;
         fontTexture = 0;
     }
@@ -266,6 +328,8 @@ Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
     eglMakeCurrent(display, surface, surface, context);
 
     glViewport(0, 0, width, height);
+    renderWidth = width;
+    renderHeight = height;
     makeProgram();
     // Текстурный атлас хранит форму букв в alpha-канале. Без blending OpenGL
     // всё равно записывает RGB даже при alpha = 0 — это выглядело бы как
@@ -273,9 +337,10 @@ Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.40f, 0.40f, 0.40f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    if (makeFontAtlas()) drawText("Hello from C++", width, height);
-    eglSwapBuffers(display, surface);
+    mainPage = mobileclock::ui::createMainPage();
+    mobileclock::ui::layout(*mainPage, {static_cast<float>(width), static_cast<float>(height)});
+    makeFontAtlas();
+    drawPage();
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -285,7 +350,23 @@ Java_com_example_mobileclock_MainActivity_nativeSurfaceDestroyed(JNIEnv*, jobjec
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_mobileclock_MainActivity_nativeTouch(JNIEnv*, jobject, jint, jfloat, jfloat) {
-    // Kotlin уже передаёт сюда action/x/y каждого касания. В следующем этапе
-    // здесь будет hit-test UI-элементов (кнопок, циферблата и жестов).
+Java_com_example_mobileclock_MainActivity_nativeTouch(JNIEnv*, jobject, jint action, jfloat x, jfloat y) {
+    // MotionEvent.ACTION_UP: меняем состояние только после завершённого тапа.
+    if (action != 1 || mainPage == nullptr || mainPage->children().empty()) {
+        return;
+    }
+
+    auto& button = mainPage->children().front();
+    const mobileclock::ui::Rect bounds = button->bounds();
+    const bool tapped = x >= bounds.x && x <= bounds.x + bounds.width
+        && y >= bounds.y && y <= bounds.y + bounds.height;
+    if (!tapped) {
+        return;
+    }
+
+    helloButtonIsBlue = !helloButtonIsBlue;
+    button->setForeground(helloButtonIsBlue
+        ? mobileclock::ui::Color{0.2f, 0.65f, 1.0f, 1.0f}
+        : mobileclock::ui::Color{1.0f, 0.91f, 0.23f, 1.0f});
+    drawPage();
 }
