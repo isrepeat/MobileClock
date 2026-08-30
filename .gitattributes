@@ -1,2 +1,2 @@
-# Use CRLF for text files in Windows working trees. File-final newline is governed by .editorconfig.
-* text=auto eol=crlf
+# Use LF for text files on every platform. File-final newline is governed by .editorconfig.
+* text=auto eol=lf
