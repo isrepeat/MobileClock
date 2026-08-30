@@ -17,13 +17,13 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
-app/src/main/cpp/out/
-app/src/main/cpp/ui/generated/
+Native/out/
+Native/ui/generated/
 
 # Создаются Scripts/setup-vs-android-intellisense.bat как hardlink на NDK.
-app/src/main/cpp/cmake/vs-android-drivers/**/clang.exe
-app/src/main/cpp/cmake/vs-android-drivers/**/clang++.exe
-app/src/main/cpp/cmake/vs-android-drivers/**/libwinpthread-1.dll
+Native/cmake/vs-android-drivers/**/clang.exe
+Native/cmake/vs-android-drivers/**/clang++.exe
+Native/cmake/vs-android-drivers/**/libwinpthread-1.dll
 
 # Generated app packages and metadata
 *.aab

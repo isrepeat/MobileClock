@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$nativeRoot = Join-Path $projectRoot 'app\src\main\cpp'
+$nativeRoot = Join-Path $projectRoot 'Native'
 $xamlCompilerRoot = Join-Path $nativeRoot 'third_party\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
 $xamlCompilerBuild = Join-Path $projectRoot 'out\xaml-compiler'
 $xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'

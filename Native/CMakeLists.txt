@@ -89,7 +89,7 @@ if (ANDROID)
     # из jniLibs и не запускает вторую, независимую CMake-сборку.
     set_target_properties(mobileclock PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY
-            "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${mobileclock_android_abi}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../app/src/main/jniLibs/${mobileclock_android_abi}"
     )
 endif()
 
