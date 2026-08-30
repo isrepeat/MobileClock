@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $ndkBin = 'C:\Program Files (x86)\Android\AndroidNDK\android-ndk-r27c\toolchains\llvm\prebuilt\windows-x86_64\bin'
 $nativeRoot = Join-Path $PSScriptRoot '..\..\Native'
-$driverRoot = Join-Path $nativeRoot 'cmake\vs-android-drivers'
+$driverRoot = Join-Path $nativeRoot 'CMake\vs-android-drivers'
 
 foreach ($architecture in @('arm64', 'x86_64')) {
     $architectureDirectory = Join-Path $driverRoot $architecture

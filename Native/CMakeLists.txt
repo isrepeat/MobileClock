@@ -47,22 +47,25 @@ endif()
 
 # Подключаем только переносимую часть сабмодуля. Windows/WinRT-компоненты
 # UtilityHelpersLib сюда намеренно не попадают.
-add_subdirectory(third_party/UtilityHelpersLib)
+add_subdirectory(UtilityHelpersLib)
 
 # Единственная нативная библиотека приложения. Gradle лишь упаковывает готовый
 # .so, а компиляция и линковка выполняются этим CMake-проектом.
 file(GLOB mobileclock_xaml_source CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/ui/*.xaml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/UI/*.xaml"
 )
 file(GLOB mobileclock_xaml_generated CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/ui/generated/*.xaml.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/UI/generated/*.xaml.cpp"
 )
 file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
 # Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
-# приложения показываем все её исходники и локальный third_party/stb_truetype.h.
-list(FILTER mobileclock_header_files EXCLUDE REGEX "/third_party/UtilityHelpersLib/")
+# приложения показываем все её исходники и локальный ThirdParty/stb_truetype.h.
+list(FILTER mobileclock_header_files EXCLUDE REGEX "/UtilityHelpersLib/")
+# Visual Studio может создавать локальный intellisense-probe; он не является
+# частью приложения и не должен попадать в CMake source groups или reconfigure.
+list(FILTER mobileclock_header_files EXCLUDE REGEX "/intellisense-probe/")
 if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated)
     message(FATAL_ERROR
         "Generated XAML sources are missing. Run Scripts/PowerShell/build-android.ps1 first.")
@@ -73,7 +76,12 @@ source_group("UI\\generated" FILES ${mobileclock_xaml_generated})
 source_group("Header Files" FILES ${mobileclock_header_files})
 
 add_library(mobileclock SHARED
-    native_renderer.cpp
+    main.cpp
+    NativeApplication.cpp
+    Renderer/ControlRenderer.cpp
+    Renderer/NativeRenderer.cpp
+    Controls/ButtonControl.cpp
+    UI/MainPageController.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}
     "${mobileclock_xaml_generated}"
