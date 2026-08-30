@@ -9,8 +9,8 @@
 
 #include <cstdlib>
 
-#include "core/logging.h"
-#include "xaml_runtime/XamlLayout.h"
+#include <Helpers/platform/Android/Logging.h>
+#include "XamlRuntime/XamlLayout.h"
 
 // stb_truetype создаёт обычную текстуру-атлас глифов; рисование делает OpenGL ES.
 #define STBTT_STATIC
@@ -284,20 +284,20 @@ Java_com_example_mobileclock_MainActivity_nativeSetLogFile(
     JNIEnv* env, jobject, jstring javaLogFilePath) {
     const char* utf8Path = env->GetStringUTFChars(javaLogFilePath, nullptr);
     if (utf8Path == nullptr) return;
-    mobileclock::core::configureLogFile(utf8Path);
+    utility_helpers::android::configureLogFile(utf8Path);
     env->ReleaseStringUTFChars(javaLogFilePath, utf8Path);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeFlushLogs(JNIEnv*, jobject) {
-    mobileclock::core::flushLogging();
+    utility_helpers::android::flushLogging();
 }
 
 // Kotlin передаёт Android AssetManager один раз при старте Activity.
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSetAssetManager(
     JNIEnv* env, jobject, jobject javaAssetManager) {
-    mobileclock::core::initializeLogging();
+    utility_helpers::android::initializeLogging("MobileClock");
     assetManager = AAssetManager_fromJava(env, javaAssetManager);
     LOG_INFO("Android AssetManager connected");
 }
@@ -305,7 +305,7 @@ Java_com_example_mobileclock_MainActivity_nativeSetAssetManager(
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_MainActivity_nativeSurfaceChanged(
     JNIEnv* env, jobject, jobject androidSurface, jint width, jint height) {
-    mobileclock::core::initializeLogging();
+    utility_helpers::android::initializeLogging("MobileClock");
     LOG_INFO("Surface changed: {}x{}", width, height);
     destroyRenderer();
     window = ANativeWindow_fromSurface(env, androidSurface);

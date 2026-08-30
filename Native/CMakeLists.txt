@@ -57,6 +57,12 @@ file(GLOB mobileclock_xaml_source CONFIGURE_DEPENDS
 file(GLOB mobileclock_xaml_generated CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/ui/generated/*.xaml.cpp"
 )
+file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
+)
+# Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
+# приложения показываем все её исходники и локальный third_party/stb_truetype.h.
+list(FILTER mobileclock_header_files EXCLUDE REGEX "/third_party/UtilityHelpersLib/")
 if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated)
     message(FATAL_ERROR
         "Generated XAML sources are missing. Run Scripts/PowerShell/build-android.ps1 first.")
@@ -64,10 +70,11 @@ endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
 source_group("UI" FILES ${mobileclock_xaml_source})
 source_group("UI\\generated" FILES ${mobileclock_xaml_generated})
+source_group("Header Files" FILES ${mobileclock_header_files})
 
 add_library(mobileclock SHARED
     native_renderer.cpp
-    core/logging.cpp
+    ${mobileclock_header_files}
     ${mobileclock_xaml_source}
     "${mobileclock_xaml_generated}"
 )
