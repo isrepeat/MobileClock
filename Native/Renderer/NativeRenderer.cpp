@@ -251,7 +251,7 @@ namespace {
         if (state.fontTexture == 0 || state.controlRenderer == nullptr) {
             return;
         }
-        state.mainPageController.render(*state.controlRenderer);
+        state.mainPageController.Render(*state.controlRenderer);
         eglSwapBuffers(state.display, state.surface);
     }
 
@@ -292,31 +292,31 @@ namespace mobileclock::renderer {
     }
 
     NativeRenderer::~NativeRenderer() {
-        surfaceDestroyed();
+        SurfaceDestroyed();
     }
 
-    void NativeRenderer::setLogFile(JNIEnv* env, jstring javaLogFilePath) {
+    void NativeRenderer::SetLogFile(JNIEnv* env, jstring javaLogFilePath) {
         const char* utf8Path = env->GetStringUTFChars(javaLogFilePath, nullptr);
         if (utf8Path == nullptr) return;
         utility_helpers::android::configureLogFile(utf8Path);
         env->ReleaseStringUTFChars(javaLogFilePath, utf8Path);
     }
 
-    void NativeRenderer::flushLogs() {
-        LOG_FUNCTION_SCOPE("NativeRenderer::flushLogs");
+    void NativeRenderer::FlushLogs() {
+        LOG_FUNCTION_SCOPE("NativeRenderer::FlushLogs");
         utility_helpers::android::flushLogging();
     }
 
     // Kotlin передаёт Android AssetManager один раз при старте Activity.
-    void NativeRenderer::setAssetManager(JNIEnv* env, jobject javaAssetManager) {
-        LOG_FUNCTION_SCOPE("NativeRenderer::setAssetManager");
+    void NativeRenderer::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
+        LOG_FUNCTION_SCOPE("NativeRenderer::SetAssetManager");
         utility_helpers::android::initializeLogging("MobileClock");
         _state->assetManager = AAssetManager_fromJava(env, javaAssetManager);
         LOG_INFO("Android AssetManager connected");
     }
 
-    void NativeRenderer::surfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
-        LOG_FUNCTION_SCOPE("NativeRenderer::surfaceChanged: {}x{}", width, height);
+    void NativeRenderer::SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
+        LOG_FUNCTION_SCOPE("NativeRenderer::SurfaceChanged: {}x{}", width, height);
         utility_helpers::android::initializeLogging("MobileClock");
         LOG_INFO("Surface changed: {}x{}", width, height);
         State& state = *_state;
@@ -350,7 +350,7 @@ namespace mobileclock::renderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.40f, 0.40f, 0.40f, 1.0f);
-        state.mainPageController.initialize({static_cast<float>(width), static_cast<float>(height)});
+        state.mainPageController.Initialize({static_cast<float>(width), static_cast<float>(height)});
         makeFontAtlas(state);
         state.controlRenderer = std::make_unique<ControlRenderer>(
             [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::Color color) {
@@ -363,19 +363,19 @@ namespace mobileclock::renderer {
         drawPage(state);
     }
 
-    void NativeRenderer::surfaceDestroyed() {
-        LOG_FUNCTION_SCOPE("NativeRenderer::surfaceDestroyed");
+    void NativeRenderer::SurfaceDestroyed() {
+        LOG_FUNCTION_SCOPE("NativeRenderer::SurfaceDestroyed");
         LOG_INFO("Surface destroyed");
         destroyRenderer(*_state);
     }
 
-    void NativeRenderer::touch(jint action, jfloat x, jfloat y) {
-        LOG_FUNCTION_SCOPE("NativeRenderer::touch: action={}, x={}, y={}", action, x, y);
+    void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
+        LOG_FUNCTION_SCOPE("NativeRenderer::Touch: action={}, x={}, y={}", action, x, y);
         // MotionEvent.ACTION_UP: меняем состояние только после завершённого тапа.
         if (action != 1) {
             return;
         }
-        if (!_state->mainPageController.handleTap(x, y)) {
+        if (!_state->mainPageController.HandleTap(x, y)) {
             return;
         }
         drawPage(*_state);

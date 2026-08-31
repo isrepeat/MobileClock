@@ -14,12 +14,12 @@ namespace mobileclock::renderer {
         NativeRenderer(const NativeRenderer&) = delete;
         NativeRenderer& operator=(const NativeRenderer&) = delete;
 
-        void setLogFile(JNIEnv* env, jstring javaLogFilePath);
-        void flushLogs();
-        void setAssetManager(JNIEnv* env, jobject javaAssetManager);
-        void surfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height);
-        void surfaceDestroyed();
-        void touch(jint action, jfloat x, jfloat y);
+        void SetLogFile(JNIEnv* env, jstring javaLogFilePath);
+        void FlushLogs();
+        void SetAssetManager(JNIEnv* env, jobject javaAssetManager);
+        void SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height);
+        void SurfaceDestroyed();
+        void Touch(jint action, jfloat x, jfloat y);
 
         // Публичен только для реализации в .cpp: скрывает EGL и GL-типы из .h.
         struct State;

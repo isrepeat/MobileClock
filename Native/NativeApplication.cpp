@@ -12,32 +12,32 @@ namespace mobileclock::native {
 
     NativeApplication::~NativeApplication() = default;
 
-    void NativeApplication::setLogFile(JNIEnv* env, jstring javaLogFilePath) {
-        _renderer->setLogFile(env, javaLogFilePath);
+    void NativeApplication::SetLogFile(JNIEnv* env, jstring javaLogFilePath) {
+        _renderer->SetLogFile(env, javaLogFilePath);
     }
 
-    void NativeApplication::flushLogs() {
-        LOG_FUNCTION_SCOPE("NativeApplication::flushLogs");
-        _renderer->flushLogs();
+    void NativeApplication::FlushLogs() {
+        LOG_FUNCTION_SCOPE("NativeApplication::FlushLogs");
+        _renderer->FlushLogs();
     }
 
-    void NativeApplication::setAssetManager(JNIEnv* env, jobject javaAssetManager) {
-        LOG_FUNCTION_SCOPE("NativeApplication::setAssetManager");
-        _renderer->setAssetManager(env, javaAssetManager);
+    void NativeApplication::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
+        LOG_FUNCTION_SCOPE("NativeApplication::SetAssetManager");
+        _renderer->SetAssetManager(env, javaAssetManager);
     }
 
-    void NativeApplication::surfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
-        LOG_FUNCTION_SCOPE("NativeApplication::surfaceChanged: {}x{}", width, height);
-        _renderer->surfaceChanged(env, androidSurface, width, height);
+    void NativeApplication::SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
+        LOG_FUNCTION_SCOPE("NativeApplication::SurfaceChanged: {}x{}", width, height);
+        _renderer->SurfaceChanged(env, androidSurface, width, height);
     }
 
-    void NativeApplication::surfaceDestroyed() {
-        LOG_FUNCTION_SCOPE("NativeApplication::surfaceDestroyed");
-        _renderer->surfaceDestroyed();
+    void NativeApplication::SurfaceDestroyed() {
+        LOG_FUNCTION_SCOPE("NativeApplication::SurfaceDestroyed");
+        _renderer->SurfaceDestroyed();
     }
 
-    void NativeApplication::touch(jint action, jfloat x, jfloat y) {
-        LOG_FUNCTION_SCOPE("NativeApplication::touch: action={}, x={}, y={}", action, x, y);
-        _renderer->touch(action, x, y);
+    void NativeApplication::Touch(jint action, jfloat x, jfloat y) {
+        LOG_FUNCTION_SCOPE("NativeApplication::Touch: action={}, x={}, y={}", action, x, y);
+        _renderer->Touch(action, x, y);
     }
 }

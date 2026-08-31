@@ -19,7 +19,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 Native/out/
-Native/ui/generated/
+Native/!Generated/
 
 # Создаются Scripts/setup-vs-android-intellisense.bat как hardlink на NDK.
 Native/cmake/vs-android-drivers/**/clang.exe

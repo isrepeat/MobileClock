@@ -14,39 +14,39 @@ namespace {
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSetLogFile(
     JNIEnv* env, jobject, jstring javaLogFilePath) {
-    nativeApplication().setLogFile(env, javaLogFilePath);
+    nativeApplication().SetLogFile(env, javaLogFilePath);
     LOG_FUNCTION_SCOPE("nativeSetLogFile");
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeFlushLogs(JNIEnv*, jobject) {
     LOG_FUNCTION_SCOPE("nativeFlushLogs");
-    nativeApplication().flushLogs();
+    nativeApplication().FlushLogs();
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSetAssetManager(
     JNIEnv* env, jobject, jobject javaAssetManager) {
     LOG_FUNCTION_SCOPE("nativeSetAssetManager");
-    nativeApplication().setAssetManager(env, javaAssetManager);
+    nativeApplication().SetAssetManager(env, javaAssetManager);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSurfaceChanged(
     JNIEnv* env, jobject, jobject androidSurface, jint width, jint height) {
     LOG_FUNCTION_SCOPE("nativeSurfaceChanged: {}x{}", width, height);
-    nativeApplication().surfaceChanged(env, androidSurface, width, height);
+    nativeApplication().SurfaceChanged(env, androidSurface, width, height);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSurfaceDestroyed(JNIEnv*, jobject) {
     LOG_FUNCTION_SCOPE("nativeSurfaceDestroyed");
-    nativeApplication().surfaceDestroyed();
+    nativeApplication().SurfaceDestroyed();
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeTouch(
     JNIEnv*, jobject, jint action, jfloat x, jfloat y) {
     LOG_FUNCTION_SCOPE("nativeTouch: action={}, x={}, y={}", action, x, y);
-    nativeApplication().touch(action, x, y);
+    nativeApplication().Touch(action, x, y);
 }

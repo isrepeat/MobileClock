@@ -13,10 +13,12 @@ string(REGEX REPLACE "^VERSION_NAME=([^\r\n]+)$" "\\1"
 if (NOT mobileclock_package_version)
     message(FATAL_ERROR "VERSION_NAME is missing in ${mobileclock_version_file}")
 endif()
-set(mobileclock_generated_include_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(MAKE_DIRECTORY "${mobileclock_generated_include_dir}")
+set(mobileclock_generated_root "${CMAKE_CURRENT_SOURCE_DIR}/!Generated")
+set(mobileclock_generated_build_dir "${mobileclock_generated_root}/Build")
+set(mobileclock_build_version_header "${mobileclock_generated_build_dir}/BuildVersion.h")
+file(MAKE_DIRECTORY "${mobileclock_generated_build_dir}")
 configure_file(BuildVersion.h.in
-    "${mobileclock_generated_include_dir}/BuildVersion.h" @ONLY)
+    "${mobileclock_build_version_header}" @ONLY)
 
 # В пресетах выбран target-specific драйвер NDK, например
 # x86_64-linux-android24-clang++.cmd. Поэтому и компилятор, и IntelliSense
@@ -72,7 +74,10 @@ file(GLOB mobileclock_xaml_source CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/UI/*.xaml"
 )
 file(GLOB mobileclock_xaml_generated CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/UI/generated/*.xaml.cpp"
+    "${mobileclock_generated_root}/Xaml/*.xaml.cpp"
+)
+file(GLOB mobileclock_xaml_generated_headers CONFIGURE_DEPENDS
+    "${mobileclock_generated_root}/Xaml/*.xaml.h"
 )
 file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
@@ -80,17 +85,24 @@ file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
 # Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
 # приложения показываем все её исходники и локальный ThirdParty/stb_truetype.h.
 list(FILTER mobileclock_header_files EXCLUDE REGEX "/UtilityHelpersLib/")
+# CMake-кэш и промежуточные результаты сборки не являются исходниками UI.
+list(FILTER mobileclock_header_files EXCLUDE REGEX "/out/")
 # Visual Studio может создавать локальный intellisense-probe; он не является
 # частью приложения и не должен попадать в CMake source groups или reconfigure.
 list(FILTER mobileclock_header_files EXCLUDE REGEX "/intellisense-probe/")
-if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated)
+if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated
+    OR NOT mobileclock_xaml_generated_headers)
     message(FATAL_ERROR
         "Generated XAML sources are missing. Run Scripts/PowerShell/build-android.ps1 first.")
 endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
 source_group("UI" FILES ${mobileclock_xaml_source})
-source_group("UI\\generated" FILES ${mobileclock_xaml_generated})
 source_group("Header Files" FILES ${mobileclock_header_files})
+source_group("!Generated\\Xaml" FILES
+    ${mobileclock_xaml_generated}
+    ${mobileclock_xaml_generated_headers}
+)
+source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 
 add_library(mobileclock SHARED
     main.cpp
@@ -101,11 +113,12 @@ add_library(mobileclock SHARED
     UI/MainPageController.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}
-    "${mobileclock_xaml_generated}"
+    ${mobileclock_xaml_generated}
+    ${mobileclock_xaml_generated_headers}
 )
 target_include_directories(mobileclock PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${mobileclock_generated_include_dir}"
+    "${mobileclock_generated_build_dir}"
 )
 # Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.
 set_target_properties(mobileclock PROPERTIES

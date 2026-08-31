@@ -5,11 +5,11 @@
 
 namespace mobileclock::ui {
     ButtonControl::ButtonControl(const Element& element)
-        : _bounds(element.bounds()), _foreground(element.foreground()), _text(element.text()) {
+        : _bounds(element.Bounds()), _foreground(element.Foreground()), _text(element.Text()) {
     }
 
-    bool ButtonControl::handleTap(float x, float y) {
-        LOG_FUNCTION_SCOPE("ButtonControl::handleTap: x={}, y={}", x, y);
+    bool ButtonControl::HandleTap(float x, float y) {
+        LOG_FUNCTION_SCOPE("ButtonControl::HandleTap: x={}, y={}", x, y);
         const bool tapped = x >= _bounds.x && x <= _bounds.x + _bounds.width
             && y >= _bounds.y && y <= _bounds.y + _bounds.height;
         if (!tapped) return false;
@@ -18,8 +18,8 @@ namespace mobileclock::ui {
         return true;
     }
 
-    void ButtonControl::render(mobileclock::renderer::ControlRenderer& renderer) const {
-        renderer.drawOutline(_bounds, _foreground);
-        renderer.drawText(_text, _foreground);
+    void ButtonControl::Render(mobileclock::renderer::ControlRenderer& renderer) const {
+        renderer.DrawOutline(_bounds, _foreground);
+        renderer.DrawText(_text, _foreground);
     }
 }

@@ -8,8 +8,8 @@ namespace mobileclock::ui {
     public:
         explicit ButtonControl(const Element& element);
 
-        bool handleTap(float x, float y) override;
-        void render(mobileclock::renderer::ControlRenderer& renderer) const override;
+        bool HandleTap(float x, float y) override;
+        void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
 
     private:
         Rect _bounds;

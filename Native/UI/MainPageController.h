@@ -9,10 +9,10 @@ namespace mobileclock::ui {
     class MainPageController {
     public:
         // Создаёт сгенерированное XAML-дерево и рассчитывает его расположение.
-        void initialize(Size availableSize);
+        void Initialize(Size availableSize);
         // Меняет UI-состояние только при попадании тапа в кнопку.
-        bool handleTap(float x, float y);
-        void render(mobileclock::renderer::ControlRenderer& renderer) const;
+        bool HandleTap(float x, float y);
+        void Render(mobileclock::renderer::ControlRenderer& renderer) const;
 
     private:
         std::unique_ptr<Element> _page;
