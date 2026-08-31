@@ -110,6 +110,9 @@ add_library(mobileclock SHARED
     Renderer/ControlRenderer.cpp
     Renderer/NativeRenderer.cpp
     Controls/ButtonControl.cpp
+    Controls/BorderControl.cpp
+    Controls/PageControl.cpp
+    Controls/ToggleSwitchControl.cpp
     UI/MainPageController.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}

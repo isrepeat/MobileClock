@@ -4,17 +4,18 @@
 #include "XamlRuntime/XamlLayout.h"
 
 namespace mobileclock::ui {
-    class ButtonControl final : public IControl {
+    class BorderControl final : public IControl {
     public:
-        explicit ButtonControl(const Element& element);
+        explicit BorderControl(const Element& element);
 
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
 
     private:
         Rect bounds;
-        attr::Color foreground;
-        std::string text;
-        bool isBlue = false;
+        attr::Color background;
+        attr::Color borderColor;
+        attr::Thickness borderThickness;
+        float cornerRadius;
     };
 }

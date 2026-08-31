@@ -15,7 +15,7 @@ namespace mobileclock::ui {
         void Render(mobileclock::renderer::ControlRenderer& renderer) const;
 
     private:
-        std::unique_ptr<Element> _page;
-        std::vector<std::unique_ptr<IControl>> _controls;
+        std::unique_ptr<Element> page;
+        std::vector<std::unique_ptr<IControl>> controls;
     };
 }

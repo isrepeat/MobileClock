@@ -4,17 +4,15 @@
 #include "XamlRuntime/XamlLayout.h"
 
 namespace mobileclock::ui {
-    class ButtonControl final : public IControl {
+    class ToggleSwitchControl final : public IControl {
     public:
-        explicit ButtonControl(const Element& element);
+        explicit ToggleSwitchControl(const Element& element);
 
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
 
     private:
         Rect bounds;
-        attr::Color foreground;
-        std::string text;
-        bool isBlue = false;
+        bool isOn;
     };
 }

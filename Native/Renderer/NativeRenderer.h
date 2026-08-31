@@ -8,6 +8,9 @@ namespace mobileclock::renderer {
     // Его жизненным циклом управляет NativeApplication, а не JNI-код.
     class NativeRenderer {
     public:
+        // Публичен только для реализации в .cpp: скрывает EGL и GL-типы из .h.
+        struct State;
+
         NativeRenderer();
         ~NativeRenderer();
 
@@ -21,10 +24,7 @@ namespace mobileclock::renderer {
         void SurfaceDestroyed();
         void Touch(jint action, jfloat x, jfloat y);
 
-        // Публичен только для реализации в .cpp: скрывает EGL и GL-типы из .h.
-        struct State;
-
     private:
-        std::unique_ptr<State> _state;
+        std::unique_ptr<State> state;
     };
 }

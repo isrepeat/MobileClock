@@ -8,6 +8,8 @@
 #include <jni.h>
 
 #include <cstdlib>
+#include <algorithm>
+#include <cmath>
 #include <string>
 
 #include <Helpers/platform/Android/Logging.h>
@@ -187,13 +189,15 @@ namespace {
     }
 
     void drawText(mobileclock::renderer::NativeRenderer::State& state, const char* text, int width, int height,
-        mobileclock::ui::Color color) {
+        mobileclock::ui::attr::Color color) {
         // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
         // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
         float textWidth = 0.0f;
         for (const char* character = text; *character != '\0'; ++character) {
             const int index = static_cast<unsigned char>(*character) - kFirstGlyph;
-            if (index >= 0 && index < kGlyphCount) textWidth += state.glyphs[index].xadvance;
+            if (index >= 0 && index < kGlyphCount) {
+                textWidth += state.glyphs[index].xadvance;
+            }
         }
 
         float cursorX = (width - textWidth) * 0.5f;
@@ -203,7 +207,9 @@ namespace {
         int vertexDataSize = 0;
         for (const char* character = text; *character != '\0'; ++character) {
             const int index = static_cast<unsigned char>(*character) - kFirstGlyph;
-            if (index < 0 || index >= kGlyphCount) continue;
+            if (index < 0 || index >= kGlyphCount) {
+                continue;
+            }
             stbtt_aligned_quad quad{};
             stbtt_GetBakedQuad(state.glyphs, kAtlasWidth, kAtlasHeight, index,
                 &cursorX, &cursorY, &quad, 1);
@@ -228,7 +234,7 @@ namespace {
     }
 
     void drawButtonOutline(mobileclock::renderer::NativeRenderer::State& state, const mobileclock::ui::Rect& bounds,
-        mobileclock::ui::Color color) {
+        mobileclock::ui::attr::Color color) {
         const float left = bounds.x * 2.0f / state.renderWidth - 1.0f;
         const float right = (bounds.x + bounds.width) * 2.0f / state.renderWidth - 1.0f;
         const float top = 1.0f - bounds.y * 2.0f / state.renderHeight;
@@ -246,6 +252,59 @@ namespace {
         glDrawArrays(GL_LINE_LOOP, 0, 4);
     }
 
+    void drawRoundedRect(mobileclock::renderer::NativeRenderer::State& state,
+        const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color, float cornerRadius) {
+        const float radius = std::min({cornerRadius, bounds.width / 2.0f, bounds.height / 2.0f});
+        constexpr int segmentsPerCorner = 8;
+        constexpr int vertexCount = 1 + segmentsPerCorner * 4 + 1;
+        float vertices[vertexCount * 2]{};
+        int offset = 0;
+        const auto appendPosition = [&state, &vertices, &offset](float x, float y) {
+            vertices[offset++] = x * 2.0f / state.renderWidth - 1.0f;
+            vertices[offset++] = 1.0f - y * 2.0f / state.renderHeight;
+        };
+
+        appendPosition(bounds.x + bounds.width / 2.0f, bounds.y + bounds.height / 2.0f);
+        const float centers[][2] = {
+            {bounds.x + bounds.width - radius, bounds.y + radius},
+            {bounds.x + bounds.width - radius, bounds.y + bounds.height - radius},
+            {bounds.x + radius, bounds.y + bounds.height - radius},
+            {bounds.x + radius, bounds.y + radius},
+        };
+        constexpr float kPi = 3.14159265358979323846f;
+        for (int corner = 0; corner < 4; ++corner) {
+            const float startAngle = -kPi / 2.0f + corner * kPi / 2.0f;
+            for (int segment = 0; segment < segmentsPerCorner; ++segment) {
+                const float angle = startAngle + segment * kPi / (2.0f * segmentsPerCorner);
+                appendPosition(centers[corner][0] + std::cos(angle) * radius,
+                    centers[corner][1] + std::sin(angle) * radius);
+            }
+        }
+        appendPosition(bounds.x + bounds.width - radius, bounds.y);
+
+        glUseProgram(state.solidProgram);
+        glUniform4f(glGetUniformLocation(state.solidProgram, "color"),
+            color.red, color.green, color.blue, color.alpha);
+        glBindBuffer(GL_ARRAY_BUFFER, state.vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, vertexCount);
+    }
+
+    void drawToggleSwitch(mobileclock::renderer::NativeRenderer::State& state,
+        const mobileclock::ui::Rect& bounds, bool isOn) {
+        const mobileclock::ui::attr::Color track = isOn
+            ? mobileclock::ui::attr::Color{0.17f, 0.48f, 0.94f, 1.0f}
+            : mobileclock::ui::attr::Color{0.34f, 0.34f, 0.36f, 1.0f};
+        drawRoundedRect(state, bounds, track, bounds.height / 2.0f);
+        const float inset = 4.0f;
+        const float thumbSize = bounds.height - inset * 2.0f;
+        const float thumbX = isOn ? bounds.x + bounds.width - inset - thumbSize : bounds.x + inset;
+        drawRoundedRect(state, {thumbX, bounds.y + inset, thumbSize, thumbSize},
+            {0.98f, 0.98f, 0.98f, 1.0f}, thumbSize / 2.0f);
+    }
+
     void drawPage(mobileclock::renderer::NativeRenderer::State& state) {
         glClear(GL_COLOR_BUFFER_BIT);
         if (state.fontTexture == 0 || state.controlRenderer == nullptr) {
@@ -260,18 +319,32 @@ namespace {
         state.controlRenderer.reset();
         if (state.display != EGL_NO_DISPLAY && state.context != EGL_NO_CONTEXT) {
             eglMakeCurrent(state.display, state.surface, state.surface, state.context);
-            if (state.fontTexture != 0) glDeleteTextures(1, &state.fontTexture);
-            if (state.vertexBuffer != 0) glDeleteBuffers(1, &state.vertexBuffer);
-            if (state.program != 0) glDeleteProgram(state.program);
-            if (state.solidProgram != 0) glDeleteProgram(state.solidProgram);
+            if (state.fontTexture != 0) {
+                glDeleteTextures(1, &state.fontTexture);
+            }
+            if (state.vertexBuffer != 0) {
+                glDeleteBuffers(1, &state.vertexBuffer);
+            }
+            if (state.program != 0) {
+                glDeleteProgram(state.program);
+            }
+            if (state.solidProgram != 0) {
+                glDeleteProgram(state.solidProgram);
+            }
             eglMakeCurrent(state.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         }
         if (state.display != EGL_NO_DISPLAY) {
-            if (state.context != EGL_NO_CONTEXT) eglDestroyContext(state.display, state.context);
-            if (state.surface != EGL_NO_SURFACE) eglDestroySurface(state.display, state.surface);
+            if (state.context != EGL_NO_CONTEXT) {
+                eglDestroyContext(state.display, state.context);
+            }
+            if (state.surface != EGL_NO_SURFACE) {
+                eglDestroySurface(state.display, state.surface);
+            }
             eglTerminate(state.display);
         }
-        if (state.window != nullptr) ANativeWindow_release(state.window);
+        if (state.window != nullptr) {
+            ANativeWindow_release(state.window);
+        }
         state.display = EGL_NO_DISPLAY;
         state.surface = EGL_NO_SURFACE;
         state.context = EGL_NO_CONTEXT;
@@ -287,7 +360,8 @@ namespace {
 // Этот файл владеет состоянием EGL/OpenGL ES и преобразует UI-модель в команды GL.
 // JNI и Android Activity lifecycle остаются за пределами renderer namespace.
 namespace mobileclock::renderer {
-    NativeRenderer::NativeRenderer() : _state(std::make_unique<State>()) {
+    NativeRenderer::NativeRenderer()
+        : state(std::make_unique<State>()) {
         // См. NativeApplication: до nativeSetLogFile логгер ещё не настроен.
     }
 
@@ -297,7 +371,9 @@ namespace mobileclock::renderer {
 
     void NativeRenderer::SetLogFile(JNIEnv* env, jstring javaLogFilePath) {
         const char* utf8Path = env->GetStringUTFChars(javaLogFilePath, nullptr);
-        if (utf8Path == nullptr) return;
+        if (utf8Path == nullptr) {
+            return;
+        }
         utility_helpers::android::configureLogFile(utf8Path);
         env->ReleaseStringUTFChars(javaLogFilePath, utf8Path);
     }
@@ -311,7 +387,7 @@ namespace mobileclock::renderer {
     void NativeRenderer::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
         LOG_FUNCTION_SCOPE("NativeRenderer::SetAssetManager");
         utility_helpers::android::initializeLogging("MobileClock");
-        _state->assetManager = AAssetManager_fromJava(env, javaAssetManager);
+        this->state->assetManager = AAssetManager_fromJava(env, javaAssetManager);
         LOG_INFO("Android AssetManager connected");
     }
 
@@ -319,7 +395,7 @@ namespace mobileclock::renderer {
         LOG_FUNCTION_SCOPE("NativeRenderer::SurfaceChanged: {}x{}", width, height);
         utility_helpers::android::initializeLogging("MobileClock");
         LOG_INFO("Surface changed: {}x{}", width, height);
-        State& state = *_state;
+        State& state = *this->state;
         destroyRenderer(state);
         state.window = ANativeWindow_fromSurface(env, androidSurface);
         state.display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -349,14 +425,20 @@ namespace mobileclock::renderer {
         // заполненные прямоугольники вокруг глифов.
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glClearColor(0.40f, 0.40f, 0.40f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         state.mainPageController.Initialize({static_cast<float>(width), static_cast<float>(height)});
         makeFontAtlas(state);
         state.controlRenderer = std::make_unique<ControlRenderer>(
-            [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::Color color) {
+            [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color) {
                 drawButtonOutline(state, bounds, color);
             },
-            [&state](std::string_view text, mobileclock::ui::Color color) {
+            [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color, float cornerRadius) {
+                drawRoundedRect(state, bounds, color, cornerRadius);
+            },
+            [&state](const mobileclock::ui::Rect& bounds, bool isOn) {
+                drawToggleSwitch(state, bounds, isOn);
+            },
+            [&state](std::string_view text, mobileclock::ui::attr::Color color) {
                 const std::string textCopy(text);
                 drawText(state, textCopy.c_str(), state.renderWidth, state.renderHeight, color);
             });
@@ -366,7 +448,7 @@ namespace mobileclock::renderer {
     void NativeRenderer::SurfaceDestroyed() {
         LOG_FUNCTION_SCOPE("NativeRenderer::SurfaceDestroyed");
         LOG_INFO("Surface destroyed");
-        destroyRenderer(*_state);
+        destroyRenderer(*this->state);
     }
 
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
@@ -375,9 +457,9 @@ namespace mobileclock::renderer {
         if (action != 1) {
             return;
         }
-        if (!_state->mainPageController.HandleTap(x, y)) {
+        if (!this->state->mainPageController.HandleTap(x, y)) {
             return;
         }
-        drawPage(*_state);
+        drawPage(*this->state);
     }
 }

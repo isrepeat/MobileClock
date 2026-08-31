@@ -25,6 +25,6 @@ namespace mobileclock::native {
         void Touch(jint action, jfloat x, jfloat y);
 
     private:
-        std::unique_ptr<mobileclock::renderer::NativeRenderer> _renderer;
+        std::unique_ptr<mobileclock::renderer::NativeRenderer> renderer;
     };
 }

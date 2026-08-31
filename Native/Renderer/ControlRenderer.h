@@ -9,16 +9,24 @@ namespace mobileclock::renderer {
     // Общий GPU-интерфейс, доступный всем controls во время одного кадра.
     class ControlRenderer {
     public:
-        using DrawOutlineCallback = std::function<void(const mobileclock::ui::Rect&, mobileclock::ui::Color)>;
-        using DrawTextCallback = std::function<void(std::string_view, mobileclock::ui::Color)>;
+        using DrawOutlineCallback = std::function<void(const mobileclock::ui::Rect&, mobileclock::ui::attr::Color)>;
+        using DrawRoundedRectCallback = std::function<void(const mobileclock::ui::Rect&, mobileclock::ui::attr::Color, float)>;
+        using DrawToggleSwitchCallback = std::function<void(const mobileclock::ui::Rect&, bool)>;
+        using DrawTextCallback = std::function<void(std::string_view, mobileclock::ui::attr::Color)>;
 
-        ControlRenderer(DrawOutlineCallback drawOutline, DrawTextCallback drawText);
+        ControlRenderer(DrawOutlineCallback drawOutline, DrawRoundedRectCallback drawRoundedRect,
+            DrawToggleSwitchCallback drawToggleSwitch, DrawTextCallback drawText);
 
-        void DrawOutline(const mobileclock::ui::Rect& bounds, mobileclock::ui::Color color) const;
-        void DrawText(std::string_view text, mobileclock::ui::Color color) const;
+        void DrawOutline(const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color) const;
+        void DrawRoundedRect(const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color,
+            float cornerRadius) const;
+        void DrawToggleSwitch(const mobileclock::ui::Rect& bounds, bool isOn) const;
+        void DrawText(std::string_view text, mobileclock::ui::attr::Color color) const;
 
     private:
-        DrawOutlineCallback _drawOutline;
-        DrawTextCallback _drawText;
+        DrawOutlineCallback drawOutline;
+        DrawRoundedRectCallback drawRoundedRect;
+        DrawToggleSwitchCallback drawToggleSwitch;
+        DrawTextCallback drawText;
     };
 }

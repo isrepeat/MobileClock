@@ -1,10 +1,17 @@
-<StackPanel Id="root"
-            Orientation="Vertical"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Spacing="12">
-    <Button Id="helloButton"
-            Text="Hello World"
-            FontSize="64"
-            Foreground="#FFE93B" />
-</StackPanel>
+<Page id="root"
+      background="#000000">
+    <StackPanel orientation="Vertical"
+                horizontalAlignment="Center"
+                verticalAlignment="Center">
+        <Border id="alarmCard"
+                width="360"
+                height="132"
+                margin="0 0 0 16"
+                background="#242424"
+                cornerRadius="28" />
+        <ToggleSwitch id="alarmEnabled"
+                      width="56"
+                      height="32"
+                      isOn="True" />
+    </StackPanel>
+</Page>
