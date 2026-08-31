@@ -1,7 +1,5 @@
 #include "Controls/PageControl.h"
 
-#include "Renderer/ControlRenderer.h"
-
 namespace mobileclock::ui {
     PageControl::PageControl(xaml::Element& element)
         : element(element) {
@@ -19,7 +17,7 @@ namespace mobileclock::ui {
     }
 
     void PageControl::Render(mobileclock::renderer::ControlRenderer& renderer) const {
-        renderer.DrawRoundedRect(this->element.Bounds(), this->element.Background(), 0.0f);
+        static_cast<void>(renderer);
     }
 
     xaml::Element& PageControl::ElementModel() {

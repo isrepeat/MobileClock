@@ -1,31 +1,32 @@
 // Android NDK: доступ к Surface, EGL/OpenGL ES и файлам из папки assets.
+#include <Helpers/platform/Android/Logging.h>
 #include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
 #include <android/native_window.h>
 #include <android/asset_manager.h>
 #include <android/input.h>
+#include <XamlRuntime/XamlLayout.h>
 #include <GLES3/gl3.h>
 #include <EGL/egl.h>
 #include <jni.h>
 
-#include <Helpers/platform/Android/Logging.h>
-
-#include "XamlRuntime/XamlLayout.h"
 #include "Renderer/ControlRenderer.h"
 #include "Renderer/NativeRenderer.h"
 #include "UI/MainPageViewModel.h"
-
-#include <algorithm>
-#include <string>
-#include <cstdlib>
-#include <cmath>
 
 // stb_truetype создаёт обычную текстуру-атлас глифов; рисование делает OpenGL ES.
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "ThirdParty/stb_truetype.h"
 
+#include <algorithm>
+#include <cstdlib>
+#include <cmath>
+#include <string>
+
 namespace mobileclock::renderer {
+    // State содержит весь ресурсный граф рендерера. Он живёт между кадрами,
+    // создаётся один раз вместе с NativeRenderer и очищается при смене Surface.
     struct NativeRenderer::State {
         EGLDisplay display = EGL_NO_DISPLAY;
         EGLSurface surface = EGL_NO_SURFACE;
@@ -94,6 +95,8 @@ namespace {
     }
 
     void makeProgram(mobileclock::renderer::NativeRenderer::State& state) {
+        // Для текста используется текстурный шейдер, для фонов и рамок —
+        // отдельный одноцветный шейдер. Оба используют один динамический VBO.
         const GLuint vertex = compileShader(GL_VERTEX_SHADER, kVertexShader);
         const GLuint fragment = compileShader(GL_FRAGMENT_SHADER, kFragmentShader);
         state.program = glCreateProgram();
@@ -116,14 +119,14 @@ namespace {
 
     bool makeFontAtlas(mobileclock::renderer::NativeRenderer::State& state) {
         if (state.assetManager == nullptr) {
-        LOG_ERROR("AssetManager was not passed from Kotlin");
+            LOG_ERROR("AssetManager was not passed from Kotlin");
             return false;
         }
 
         // TTF упакован в APK из app/src/main/assets. NDK читает его без файлового пути.
         AAsset* fontAsset = AAssetManager_open(state.assetManager, "Roboto-Regular.ttf", AASSET_MODE_BUFFER);
         if (fontAsset == nullptr) {
-        LOG_ERROR("Cannot open Roboto-Regular.ttf from assets");
+            LOG_ERROR("Cannot open Roboto-Regular.ttf from assets");
             return false;
         }
 
@@ -137,7 +140,7 @@ namespace {
         AAsset_close(fontAsset);
         if (bytesRead != static_cast<int>(fontSize)) {
             std::free(fontData);
-        LOG_ERROR("Cannot read Roboto-Regular.ttf");
+            LOG_ERROR("Cannot read Roboto-Regular.ttf");
             return false;
         }
 
@@ -149,20 +152,35 @@ namespace {
             return false;
         }
         const int bakeResult = stbtt_BakeFontBitmap(
-            fontData, 0, 64.0f, atlas, kAtlasWidth, kAtlasHeight,
-            kFirstGlyph, kGlyphCount, state.glyphs);
+            fontData,
+            0,
+            64.0f,
+            atlas,
+            kAtlasWidth,
+            kAtlasHeight,
+            kFirstGlyph,
+            kGlyphCount,
+            state.glyphs);
         std::free(fontData);
         if (bakeResult <= 0) {
             std::free(atlas);
-        LOG_ERROR("Font atlas is too small");
+            LOG_ERROR("Font atlas is too small");
             return false;
         }
 
         glGenTextures(1, &state.fontTexture);
         glBindTexture(GL_TEXTURE_2D, state.fontTexture);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, kAtlasWidth, kAtlasHeight, 0,
-            GL_RED, GL_UNSIGNED_BYTE, atlas);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_R8,
+            kAtlasWidth,
+            kAtlasHeight,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE,
+            atlas);
         std::free(atlas);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -171,8 +189,15 @@ namespace {
         return true;
     }
 
-    void appendVertex(float* vertices, int& offset, float pixelX, float pixelY,
-        float textureX, float textureY, int width, int height) {
+    void appendVertex(
+        float* vertices,
+        int& offset,
+        float pixelX,
+        float pixelY,
+        float textureX,
+        float textureY,
+        int width,
+        int height) {
         // stb использует пиксели от левого верхнего угла, OpenGL — NDC снизу слева.
         vertices[offset++] = pixelX * 2.0f / width - 1.0f;
         vertices[offset++] = 1.0f - pixelY * 2.0f / height;
@@ -180,8 +205,12 @@ namespace {
         vertices[offset++] = textureY;
     }
 
-    void appendQuad(float* vertices, int& offset, const stbtt_aligned_quad& quad,
-        int width, int height) {
+    void appendQuad(
+        float* vertices,
+        int& offset,
+        const stbtt_aligned_quad& quad,
+        int width,
+        int height) {
         appendVertex(vertices, offset, quad.x0, quad.y0, quad.s0, quad.t0, width, height);
         appendVertex(vertices, offset, quad.x1, quad.y0, quad.s1, quad.t0, width, height);
         appendVertex(vertices, offset, quad.x1, quad.y1, quad.s1, quad.t1, width, height);
@@ -190,8 +219,12 @@ namespace {
         appendVertex(vertices, offset, quad.x0, quad.y1, quad.s0, quad.t1, width, height);
     }
 
-    void drawText(mobileclock::renderer::NativeRenderer::State& state, const xaml::Rect& bounds,
-        const char* text, int width, xaml::attr::Color color) {
+    void drawText(
+        mobileclock::renderer::NativeRenderer::State& state,
+        const xaml::Rect& bounds,
+        const char* text,
+        int width,
+        xaml::attr::Color color) {
         // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
         // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
         float textWidth = 0.0f;
@@ -213,8 +246,15 @@ namespace {
                 continue;
             }
             stbtt_aligned_quad quad{};
-            stbtt_GetBakedQuad(state.glyphs, kAtlasWidth, kAtlasHeight, index,
-                &cursorX, &cursorY, &quad, 1);
+            stbtt_GetBakedQuad(
+                state.glyphs,
+                kAtlasWidth,
+                kAtlasHeight,
+                index,
+                &cursorX,
+                &cursorY,
+                &quad,
+                1);
             appendQuad(vertices, vertexDataSize, quad, width, state.renderHeight);
         }
 
@@ -222,20 +262,31 @@ namespace {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, state.fontTexture);
         glUniform1i(glGetUniformLocation(state.program, "fontAtlas"), 0);
-        glUniform4f(glGetUniformLocation(state.program, "textColor"),
-            color.red, color.green, color.blue, color.alpha);
+        glUniform4f(
+            glGetUniformLocation(state.program, "textColor"),
+            color.red,
+            color.green,
+            color.blue,
+            color.alpha);
 
         glBindBuffer(GL_ARRAY_BUFFER, state.vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, vertexDataSize * sizeof(float), vertices, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+        glVertexAttribPointer(
+            1,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            4 * sizeof(float),
             reinterpret_cast<void*>(2 * sizeof(float)));
         glDrawArrays(GL_TRIANGLES, 0, vertexDataSize / 4);
     }
 
-    void drawButtonOutline(mobileclock::renderer::NativeRenderer::State& state, const xaml::Rect& bounds,
+    void drawButtonOutline(
+        mobileclock::renderer::NativeRenderer::State& state,
+        const xaml::Rect& bounds,
         xaml::attr::Color color) {
         const float left = bounds.x * 2.0f / state.renderWidth - 1.0f;
         const float right = (bounds.x + bounds.width) * 2.0f / state.renderWidth - 1.0f;
@@ -244,8 +295,12 @@ namespace {
         const float vertices[] = {left, top, right, top, right, bottom, left, bottom};
 
         glUseProgram(state.solidProgram);
-        glUniform4f(glGetUniformLocation(state.solidProgram, "color"),
-            color.red, color.green, color.blue, color.alpha);
+        glUniform4f(
+            glGetUniformLocation(state.solidProgram, "color"),
+            color.red,
+            color.green,
+            color.blue,
+            color.alpha);
         glBindBuffer(GL_ARRAY_BUFFER, state.vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(0);
@@ -254,8 +309,13 @@ namespace {
         glDrawArrays(GL_LINE_LOOP, 0, 4);
     }
 
-    void drawRoundedRect(mobileclock::renderer::NativeRenderer::State& state,
-        const xaml::Rect& bounds, xaml::attr::Color color, float cornerRadius) {
+    void drawRoundedRect(
+        mobileclock::renderer::NativeRenderer::State& state,
+        const xaml::Rect& bounds,
+        xaml::attr::Color color,
+        float cornerRadius) {
+        // Веер треугольников: первая вершина в центре, остальные описывают
+        // контур четырёх скруглённых углов по часовой стрелке.
         const float radius = std::min({cornerRadius, bounds.width / 2.0f, bounds.height / 2.0f});
         constexpr int segmentsPerCorner = 8;
         constexpr int vertexCount = 1 + segmentsPerCorner * 4 + 1;
@@ -278,15 +338,20 @@ namespace {
             const float startAngle = -kPi / 2.0f + corner * kPi / 2.0f;
             for (int segment = 0; segment < segmentsPerCorner; ++segment) {
                 const float angle = startAngle + segment * kPi / (2.0f * segmentsPerCorner);
-                appendPosition(centers[corner][0] + std::cos(angle) * radius,
+                appendPosition(
+                    centers[corner][0] + std::cos(angle) * radius,
                     centers[corner][1] + std::sin(angle) * radius);
             }
         }
         appendPosition(bounds.x + bounds.width - radius, bounds.y);
 
         glUseProgram(state.solidProgram);
-        glUniform4f(glGetUniformLocation(state.solidProgram, "color"),
-            color.red, color.green, color.blue, color.alpha);
+        glUniform4f(
+            glGetUniformLocation(state.solidProgram, "color"),
+            color.red,
+            color.green,
+            color.blue,
+            color.alpha);
         glBindBuffer(GL_ARRAY_BUFFER, state.vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(0);
@@ -294,8 +359,59 @@ namespace {
         glDrawArrays(GL_TRIANGLE_FAN, 0, vertexCount);
     }
 
-    void drawToggleSwitch(mobileclock::renderer::NativeRenderer::State& state,
-        const xaml::Rect& bounds, bool isOn) {
+    void drawRoundedRectOutline(
+        mobileclock::renderer::NativeRenderer::State& state,
+        const xaml::Rect& bounds,
+        xaml::attr::Color color,
+        float cornerRadius,
+        float thickness) {
+        // В отличие от drawRoundedRect здесь нет центральной вершины: GL_LINE_LOOP
+        // рисует только контур. Это нужно для border без заданного background.
+        const float radius = std::min({cornerRadius, bounds.width / 2.0f, bounds.height / 2.0f});
+        constexpr int segmentsPerCorner = 8;
+        constexpr int vertexCount = segmentsPerCorner * 4;
+        float vertices[vertexCount * 2]{};
+        int offset = 0;
+        const auto appendPosition = [&state, &vertices, &offset](float x, float y) {
+            vertices[offset++] = x * 2.0f / state.renderWidth - 1.0f;
+            vertices[offset++] = 1.0f - y * 2.0f / state.renderHeight;
+        };
+        const float centers[][2] = {
+            {bounds.x + bounds.width - radius, bounds.y + radius},
+            {bounds.x + bounds.width - radius, bounds.y + bounds.height - radius},
+            {bounds.x + radius, bounds.y + bounds.height - radius},
+            {bounds.x + radius, bounds.y + radius},
+        };
+        constexpr float kPi = 3.14159265358979323846f;
+        for (int corner = 0; corner < 4; ++corner) {
+            const float startAngle = -kPi / 2.0f + corner * kPi / 2.0f;
+            for (int segment = 0; segment < segmentsPerCorner; ++segment) {
+                const float angle = startAngle + segment * kPi / (2.0f * segmentsPerCorner);
+                appendPosition(
+                    centers[corner][0] + std::cos(angle) * radius,
+                    centers[corner][1] + std::sin(angle) * radius);
+            }
+        }
+
+        glUseProgram(state.solidProgram);
+        glUniform4f(
+            glGetUniformLocation(state.solidProgram, "color"),
+            color.red,
+            color.green,
+            color.blue,
+            color.alpha);
+        glBindBuffer(GL_ARRAY_BUFFER, state.vertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+        glLineWidth(thickness);
+        glDrawArrays(GL_LINE_LOOP, 0, vertexCount);
+    }
+
+    void drawToggleSwitch(
+        mobileclock::renderer::NativeRenderer::State& state,
+        const xaml::Rect& bounds,
+        bool isOn) {
         const xaml::attr::Color track = isOn
             ? xaml::attr::Color{0.17f, 0.48f, 0.94f, 1.0f}
             : xaml::attr::Color{0.34f, 0.34f, 0.36f, 1.0f};
@@ -303,11 +419,16 @@ namespace {
         const float inset = 4.0f;
         const float thumbSize = bounds.height - inset * 2.0f;
         const float thumbX = isOn ? bounds.x + bounds.width - inset - thumbSize : bounds.x + inset;
-        drawRoundedRect(state, {thumbX, bounds.y + inset, thumbSize, thumbSize},
-            {0.98f, 0.98f, 0.98f, 1.0f}, thumbSize / 2.0f);
+        drawRoundedRect(
+            state,
+            {thumbX, bounds.y + inset, thumbSize, thumbSize},
+            {0.98f, 0.98f, 0.98f, 1.0f},
+            thumbSize / 2.0f);
     }
 
     void drawPage(mobileclock::renderer::NativeRenderer::State& state) {
+        // Один кадр: очистить буфер, обновить данные VM, отрисовать дерево
+        // контролов и показать готовый буфер через EGL.
         glClear(GL_COLOR_BUFFER_BIT);
         if (state.fontTexture == 0 || state.controlRenderer == nullptr) {
             return;
@@ -319,6 +440,7 @@ namespace {
 
     void destroyRenderer(mobileclock::renderer::NativeRenderer::State& state) {
         // Удаляем OpenGL-ресурсы, пока state.context ещё привязан к потоку.
+        // Затем освобождаем EGL и ANativeWindow в обратном порядке владения.
         state.controlRenderer.reset();
         if (state.display != EGL_NO_DISPLAY && state.context != EGL_NO_CONTEXT) {
             eglMakeCurrent(state.display, state.surface, state.surface, state.context);
@@ -402,6 +524,8 @@ namespace mobileclock::renderer {
         utility_helpers::android::initializeLogging("MobileClock");
         LOG_INFO("Surface changed: {}x{}", width, height);
         State& state = *this->state;
+        // Surface Android может быть пересоздан при повороте, сворачивании или
+        // возвращении в приложение; прежние EGL-ресурсы к нему больше не годятся.
         destroyRenderer(state);
         state.window = ANativeWindow_fromSurface(env, androidSurface);
         state.display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -422,6 +546,7 @@ namespace mobileclock::renderer {
         state.surface = eglCreateWindowSurface(state.display, config, state.window, nullptr);
         eglMakeCurrent(state.display, state.surface, state.surface, state.context);
 
+        // Размер viewport и layout совпадают с фактическим размером Android Surface.
         glViewport(0, 0, width, height);
         state.renderWidth = width;
         state.renderHeight = height;
@@ -435,16 +560,32 @@ namespace mobileclock::renderer {
         state.mainPageViewModel.Initialize({static_cast<float>(width), static_cast<float>(height)});
         makeFontAtlas(state);
         state.controlRenderer = std::make_unique<ControlRenderer>(
+            // ControlRenderer отделяет UI-контролы от деталей OpenGL: контрол
+            // передаёт прямоугольник и стиль, а callback строит GL-геометрию.
             [&state](const xaml::Rect& bounds, xaml::attr::Color color) {
                 drawButtonOutline(state, bounds, color);
             },
             [&state](const xaml::Rect& bounds, xaml::attr::Color color, float cornerRadius) {
                 drawRoundedRect(state, bounds, color, cornerRadius);
             },
+            [&state](
+                const xaml::Rect& bounds,
+                xaml::attr::Color color,
+                float cornerRadius,
+                float thickness) {
+                drawRoundedRectOutline(
+                    state,
+                    bounds,
+                    color,
+                    cornerRadius,
+                    thickness);
+            },
             [&state](const xaml::Rect& bounds, bool isOn) {
                 drawToggleSwitch(state, bounds, isOn);
             },
-            [&state](const xaml::Rect& bounds, std::string_view text,
+            [&state](
+                const xaml::Rect& bounds,
+                std::string_view text,
                 xaml::attr::Color color) {
                 const std::string textCopy(text);
                 drawText(state, bounds, textCopy.c_str(), state.renderWidth, color);

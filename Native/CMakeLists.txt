@@ -110,8 +110,10 @@ add_library(mobileclock SHARED
     Renderer/ControlRenderer.cpp
     Renderer/NativeRenderer.cpp
     Controls/ButtonControl.cpp
+    Controls/ControlChrome.cpp
     Controls/BorderControl.cpp
     Controls/PageControl.cpp
+    Controls/StackPanelControl.cpp
     Controls/TextBlockControl.cpp
     Controls/ToggleSwitchControl.cpp
     UI/MainPageViewModel.cpp

@@ -1,11 +1,13 @@
 #include "UI/MainPageViewModel.h"
 
 #include "!Generated/Xaml/MainPage.xaml.h"
+#include "Controls/ToggleSwitchControl.h"
+#include "Controls/StackPanelControl.h"
+#include "Controls/TextBlockControl.h"
+#include "Controls/ControlChrome.h"
 #include "Controls/BorderControl.h"
 #include "Controls/ButtonControl.h"
 #include "Controls/PageControl.h"
-#include "Controls/TextBlockControl.h"
-#include "Controls/ToggleSwitchControl.h"
 #include "Renderer/ControlRenderer.h"
 
 #include <Helpers/platform/Android/Logging.h>
@@ -25,6 +27,19 @@ namespace mobileclock::ui::_details {
 }
 
 namespace mobileclock::ui {
+    MainPageViewModel::Alarm::Alarm(std::string time, bool isEnabled)
+        : time(std::move(time))
+        , isEnabled(isEnabled) {
+    }
+
+    const std::string& MainPageViewModel::Alarm::Time() const {
+        return this->time;
+    }
+
+    bool MainPageViewModel::Alarm::IsEnabled() const {
+        return this->isEnabled;
+    }
+
     //
     // API
     //
@@ -52,6 +67,10 @@ namespace mobileclock::ui {
         this->NotifyPropertyChanged(Property::clockText);
     }
 
+    const std::vector<MainPageViewModel::Alarm>& MainPageViewModel::OtherAlarms() const {
+        return this->otherAlarms;
+    }
+
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
         LOG_FUNCTION_SCOPE("MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
         this->controls.clear();
@@ -62,6 +81,10 @@ namespace mobileclock::ui {
         const auto addControls = [this](xaml::Element& element, const auto& visit) -> void {
             if (element.Type() == xaml::ElementType::page) {
                 this->controls.push_back(std::make_unique<PageControl>(element));
+            } else if (element.Type() == xaml::ElementType::stackPanel
+                || element.Type() == xaml::ElementType::grid
+                || element.Type() == xaml::ElementType::listView) {
+                this->controls.push_back(std::make_unique<StackPanelControl>(element));
             } else if (element.Type() == xaml::ElementType::button) {
                 this->controls.push_back(std::make_unique<ButtonControl>(element));
             } else if (element.Type() == xaml::ElementType::border) {
@@ -81,6 +104,10 @@ namespace mobileclock::ui {
     void MainPageViewModel::HandleTouchDown(float x, float y) {
         this->capturedControl = nullptr;
         for (auto control = this->controls.rbegin(); control != this->controls.rend(); ++control) {
+            const xaml::Element& element = (*control)->ElementModel();
+            if (element.VisibilityValue() != xaml::attr::Visibility::visible || !element.IsEnabled()) {
+                continue;
+            }
             if ((*control)->HitTest(x, y)) {
                 this->capturedControl = control->get();
                 return;
@@ -127,6 +154,10 @@ namespace mobileclock::ui {
 
     void MainPageViewModel::Render(mobileclock::renderer::ControlRenderer& renderer) const {
         for (const auto& control : this->controls) {
+            if (control->ElementModel().VisibilityValue() != xaml::attr::Visibility::visible) {
+                continue;
+            }
+            RenderControlChrome(control->ElementModel(), renderer);
             control->Render(renderer);
         }
     }

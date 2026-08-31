@@ -15,6 +15,18 @@ namespace mobileclock::renderer {
 namespace mobileclock::ui {
     class MainPageViewModel final {
     public:
+        class Alarm final {
+        public:
+            Alarm(std::string time, bool isEnabled);
+
+            const std::string& Time() const;
+            bool IsEnabled() const;
+
+        private:
+            std::string time;
+            bool isEnabled = false;
+        };
+
         enum class Property {
             isAlarmEnabled,
             clockText,
@@ -33,6 +45,7 @@ namespace mobileclock::ui {
         void SetIsAlarmEnabled(bool value);
         const std::string& ClockText() const;
         void SetClockText(std::string value);
+        const std::vector<Alarm>& OtherAlarms() const;
 
         void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y);
@@ -48,6 +61,11 @@ namespace mobileclock::ui {
     private:
         bool isAlarmEnabled = true;
         std::string clockText;
+        const std::vector<Alarm> otherAlarms{
+            {"06:18", true},
+            {"06:30", true},
+            {"06:36", true},
+        };
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         std::vector<std::unique_ptr<IControl>> controls;

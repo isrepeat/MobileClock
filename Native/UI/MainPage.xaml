@@ -1,22 +1,102 @@
 <Page id="root"
-      background="#000000">
-    <TextBlock id="clock"
-               text="{Binding ClockText}"
-               fontSize="64"
-               foreground="#FFFFFF"
-               verticalAlignment="Top" />
-    <StackPanel orientation="Vertical"
-                verticalAlignment="Center"
-                horizontalAlignment="Center">
-        <Border id="alarmCard"
-                width="360"
-                height="132"
-                margin="0 0 0 16"
-                background="#242424"
-                cornerRadius="28" />
-        <ToggleSwitch id="alarmEnabled"
-                      width="300"
-                      height="180"
-                      isOn="{Binding IsAlarmEnabled, Mode=TwoWay}" />
+      borderBrush="#00FF00"
+      borderThickness="1"
+      background="#1A1A1A"
+      padding="24 4 24 24">
+    <StackPanel id="alarmPage"
+                borderBrush="#00BCD4"
+                borderThickness="1"
+                width="504"
+                orientation="Vertical"
+                verticalAlignment="Top">
+        <Grid id="pageHeader"
+                    borderBrush="#FF0000"
+                    borderThickness="1"
+                    width="504"
+                    height="90"
+                    margin="0 0 0 40">
+            <columnDefinitions>
+                <columnDefinition width="85%" />
+                <columnDefinition width="15%" />
+            </columnDefinitions>
+            <TextBlock id="settingsNavigation"
+                       text="..."
+                       fontSize="32"
+                       foreground="#D8D8D8"
+                       gridColumn="1"
+                       horizontalAlignment="Right" />
+        </Grid>
+        <TextBlock id="nextAlarmSummary"
+                   text="18:43"
+                   fontSize="40"
+                   foreground="#CFCFCF"
+                   margin="0 0 0 48" />
+        <TextBlock id="nextAlarmTitle"
+                   text="Ближайший"
+                   fontSize="24"
+                   foreground="#D8D8D8"
+                   margin="0 0 0 16" />
+        <Border id="nextAlarmCard"
+                width="504"
+                height="180"
+                background="#292929"
+                borderBrush="#FF9800"
+                borderThickness="1"
+                cornerRadius="28"
+                padding="28 28 28 28"
+                margin="0 0 0 48">
+            <StackPanel id="nextAlarmContent"
+                        orientation="Horizontal">
+                <StackPanel id="nextAlarmDetails"
+                            width="350"
+                            orientation="Vertical">
+                    <TextBlock id="nextAlarmTime"
+                               text="05:55"
+                               fontSize="64"
+                               foreground="#F5F5F5" />
+                    <TextBlock id="nextAlarmRepeat"
+                               text="Ежедневно"
+                               fontSize="24"
+                               foreground="#D8D8D8" />
+                </StackPanel>
+                <ToggleSwitch id="nextAlarmEnabled"
+                              width="84"
+                              height="48"
+                              isOn="True" />
+            </StackPanel>
+        </Border>
+        <TextBlock id="otherAlarmsTitle"
+                   text="Другие будильники"
+                   fontSize="24"
+                   foreground="#D8D8D8"
+                   margin="0 0 0 16" />
+        <ListView id="otherAlarms"
+                  width="504"
+                  itemsSource="{Binding OtherAlarms}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Border width="504"
+                            height="180"
+                            background="#292929"
+                            borderBrush="#03A9F4"
+                            borderThickness="1"
+                            cornerRadius="28"
+                            padding="28 28 28 28"
+                            margin="0 0 0 16">
+                        <StackPanel orientation="Horizontal">
+                            <StackPanel width="350"
+                                        orientation="Vertical">
+                                <TextBlock text="{Binding Time}"
+                                           fontSize="64"
+                                           foreground="#F5F5F5" />
+                            </StackPanel>
+                            <ToggleSwitch width="84"
+                                          height="48"
+                                          isOn="{Binding IsEnabled}" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
     </StackPanel>
 </Page>
