@@ -17,9 +17,6 @@ namespace mobileclock::renderer {
         ControlRenderer(DrawOutlineCallback drawOutline, DrawRoundedRectCallback drawRoundedRect,
             DrawToggleSwitchCallback drawToggleSwitch, DrawTextCallback drawText);
 
-        //
-        // API
-        //
         void DrawOutline(const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color) const;
         void DrawRoundedRect(const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color,
             float cornerRadius) const;

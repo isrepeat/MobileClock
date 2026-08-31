@@ -13,9 +13,6 @@ namespace mobileclock::ui {
         using PropertyChangedHandler = std::function<void(std::string_view)>;
         using Unsubscribe = std::function<void()>;
 
-        //
-        // API
-        //
         virtual ~IViewModel() = default;
 
         virtual IViewModelValue GetValue(std::string_view path) const = 0;

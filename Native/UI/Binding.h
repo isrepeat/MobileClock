@@ -14,16 +14,10 @@ namespace mobileclock::ui {
         BindingCollection(const BindingCollection&) = delete;
         BindingCollection& operator=(const BindingCollection&) = delete;
 
-        //
-        // API
-        //
         void Connect(Element& root, IViewModel& viewModel);
         void UpdateSource(Element& element, IViewModel& viewModel) const;
 
     private:
-        //
-        // Internal
-        //
         void ConnectTree(Element& element, IViewModel& viewModel);
         void ConnectElement(Element& element, IViewModel& viewModel);
         static void Apply(Element& element, const attr::Binding& binding, const IViewModelValue& value);

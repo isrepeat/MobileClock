@@ -17,9 +17,6 @@ namespace mobileclock::native {
         NativeApplication(const NativeApplication&) = delete;
         NativeApplication& operator=(const NativeApplication&) = delete;
 
-        //
-        // API
-        //
         void SetLogFile(JNIEnv* env, jstring javaLogFilePath);
         void FlushLogs();
         void SetAssetManager(JNIEnv* env, jobject javaAssetManager);
