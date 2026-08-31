@@ -13,7 +13,7 @@
 #include "XamlRuntime/XamlLayout.h"
 #include "Renderer/ControlRenderer.h"
 #include "Renderer/NativeRenderer.h"
-#include "UI/MainPageController.h"
+#include "UI/MainPageViewModel.h"
 
 #include <algorithm>
 #include <string>
@@ -37,7 +37,7 @@ namespace mobileclock::renderer {
         GLuint vertexBuffer = 0;
         GLuint fontTexture = 0;
         stbtt_bakedchar glyphs[96]{};
-        mobileclock::ui::MainPageController mainPageController;
+        mobileclock::ui::MainPageViewModel mainPageViewModel;
         std::unique_ptr<ControlRenderer> controlRenderer;
         int renderWidth = 0;
         int renderHeight = 0;
@@ -190,8 +190,8 @@ namespace {
         appendVertex(vertices, offset, quad.x0, quad.y1, quad.s0, quad.t1, width, height);
     }
 
-    void drawText(mobileclock::renderer::NativeRenderer::State& state, const char* text, int width, int height,
-        mobileclock::ui::attr::Color color) {
+    void drawText(mobileclock::renderer::NativeRenderer::State& state, const mobileclock::ui::Rect& bounds,
+        const char* text, int width, mobileclock::ui::attr::Color color) {
         // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
         // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
         float textWidth = 0.0f;
@@ -202,8 +202,8 @@ namespace {
             }
         }
 
-        float cursorX = (width - textWidth) * 0.5f;
-        float cursorY = height * 0.5f + 22.0f; // Baseline текста.
+        float cursorX = bounds.x + (bounds.width - textWidth) * 0.5f;
+        float cursorY = bounds.y + (bounds.height + 64.0f) * 0.5f; // Baseline текста.
         // До 256 ASCII-символов по 6 вершин × 4 числа; для демо этого достаточно.
         float vertices[256 * 6 * 4]{};
         int vertexDataSize = 0;
@@ -215,7 +215,7 @@ namespace {
             stbtt_aligned_quad quad{};
             stbtt_GetBakedQuad(state.glyphs, kAtlasWidth, kAtlasHeight, index,
                 &cursorX, &cursorY, &quad, 1);
-            appendQuad(vertices, vertexDataSize, quad, width, height);
+            appendQuad(vertices, vertexDataSize, quad, width, state.renderHeight);
         }
 
         glUseProgram(state.program);
@@ -312,7 +312,8 @@ namespace {
         if (state.fontTexture == 0 || state.controlRenderer == nullptr) {
             return;
         }
-        state.mainPageController.Render(*state.controlRenderer);
+        state.mainPageViewModel.UpdateClock();
+        state.mainPageViewModel.Render(*state.controlRenderer);
         eglSwapBuffers(state.display, state.surface);
     }
 
@@ -371,6 +372,9 @@ namespace mobileclock::renderer {
         SurfaceDestroyed();
     }
 
+    //
+    // API
+    //
     void NativeRenderer::SetLogFile(JNIEnv* env, jstring javaLogFilePath) {
         const char* utf8Path = env->GetStringUTFChars(javaLogFilePath, nullptr);
         if (utf8Path == nullptr) {
@@ -428,7 +432,7 @@ namespace mobileclock::renderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        state.mainPageController.Initialize({static_cast<float>(width), static_cast<float>(height)});
+        state.mainPageViewModel.Initialize({static_cast<float>(width), static_cast<float>(height)});
         makeFontAtlas(state);
         state.controlRenderer = std::make_unique<ControlRenderer>(
             [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color) {
@@ -440,9 +444,10 @@ namespace mobileclock::renderer {
             [&state](const mobileclock::ui::Rect& bounds, bool isOn) {
                 drawToggleSwitch(state, bounds, isOn);
             },
-            [&state](std::string_view text, mobileclock::ui::attr::Color color) {
+            [&state](const mobileclock::ui::Rect& bounds, std::string_view text,
+                mobileclock::ui::attr::Color color) {
                 const std::string textCopy(text);
-                drawText(state, textCopy.c_str(), state.renderWidth, state.renderHeight, color);
+                drawText(state, bounds, textCopy.c_str(), state.renderWidth, color);
             });
         drawPage(state);
     }
@@ -458,17 +463,24 @@ namespace mobileclock::renderer {
         // Контрол захватывается на ACTION_DOWN: жест, начавшийся вне него,
         // не может активировать его при ACTION_UP.
         if (action == AMOTION_EVENT_ACTION_DOWN) {
-            this->state->mainPageController.HandleTouchDown(x, y);
+            this->state->mainPageViewModel.HandleTouchDown(x, y);
             return;
         }
         if (action == AMOTION_EVENT_ACTION_CANCEL) {
-            this->state->mainPageController.CancelTouch();
+            this->state->mainPageViewModel.CancelTouch();
             return;
         }
         if (action != AMOTION_EVENT_ACTION_UP) {
             return;
         }
-        if (!this->state->mainPageController.HandleTouchUp(x, y)) {
+        if (!this->state->mainPageViewModel.HandleTouchUp(x, y)) {
+            return;
+        }
+        drawPage(*this->state);
+    }
+
+    void NativeRenderer::Render() {
+        if (this->state->display == EGL_NO_DISPLAY || this->state->surface == EGL_NO_SURFACE) {
             return;
         }
         drawPage(*this->state);

@@ -6,17 +6,17 @@
 namespace mobileclock::ui {
     class BorderControl final : public IControl {
     public:
-        explicit BorderControl(const Element& element);
+        explicit BorderControl(Element& element);
 
+        //
+        // IControl
+        //
         bool HitTest(float x, float y) const override;
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
+        Element& ElementModel() override;
 
     private:
-        Rect bounds;
-        attr::Color background;
-        attr::Color borderColor;
-        attr::Thickness borderThickness;
-        float cornerRadius;
+        Element& element;
     };
 }

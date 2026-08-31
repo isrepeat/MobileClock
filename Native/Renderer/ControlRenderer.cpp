@@ -9,6 +9,9 @@ namespace mobileclock::renderer {
         , drawText(std::move(drawText)) {
     }
 
+    //
+    // API
+    //
     void ControlRenderer::DrawRoundedRect(const mobileclock::ui::Rect& bounds,
         mobileclock::ui::attr::Color color, float cornerRadius) const {
         this->drawRoundedRect(bounds, color, cornerRadius);
@@ -23,7 +26,8 @@ namespace mobileclock::renderer {
         this->drawOutline(bounds, color);
     }
 
-    void ControlRenderer::DrawText(std::string_view text, mobileclock::ui::attr::Color color) const {
-        this->drawText(text, color);
+    void ControlRenderer::DrawText(const mobileclock::ui::Rect& bounds, std::string_view text,
+        mobileclock::ui::attr::Color color) const {
+        this->drawText(bounds, text, color);
     }
 }

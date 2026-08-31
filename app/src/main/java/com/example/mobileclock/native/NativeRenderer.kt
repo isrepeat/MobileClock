@@ -31,6 +31,10 @@ object NativeRenderer {
         nativeTouch(action, x, y)
     }
 
+    fun render() {
+        nativeRender()
+    }
+
     fun flushLogs() {
         nativeFlushLogs()
     }
@@ -47,4 +51,5 @@ object NativeRenderer {
     private external fun nativeFlushLogs()
     private external fun nativeSurfaceDestroyed()
     private external fun nativeTouch(action: Int, x: Float, y: Float)
+    private external fun nativeRender()
 }

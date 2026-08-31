@@ -6,16 +6,18 @@
 namespace mobileclock::ui {
     class ButtonControl final : public IControl {
     public:
-        explicit ButtonControl(const Element& element);
+        explicit ButtonControl(Element& element);
 
+        //
+        // IControl
+        //
         bool HitTest(float x, float y) const override;
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
+        Element& ElementModel() override;
 
     private:
-        Rect bounds;
-        attr::Color foreground;
-        std::string text;
+        Element& element;
         bool isBlue = false;
     };
 }

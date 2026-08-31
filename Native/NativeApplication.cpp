@@ -12,6 +12,9 @@ namespace mobileclock::native {
 
     NativeApplication::~NativeApplication() = default;
 
+    //
+    // API
+    //
     void NativeApplication::SetLogFile(JNIEnv* env, jstring javaLogFilePath) {
         this->renderer->SetLogFile(env, javaLogFilePath);
     }
@@ -39,5 +42,9 @@ namespace mobileclock::native {
     void NativeApplication::Touch(jint action, jfloat x, jfloat y) {
         LOG_FUNCTION_SCOPE("NativeApplication::Touch: action={}, x={}, y={}", action, x, y);
         this->renderer->Touch(action, x, y);
+    }
+
+    void NativeApplication::Render() {
+        this->renderer->Render();
     }
 }

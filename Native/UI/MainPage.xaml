@@ -1,5 +1,10 @@
 <Page id="root"
       background="#000000">
+    <TextBlock id="clock"
+               text="{Binding ClockText}"
+               fontSize="64"
+               foreground="#FFFFFF"
+               verticalAlignment="Top" />
     <StackPanel orientation="Vertical"
                 verticalAlignment="Center"
                 horizontalAlignment="Center">
@@ -12,6 +17,6 @@
         <ToggleSwitch id="alarmEnabled"
                       width="300"
                       height="180"
-                      isOn="True" />
+                      isOn="{Binding IsAlarmEnabled, Mode=TwoWay}" />
     </StackPanel>
 </Page>

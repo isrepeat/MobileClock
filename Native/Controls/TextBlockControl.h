@@ -4,9 +4,9 @@
 #include "XamlRuntime/XamlLayout.h"
 
 namespace mobileclock::ui {
-    class ToggleSwitchControl final : public IControl {
+    class TextBlockControl final : public IControl {
     public:
-        explicit ToggleSwitchControl(Element& element);
+        explicit TextBlockControl(Element& element);
 
         //
         // IControl

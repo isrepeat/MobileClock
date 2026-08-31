@@ -6,14 +6,17 @@
 namespace mobileclock::ui {
     class PageControl final : public IControl {
     public:
-        explicit PageControl(const Element& element);
+        explicit PageControl(Element& element);
 
+        //
+        // IControl
+        //
         bool HitTest(float x, float y) const override;
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
+        Element& ElementModel() override;
 
     private:
-        Rect bounds;
-        attr::Color background;
+        Element& element;
     };
 }

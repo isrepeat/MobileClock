@@ -50,3 +50,8 @@ Java_com_example_mobileclock_native_NativeRenderer_nativeTouch(
     LOG_FUNCTION_SCOPE("nativeTouch: action={}, x={}, y={}", action, x, y);
     nativeApplication().Touch(action, x, y);
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_native_NativeRenderer_nativeRender(JNIEnv*, jobject) {
+    nativeApplication().Render();
+}

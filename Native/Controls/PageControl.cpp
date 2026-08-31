@@ -3,11 +3,13 @@
 #include "Renderer/ControlRenderer.h"
 
 namespace mobileclock::ui {
-    PageControl::PageControl(const Element& element)
-        : bounds(element.Bounds())
-        , background(element.Background()) {
+    PageControl::PageControl(Element& element)
+        : element(element) {
     }
 
+    //
+    // IControl
+    //
     bool PageControl::HitTest(float x, float y) const {
         return false;
     }
@@ -17,6 +19,10 @@ namespace mobileclock::ui {
     }
 
     void PageControl::Render(mobileclock::renderer::ControlRenderer& renderer) const {
-        renderer.DrawRoundedRect(this->bounds, this->background, 0.0f);
+        renderer.DrawRoundedRect(this->element.Bounds(), this->element.Background(), 0.0f);
+    }
+
+    Element& PageControl::ElementModel() {
+        return this->element;
     }
 }

@@ -4,15 +4,17 @@
 #include <Helpers/platform/Android/Logging.h>
 
 namespace mobileclock::ui {
-    ButtonControl::ButtonControl(const Element& element)
-        : bounds(element.Bounds())
-        , foreground(element.Foreground())
-        , text(element.Text()) {
+    ButtonControl::ButtonControl(Element& element)
+        : element(element) {
     }
 
+    //
+    // IControl
+    //
     bool ButtonControl::HitTest(float x, float y) const {
-        return x >= this->bounds.x && x <= this->bounds.x + this->bounds.width
-            && y >= this->bounds.y && y <= this->bounds.y + this->bounds.height;
+        const Rect bounds = this->element.Bounds();
+        return x >= bounds.x && x <= bounds.x + bounds.width
+            && y >= bounds.y && y <= bounds.y + bounds.height;
     }
 
     bool ButtonControl::HandleTap(float x, float y) {
@@ -21,12 +23,18 @@ namespace mobileclock::ui {
             return false;
         }
         this->isBlue = !this->isBlue;
-        this->foreground = this->isBlue ? attr::Color{0.2f, 0.65f, 1.0f, 1.0f} : attr::Color{1.0f, 0.91f, 0.23f, 1.0f};
+        this->element.SetForeground(this->isBlue
+            ? attr::Color{0.2f, 0.65f, 1.0f, 1.0f}
+            : attr::Color{1.0f, 0.91f, 0.23f, 1.0f});
         return true;
     }
 
     void ButtonControl::Render(mobileclock::renderer::ControlRenderer& renderer) const {
-        renderer.DrawOutline(this->bounds, this->foreground);
-        renderer.DrawText(this->text, this->foreground);
+        renderer.DrawOutline(this->element.Bounds(), this->element.Foreground());
+        renderer.DrawText(this->element.Bounds(), this->element.Text(), this->element.Foreground());
+    }
+
+    Element& ButtonControl::ElementModel() {
+        return this->element;
     }
 }

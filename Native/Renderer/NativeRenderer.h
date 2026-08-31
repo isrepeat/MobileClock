@@ -17,12 +17,16 @@ namespace mobileclock::renderer {
         NativeRenderer(const NativeRenderer&) = delete;
         NativeRenderer& operator=(const NativeRenderer&) = delete;
 
+        //
+        // API
+        //
         void SetLogFile(JNIEnv* env, jstring javaLogFilePath);
         void FlushLogs();
         void SetAssetManager(JNIEnv* env, jobject javaAssetManager);
         void SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height);
         void SurfaceDestroyed();
         void Touch(jint action, jfloat x, jfloat y);
+        void Render();
 
     private:
         std::unique_ptr<State> state;
