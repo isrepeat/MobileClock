@@ -3,7 +3,7 @@
 #include "Renderer/ControlRenderer.h"
 
 namespace mobileclock::ui {
-    ToggleSwitchControl::ToggleSwitchControl(Element& element)
+    ToggleSwitchControl::ToggleSwitchControl(xaml::Element& element)
         : element(element) {
     }
 
@@ -11,7 +11,7 @@ namespace mobileclock::ui {
     // IControl
     //
     bool ToggleSwitchControl::HitTest(float x, float y) const {
-        const Rect bounds = this->element.Bounds();
+        const xaml::Rect bounds = this->element.Bounds();
         return x >= bounds.x && x <= bounds.x + bounds.width
             && y >= bounds.y && y <= bounds.y + bounds.height;
     }
@@ -28,7 +28,7 @@ namespace mobileclock::ui {
         renderer.DrawToggleSwitch(this->element.Bounds(), this->element.IsOn());
     }
 
-    Element& ToggleSwitchControl::ElementModel() {
+    xaml::Element& ToggleSwitchControl::ElementModel() {
         return this->element;
     }
 }

@@ -114,7 +114,6 @@ add_library(mobileclock SHARED
     Controls/PageControl.cpp
     Controls/TextBlockControl.cpp
     Controls/ToggleSwitchControl.cpp
-    UI/Binding.cpp
     UI/MainPageViewModel.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}

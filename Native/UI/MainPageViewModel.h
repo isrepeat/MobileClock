@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Interfaces/IControl.h"
-#include "UI/Binding.h"
-#include "UI/IViewModel.h"
 #include "XamlRuntime/XamlLayout.h"
+#include "XamlRuntime/Binding.h"
+#include "Interfaces/IControl.h"
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -13,45 +13,45 @@ namespace mobileclock::renderer {
 }
 
 namespace mobileclock::ui {
-    class MainPageViewModel final : public IViewModel {
+    class MainPageViewModel final {
     public:
+        enum class Property {
+            isAlarmEnabled,
+            clockText,
+        };
+
+        using PropertyChangedHandler = std::function<void(Property)>;
+        using Unsubscribe = std::function<void()>;
+
         MainPageViewModel() = default;
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
         MainPageViewModel& operator=(const MainPageViewModel&) = delete;
 
-    private:
-        //
-        // IViewModel
-        //
-        IViewModelValue GetValue(std::string_view path) const override;
-        void SetValue(std::string_view path, IViewModelValue value) override;
-        Unsubscribe Subscribe(PropertyChangedHandler handler) override;
-
-    public:
         bool IsAlarmEnabled() const;
         void SetIsAlarmEnabled(bool value);
         const std::string& ClockText() const;
         void SetClockText(std::string value);
 
-        void Initialize(Size availableSize);
+        void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y);
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
         void UpdateClock();
         void Render(mobileclock::renderer::ControlRenderer& renderer) const;
+        Unsubscribe Subscribe(PropertyChangedHandler handler);
 
     private:
-        void NotifyPropertyChanged(std::string_view path);
+        void NotifyPropertyChanged(Property property);
 
     private:
         bool isAlarmEnabled = true;
         std::string clockText;
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
-        std::unique_ptr<Element> page;
+        std::unique_ptr<xaml::Element> page;
         std::vector<std::unique_ptr<IControl>> controls;
-        BindingCollection bindings;
+        xaml::BindingScope bindings;
         IControl* capturedControl = nullptr;
     };
 }

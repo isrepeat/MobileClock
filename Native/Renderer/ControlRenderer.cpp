@@ -12,22 +12,22 @@ namespace mobileclock::renderer {
     //
     // API
     //
-    void ControlRenderer::DrawRoundedRect(const mobileclock::ui::Rect& bounds,
-        mobileclock::ui::attr::Color color, float cornerRadius) const {
+    void ControlRenderer::DrawRoundedRect(const xaml::Rect& bounds,
+        xaml::attr::Color color, float cornerRadius) const {
         this->drawRoundedRect(bounds, color, cornerRadius);
     }
 
-    void ControlRenderer::DrawToggleSwitch(const mobileclock::ui::Rect& bounds, bool isOn) const {
+    void ControlRenderer::DrawToggleSwitch(const xaml::Rect& bounds, bool isOn) const {
         this->drawToggleSwitch(bounds, isOn);
     }
 
-    void ControlRenderer::DrawOutline(const mobileclock::ui::Rect& bounds,
-        mobileclock::ui::attr::Color color) const {
+    void ControlRenderer::DrawOutline(const xaml::Rect& bounds,
+        xaml::attr::Color color) const {
         this->drawOutline(bounds, color);
     }
 
-    void ControlRenderer::DrawText(const mobileclock::ui::Rect& bounds, std::string_view text,
-        mobileclock::ui::attr::Color color) const {
+    void ControlRenderer::DrawText(const xaml::Rect& bounds, std::string_view text,
+        xaml::attr::Color color) const {
         this->drawText(bounds, text, color);
     }
 }

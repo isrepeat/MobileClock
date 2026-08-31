@@ -5,7 +5,7 @@
 #include <algorithm>
 
 namespace mobileclock::ui {
-    BorderControl::BorderControl(Element& element)
+    BorderControl::BorderControl(xaml::Element& element)
         : element(element) {
     }
 
@@ -13,7 +13,7 @@ namespace mobileclock::ui {
     // IControl
     //
     bool BorderControl::HitTest(float x, float y) const {
-        const Rect bounds = this->element.Bounds();
+        const xaml::Rect bounds = this->element.Bounds();
         return x >= bounds.x && x <= bounds.x + bounds.width
             && y >= bounds.y && y <= bounds.y + bounds.height;
     }
@@ -23,16 +23,16 @@ namespace mobileclock::ui {
     }
 
     void BorderControl::Render(mobileclock::renderer::ControlRenderer& renderer) const {
-        const attr::Thickness borderThickness = this->element.BorderThickness();
+        const xaml::attr::Thickness borderThickness = this->element.BorderThickness();
         const bool hasBorder = borderThickness.left > 0.0f || borderThickness.right > 0.0f
             || borderThickness.top > 0.0f || borderThickness.bottom > 0.0f;
         if (!hasBorder) {
             renderer.DrawRoundedRect(this->element.Bounds(), this->element.Background(), this->element.CornerRadius());
             return;
         }
-        const Rect bounds = this->element.Bounds();
+        const xaml::Rect bounds = this->element.Bounds();
         renderer.DrawRoundedRect(bounds, this->element.BorderColor(), this->element.CornerRadius());
-        const Rect innerBounds{
+        const xaml::Rect innerBounds{
             bounds.x + borderThickness.left,
             bounds.y + borderThickness.top,
             bounds.width - borderThickness.left - borderThickness.right,
@@ -47,7 +47,7 @@ namespace mobileclock::ui {
         renderer.DrawRoundedRect(innerBounds, this->element.Background(), std::max(0.0f, innerRadius));
     }
 
-    Element& BorderControl::ElementModel() {
+    xaml::Element& BorderControl::ElementModel() {
         return this->element;
     }
 }

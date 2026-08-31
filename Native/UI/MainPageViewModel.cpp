@@ -11,43 +11,20 @@
 #include <Helpers/platform/Android/Logging.h>
 
 #include <algorithm>
-#include <ctime>
 #include <stdexcept>
+#include <ctime>
+
+namespace mobileclock::ui::_details {
+    bool TryGetLocalTime(std::time_t value, std::tm& result) {
+#if defined(_WIN32)
+        return localtime_s(&result, &value) == 0;
+#else
+        return localtime_r(&value, &result) != nullptr;
+#endif
+    }
+}
 
 namespace mobileclock::ui {
-    //
-    // IViewModel
-    //
-    IViewModelValue MainPageViewModel::GetValue(std::string_view path) const {
-        if (path == "IsAlarmEnabled") {
-            return this->IsAlarmEnabled();
-        }
-        if (path == "ClockText") {
-            return this->ClockText();
-        }
-        throw std::invalid_argument("Unknown MainPageViewModel property: " + std::string(path));
-    }
-
-    void MainPageViewModel::SetValue(std::string_view path, IViewModelValue value) {
-        if (path == "IsAlarmEnabled") {
-            this->SetIsAlarmEnabled(std::get<bool>(value));
-            return;
-        }
-        if (path == "ClockText") {
-            this->SetClockText(std::get<std::string>(std::move(value)));
-            return;
-        }
-        throw std::invalid_argument("Unknown MainPageViewModel property: " + std::string(path));
-    }
-
-    IViewModel::Unsubscribe MainPageViewModel::Subscribe(PropertyChangedHandler handler) {
-        this->propertyChangedHandlers.push_back(std::move(handler));
-        const size_t index = this->propertyChangedHandlers.size() - 1;
-        return [this, index]() {
-            this->propertyChangedHandlers[index] = nullptr;
-        };
-    }
-
     //
     // API
     //
@@ -60,7 +37,7 @@ namespace mobileclock::ui {
             return;
         }
         this->isAlarmEnabled = value;
-        this->NotifyPropertyChanged("IsAlarmEnabled");
+        this->NotifyPropertyChanged(Property::isAlarmEnabled);
     }
 
     const std::string& MainPageViewModel::ClockText() const {
@@ -72,26 +49,26 @@ namespace mobileclock::ui {
             return;
         }
         this->clockText = std::move(value);
-        this->NotifyPropertyChanged("ClockText");
+        this->NotifyPropertyChanged(Property::clockText);
     }
 
-    void MainPageViewModel::Initialize(Size availableSize) {
+    void MainPageViewModel::Initialize(xaml::Size availableSize) {
         LOG_FUNCTION_SCOPE("MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
-        this->page = generated::MainPage::Create();
         this->controls.clear();
         this->capturedControl = nullptr;
-        this->bindings.Connect(*this->page, *this);
-        layout(*this->page, availableSize);
-        const auto addControls = [this](Element& element, const auto& visit) -> void {
-            if (element.Type() == ElementType::page) {
+        this->bindings.Clear();
+        this->page = xaml::generated::MainPage::Create(*this, this->bindings);
+        xaml::layout(*this->page, availableSize);
+        const auto addControls = [this](xaml::Element& element, const auto& visit) -> void {
+            if (element.Type() == xaml::ElementType::page) {
                 this->controls.push_back(std::make_unique<PageControl>(element));
-            } else if (element.Type() == ElementType::button) {
+            } else if (element.Type() == xaml::ElementType::button) {
                 this->controls.push_back(std::make_unique<ButtonControl>(element));
-            } else if (element.Type() == ElementType::border) {
+            } else if (element.Type() == xaml::ElementType::border) {
                 this->controls.push_back(std::make_unique<BorderControl>(element));
-            } else if (element.Type() == ElementType::toggleSwitch) {
+            } else if (element.Type() == xaml::ElementType::toggleSwitch) {
                 this->controls.push_back(std::make_unique<ToggleSwitchControl>(element));
-            } else if (element.Type() == ElementType::textBlock) {
+            } else if (element.Type() == xaml::ElementType::textBlock) {
                 this->controls.push_back(std::make_unique<TextBlockControl>(element));
             }
             for (const auto& child : element.Children()) {
@@ -117,7 +94,7 @@ namespace mobileclock::ui {
         if (control == nullptr || !control->HandleTap(x, y)) {
             return false;
         }
-        this->bindings.UpdateSource(control->ElementModel(), *this);
+        this->bindings.UpdateSource(control->ElementModel());
         return true;
     }
 
@@ -128,9 +105,23 @@ namespace mobileclock::ui {
     void MainPageViewModel::UpdateClock() {
         const std::time_t now = std::time(nullptr);
         std::tm localTime{};
-        localtime_r(&now, &localTime);
-        char clockText[9]{};
-        std::strftime(clockText, sizeof(clockText), "%H:%M:%S", &localTime);
+        if (!_details::TryGetLocalTime(now, localTime)) {
+            return;
+        }
+        const auto digit = [](int value) {
+            return static_cast<char>('0' + value);
+        };
+        const char clockText[9]{
+            digit(localTime.tm_hour / 10),
+            digit(localTime.tm_hour % 10),
+            ':',
+            digit(localTime.tm_min / 10),
+            digit(localTime.tm_min % 10),
+            ':',
+            digit(localTime.tm_sec / 10),
+            digit(localTime.tm_sec % 10),
+            '\0',
+        };
         this->SetClockText(clockText);
     }
 
@@ -143,10 +134,18 @@ namespace mobileclock::ui {
     //
     // Internal
     //
-    void MainPageViewModel::NotifyPropertyChanged(std::string_view path) {
+    MainPageViewModel::Unsubscribe MainPageViewModel::Subscribe(PropertyChangedHandler handler) {
+        this->propertyChangedHandlers.push_back(std::move(handler));
+        const size_t index = this->propertyChangedHandlers.size() - 1;
+        return [this, index]() {
+            this->propertyChangedHandlers[index] = nullptr;
+        };
+    }
+
+    void MainPageViewModel::NotifyPropertyChanged(Property property) {
         for (const PropertyChangedHandler& handler : this->propertyChangedHandlers) {
             if (handler) {
-                handler(path);
+                handler(property);
             }
         }
     }

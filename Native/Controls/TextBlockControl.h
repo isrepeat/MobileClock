@@ -6,7 +6,7 @@
 namespace mobileclock::ui {
     class TextBlockControl final : public IControl {
     public:
-        explicit TextBlockControl(Element& element);
+        explicit TextBlockControl(xaml::Element& element);
 
         //
         // IControl
@@ -14,9 +14,9 @@ namespace mobileclock::ui {
         bool HitTest(float x, float y) const override;
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
-        Element& ElementModel() override;
+        xaml::Element& ElementModel() override;
 
     private:
-        Element& element;
+        xaml::Element& element;
     };
 }

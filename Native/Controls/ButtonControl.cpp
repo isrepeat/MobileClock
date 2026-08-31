@@ -4,7 +4,7 @@
 #include <Helpers/platform/Android/Logging.h>
 
 namespace mobileclock::ui {
-    ButtonControl::ButtonControl(Element& element)
+    ButtonControl::ButtonControl(xaml::Element& element)
         : element(element) {
     }
 
@@ -12,7 +12,7 @@ namespace mobileclock::ui {
     // IControl
     //
     bool ButtonControl::HitTest(float x, float y) const {
-        const Rect bounds = this->element.Bounds();
+        const xaml::Rect bounds = this->element.Bounds();
         return x >= bounds.x && x <= bounds.x + bounds.width
             && y >= bounds.y && y <= bounds.y + bounds.height;
     }
@@ -24,8 +24,8 @@ namespace mobileclock::ui {
         }
         this->isBlue = !this->isBlue;
         this->element.SetForeground(this->isBlue
-            ? attr::Color{0.2f, 0.65f, 1.0f, 1.0f}
-            : attr::Color{1.0f, 0.91f, 0.23f, 1.0f});
+            ? xaml::attr::Color{0.2f, 0.65f, 1.0f, 1.0f}
+            : xaml::attr::Color{1.0f, 0.91f, 0.23f, 1.0f});
         return true;
     }
 
@@ -34,7 +34,7 @@ namespace mobileclock::ui {
         renderer.DrawText(this->element.Bounds(), this->element.Text(), this->element.Foreground());
     }
 
-    Element& ButtonControl::ElementModel() {
+    xaml::Element& ButtonControl::ElementModel() {
         return this->element;
     }
 }

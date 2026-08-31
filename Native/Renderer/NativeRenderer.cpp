@@ -190,8 +190,8 @@ namespace {
         appendVertex(vertices, offset, quad.x0, quad.y1, quad.s0, quad.t1, width, height);
     }
 
-    void drawText(mobileclock::renderer::NativeRenderer::State& state, const mobileclock::ui::Rect& bounds,
-        const char* text, int width, mobileclock::ui::attr::Color color) {
+    void drawText(mobileclock::renderer::NativeRenderer::State& state, const xaml::Rect& bounds,
+        const char* text, int width, xaml::attr::Color color) {
         // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
         // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
         float textWidth = 0.0f;
@@ -235,8 +235,8 @@ namespace {
         glDrawArrays(GL_TRIANGLES, 0, vertexDataSize / 4);
     }
 
-    void drawButtonOutline(mobileclock::renderer::NativeRenderer::State& state, const mobileclock::ui::Rect& bounds,
-        mobileclock::ui::attr::Color color) {
+    void drawButtonOutline(mobileclock::renderer::NativeRenderer::State& state, const xaml::Rect& bounds,
+        xaml::attr::Color color) {
         const float left = bounds.x * 2.0f / state.renderWidth - 1.0f;
         const float right = (bounds.x + bounds.width) * 2.0f / state.renderWidth - 1.0f;
         const float top = 1.0f - bounds.y * 2.0f / state.renderHeight;
@@ -255,7 +255,7 @@ namespace {
     }
 
     void drawRoundedRect(mobileclock::renderer::NativeRenderer::State& state,
-        const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color, float cornerRadius) {
+        const xaml::Rect& bounds, xaml::attr::Color color, float cornerRadius) {
         const float radius = std::min({cornerRadius, bounds.width / 2.0f, bounds.height / 2.0f});
         constexpr int segmentsPerCorner = 8;
         constexpr int vertexCount = 1 + segmentsPerCorner * 4 + 1;
@@ -295,10 +295,10 @@ namespace {
     }
 
     void drawToggleSwitch(mobileclock::renderer::NativeRenderer::State& state,
-        const mobileclock::ui::Rect& bounds, bool isOn) {
-        const mobileclock::ui::attr::Color track = isOn
-            ? mobileclock::ui::attr::Color{0.17f, 0.48f, 0.94f, 1.0f}
-            : mobileclock::ui::attr::Color{0.34f, 0.34f, 0.36f, 1.0f};
+        const xaml::Rect& bounds, bool isOn) {
+        const xaml::attr::Color track = isOn
+            ? xaml::attr::Color{0.17f, 0.48f, 0.94f, 1.0f}
+            : xaml::attr::Color{0.34f, 0.34f, 0.36f, 1.0f};
         drawRoundedRect(state, bounds, track, bounds.height / 2.0f);
         const float inset = 4.0f;
         const float thumbSize = bounds.height - inset * 2.0f;
@@ -435,17 +435,17 @@ namespace mobileclock::renderer {
         state.mainPageViewModel.Initialize({static_cast<float>(width), static_cast<float>(height)});
         makeFontAtlas(state);
         state.controlRenderer = std::make_unique<ControlRenderer>(
-            [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color) {
+            [&state](const xaml::Rect& bounds, xaml::attr::Color color) {
                 drawButtonOutline(state, bounds, color);
             },
-            [&state](const mobileclock::ui::Rect& bounds, mobileclock::ui::attr::Color color, float cornerRadius) {
+            [&state](const xaml::Rect& bounds, xaml::attr::Color color, float cornerRadius) {
                 drawRoundedRect(state, bounds, color, cornerRadius);
             },
-            [&state](const mobileclock::ui::Rect& bounds, bool isOn) {
+            [&state](const xaml::Rect& bounds, bool isOn) {
                 drawToggleSwitch(state, bounds, isOn);
             },
-            [&state](const mobileclock::ui::Rect& bounds, std::string_view text,
-                mobileclock::ui::attr::Color color) {
+            [&state](const xaml::Rect& bounds, std::string_view text,
+                xaml::attr::Color color) {
                 const std::string textCopy(text);
                 drawText(state, bounds, textCopy.c_str(), state.renderWidth, color);
             });

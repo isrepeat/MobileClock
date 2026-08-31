@@ -3,7 +3,7 @@
 #include "Renderer/ControlRenderer.h"
 
 namespace mobileclock::ui {
-    PageControl::PageControl(Element& element)
+    PageControl::PageControl(xaml::Element& element)
         : element(element) {
     }
 
@@ -22,7 +22,7 @@ namespace mobileclock::ui {
         renderer.DrawRoundedRect(this->element.Bounds(), this->element.Background(), 0.0f);
     }
 
-    Element& PageControl::ElementModel() {
+    xaml::Element& PageControl::ElementModel() {
         return this->element;
     }
 }

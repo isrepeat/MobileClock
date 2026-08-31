@@ -3,7 +3,7 @@
 #include "Renderer/ControlRenderer.h"
 
 namespace mobileclock::ui {
-    TextBlockControl::TextBlockControl(Element& element)
+    TextBlockControl::TextBlockControl(xaml::Element& element)
         : element(element) {
     }
 
@@ -22,7 +22,7 @@ namespace mobileclock::ui {
         renderer.DrawText(this->element.Bounds(), this->element.Text(), this->element.Foreground());
     }
 
-    Element& TextBlockControl::ElementModel() {
+    xaml::Element& TextBlockControl::ElementModel() {
         return this->element;
     }
 }
