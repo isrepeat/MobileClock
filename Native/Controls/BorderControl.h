@@ -8,6 +8,7 @@ namespace mobileclock::ui {
     public:
         explicit BorderControl(const Element& element);
 
+        bool HitTest(float x, float y) const override;
         bool HandleTap(float x, float y) override;
         void Render(mobileclock::renderer::ControlRenderer& renderer) const override;
 

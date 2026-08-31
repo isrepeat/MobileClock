@@ -1,8 +1,8 @@
 <Page id="root"
       background="#000000">
     <StackPanel orientation="Vertical"
-                horizontalAlignment="Center"
-                verticalAlignment="Center">
+                verticalAlignment="Center"
+                horizontalAlignment="Center">
         <Border id="alarmCard"
                 width="360"
                 height="132"
@@ -10,8 +10,8 @@
                 background="#242424"
                 cornerRadius="28" />
         <ToggleSwitch id="alarmEnabled"
-                      width="56"
-                      height="32"
+                      width="300"
+                      height="180"
                       isOn="True" />
     </StackPanel>
 </Page>

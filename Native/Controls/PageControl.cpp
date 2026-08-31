@@ -8,6 +8,10 @@ namespace mobileclock::ui {
         , background(element.Background()) {
     }
 
+    bool PageControl::HitTest(float x, float y) const {
+        return false;
+    }
+
     bool PageControl::HandleTap(float x, float y) {
         return false;
     }

@@ -10,11 +10,14 @@ namespace mobileclock::ui {
         , text(element.Text()) {
     }
 
+    bool ButtonControl::HitTest(float x, float y) const {
+        return x >= this->bounds.x && x <= this->bounds.x + this->bounds.width
+            && y >= this->bounds.y && y <= this->bounds.y + this->bounds.height;
+    }
+
     bool ButtonControl::HandleTap(float x, float y) {
         LOG_FUNCTION_SCOPE("ButtonControl::HandleTap: x={}, y={}", x, y);
-        const bool tapped = x >= this->bounds.x && x <= this->bounds.x + this->bounds.width
-            && y >= this->bounds.y && y <= this->bounds.y + this->bounds.height;
-        if (!tapped) {
+        if (!this->HitTest(x, y)) {
             return false;
         }
         this->isBlue = !this->isBlue;

@@ -17,6 +17,7 @@ namespace mobileclock::ui {
         // XAML-компилятор создаёт дерево, контроллер отвечает за его состояние.
         this->page = generated::MainPage::Create();
         this->controls.clear();
+        this->capturedControl = nullptr;
         layout(*this->page, availableSize);
         const auto addControls = [this](const Element& element, const auto& visit) -> void {
             if (element.Type() == ElementType::page) {
@@ -35,14 +36,29 @@ namespace mobileclock::ui {
         addControls(*this->page, addControls);
     }
 
-    bool MainPageController::HandleTap(float x, float y) {
-        LOG_FUNCTION_SCOPE("MainPageController::HandleTap: x={}, y={}", x, y);
+    void MainPageController::HandleTouchDown(float x, float y) {
+        LOG_FUNCTION_SCOPE("MainPageController::HandleTouchDown: x={}, y={}", x, y);
+        this->capturedControl = nullptr;
         for (auto control = this->controls.rbegin(); control != this->controls.rend(); ++control) {
-            if ((*control)->HandleTap(x, y)) {
-                return true;
+            if ((*control)->HitTest(x, y)) {
+                this->capturedControl = control->get();
+                return;
             }
         }
-        return false;
+    }
+
+    bool MainPageController::HandleTouchUp(float x, float y) {
+        LOG_FUNCTION_SCOPE("MainPageController::HandleTouchUp: x={}, y={}", x, y);
+        IControl* const control = this->capturedControl;
+        this->capturedControl = nullptr;
+        if (control == nullptr) {
+            return false;
+        }
+        return control->HandleTap(x, y);
+    }
+
+    void MainPageController::CancelTouch() {
+        this->capturedControl = nullptr;
     }
 
     void MainPageController::Render(mobileclock::renderer::ControlRenderer& renderer) const {

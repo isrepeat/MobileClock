@@ -8,13 +8,17 @@ namespace mobileclock::ui {
         , isOn(element.IsOn()) {
     }
 
-    bool ToggleSwitchControl::HandleTap(float x, float y) {
-        const bool tapped = x >= this->bounds.x && x <= this->bounds.x + this->bounds.width
+    bool ToggleSwitchControl::HitTest(float x, float y) const {
+        return x >= this->bounds.x && x <= this->bounds.x + this->bounds.width
             && y >= this->bounds.y && y <= this->bounds.y + this->bounds.height;
-        if (tapped) {
-            this->isOn = !this->isOn;
+    }
+
+    bool ToggleSwitchControl::HandleTap(float x, float y) {
+        if (!this->HitTest(x, y)) {
+            return false;
         }
-        return tapped;
+        this->isOn = !this->isOn;
+        return true;
     }
 
     void ToggleSwitchControl::Render(mobileclock::renderer::ControlRenderer& renderer) const {

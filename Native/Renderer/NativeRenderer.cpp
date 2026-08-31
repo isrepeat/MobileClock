@@ -1,22 +1,24 @@
 // Android NDK: доступ к Surface, EGL/OpenGL ES и файлам из папки assets.
-#include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
-#include <android/native_window.h>
 #include <android/native_window_jni.h>
-#include <EGL/egl.h>
+#include <android/native_window.h>
+#include <android/asset_manager.h>
+#include <android/input.h>
 #include <GLES3/gl3.h>
+#include <EGL/egl.h>
 #include <jni.h>
 
-#include <cstdlib>
-#include <algorithm>
-#include <cmath>
-#include <string>
-
 #include <Helpers/platform/Android/Logging.h>
-#include "Renderer/NativeRenderer.h"
-#include "Renderer/ControlRenderer.h"
+
 #include "XamlRuntime/XamlLayout.h"
+#include "Renderer/ControlRenderer.h"
+#include "Renderer/NativeRenderer.h"
 #include "UI/MainPageController.h"
+
+#include <algorithm>
+#include <string>
+#include <cstdlib>
+#include <cmath>
 
 // stb_truetype создаёт обычную текстуру-атлас глифов; рисование делает OpenGL ES.
 #define STBTT_STATIC
@@ -453,11 +455,20 @@ namespace mobileclock::renderer {
 
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
         LOG_FUNCTION_SCOPE("NativeRenderer::Touch: action={}, x={}, y={}", action, x, y);
-        // MotionEvent.ACTION_UP: меняем состояние только после завершённого тапа.
-        if (action != 1) {
+        // Контрол захватывается на ACTION_DOWN: жест, начавшийся вне него,
+        // не может активировать его при ACTION_UP.
+        if (action == AMOTION_EVENT_ACTION_DOWN) {
+            this->state->mainPageController.HandleTouchDown(x, y);
             return;
         }
-        if (!this->state->mainPageController.HandleTap(x, y)) {
+        if (action == AMOTION_EVENT_ACTION_CANCEL) {
+            this->state->mainPageController.CancelTouch();
+            return;
+        }
+        if (action != AMOTION_EVENT_ACTION_UP) {
+            return;
+        }
+        if (!this->state->mainPageController.HandleTouchUp(x, y)) {
             return;
         }
         drawPage(*this->state);
