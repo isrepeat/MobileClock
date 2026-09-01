@@ -19,6 +19,7 @@ namespace mobileclock::native {
 
         void SetLogFile(JNIEnv* env, jstring javaLogFilePath);
         void FlushLogs();
+        void Log(JNIEnv* env, jstring javaCategory, jstring javaMessage);
         void SetAssetManager(JNIEnv* env, jobject javaAssetManager);
         void SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height);
         void SurfaceDestroyed();

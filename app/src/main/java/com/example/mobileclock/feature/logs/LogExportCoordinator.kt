@@ -12,32 +12,30 @@ class LogExportCoordinator(
     private val context: Context,
     private val flushLogs: () -> Unit,
 ) {
-    // Работа с FileProvider и ContentResolver изолирована от ViewModel.
+    // Подготовка общего снимка логов и работа с FileProvider изолированы от ViewModel.
     private val logFile = File(context.filesDir, "logs/mobileclock.log")
 
     fun newExportFileName() = "MobileClock-${System.currentTimeMillis()}.txt"
 
-    fun export(destination: Uri): Boolean = runCatching {
-        context.contentResolver.openOutputStream(destination)?.use { output ->
-            check(writeSnapshot(output)) { "Лог ещё не создан" }
-        } ?: error("Не удалось открыть выбранный файл")
-    }.isSuccess
-
     fun share(): Boolean {
+        val snapshot = createSnapshot() ?: return false
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", snapshot)
+        context.startActivity(Intent.createChooser(createShareIntent(uri), "Поделиться логом"))
+        return true
+    }
+
+    fun createSnapshot(): File? {
         val snapshot = File(context.cacheDir, "shared-logs/${newExportFileName()}")
-        val snapshotCreated = runCatching {
+        return runCatching {
             snapshot.parentFile?.mkdirs()
             snapshot.outputStream().use { output ->
                 check(writeSnapshot(output)) { "Лог ещё не создан" }
             }
-        }.isSuccess
-        if (!snapshotCreated) {
+            snapshot
+        }.getOrElse {
             snapshot.delete()
-            return false
+            null
         }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", snapshot)
-        context.startActivity(Intent.createChooser(createShareIntent(uri), "Поделиться логом"))
-        return true
     }
 
     private fun writeSnapshot(output: OutputStream): Boolean {

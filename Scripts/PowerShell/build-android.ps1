@@ -6,9 +6,6 @@ param(
     # Builds only the C++ library. Useful while editing renderer code.
     [switch]$NativeOnly,
 
-    # Uploads the debug APK to Firebase App Distribution after it is built.
-    [switch]$UploadFirebase,
-
     # Проект поддерживает только физические устройства ARM64.
     [ValidateSet('arm64-v8a')]
     [string]$Architecture = 'arm64-v8a'
@@ -25,10 +22,7 @@ $xamlSourceRoot = Join-Path $nativeRoot 'UI'
 $xamlGeneratedRoot = Join-Path $nativeRoot '!Generated\Xaml'
 $gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'
-
-if ($NativeOnly -and $UploadFirebase) {
-    throw '-NativeOnly and -UploadFirebase cannot be used together.'
-}
+$updaterApkPath = Join-Path $projectRoot 'updater\build\outputs\apk\debug\updater-debug.apk'
 
 function Invoke-Checked {
     param(
@@ -90,9 +84,7 @@ if ($NativeOnly) {
 
 # Gradle deliberately does not invoke CMake here. app/build.gradle.kts no
 # longer has externalNativeBuild, so it only packages the .so emitted above.
-# Firebase's upload task already depends on assembleDebug, so it builds the
-# APK first and then uploads exactly that artifact.
-$gradleTask = if ($UploadFirebase) { 'appDistributionUploadDebug' } else { 'assembleDebug' }
+$gradleTask = 'assembleDebug'
 Write-Host "==> Running Gradle task: $gradleTask"
 # gradlew determines the Android project from the current directory. The .bat
 # launchers live in Scripts, therefore explicitly return to the project root
@@ -107,8 +99,9 @@ try {
 if (-not (Test-Path $apkPath)) {
     throw "Gradle completed but did not produce $apkPath"
 }
+if (-not (Test-Path $updaterApkPath)) {
+    throw "Gradle completed but did not produce $updaterApkPath"
+}
 
 Write-Host "APK ready: $apkPath"
-if ($UploadFirebase) {
-    Write-Host 'APK uploaded to Firebase App Distribution.'
-}
+Write-Host "Updater APK ready: $updaterApkPath"

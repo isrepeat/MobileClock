@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "MobileClock"
 include(":app")
+include(":updater")

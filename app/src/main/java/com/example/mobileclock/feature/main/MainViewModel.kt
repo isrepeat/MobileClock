@@ -20,4 +20,12 @@ class MainViewModel : ViewModel() {
     fun onExportLogsClick() {
         _events.tryEmit(MainUiEvent.ExportLogs)
     }
+
+    fun onUploadScreenshotToGoogleDriveClick() {
+        _events.tryEmit(MainUiEvent.UploadScreenshotToGoogleDrive)
+    }
+
+    fun onUpdateApplicationClick() {
+        _events.tryEmit(MainUiEvent.UpdateApplication)
+    }
 }

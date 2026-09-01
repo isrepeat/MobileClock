@@ -14,9 +14,8 @@ val appVersionName = versionPropertiesText.map { text ->
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.appdistribution)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -46,6 +45,9 @@ android {
                 appId = "1:118817012419:android:552bcf49ee11cb5ac94076"
                 serviceCredentialsFile = "C:/WORK/Secrets/mobileclock-cca50210cd68.json"
                 artifactType = "APK"
+                artifactPath = rootProject.layout.projectDirectory.file(
+                    "out/distribution/MobileClock-${defaultConfig.versionCode}-${defaultConfig.versionName}.apk"
+                ).asFile.absolutePath
                 testers = "newiskeep@gmail.com"
                 releaseNotes = "MobileClock ${defaultConfig.versionName}"
             }
@@ -64,6 +66,9 @@ android {
         compose = true
         buildConfig = true
     }
+    sourceSets {
+        getByName("main").assets.srcDir("../Native/Resources")
+    }
 }
 
 dependencies {
@@ -76,6 +81,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.play.services.auth)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
@@ -85,8 +91,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
 
-// The Firebase task uploads the debug APK produced by the Android build.
-// Make the IDE run configuration build a fresh APK before each upload.
 tasks.matching { it.name == "appDistributionUploadDebug" }.configureEach {
     dependsOn("assembleDebug")
 }

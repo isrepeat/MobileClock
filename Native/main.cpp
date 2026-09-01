@@ -25,6 +25,12 @@ Java_com_example_mobileclock_native_NativeRenderer_nativeFlushLogs(JNIEnv*, jobj
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_native_NativeRenderer_nativeLog(
+    JNIEnv* env, jobject, jstring javaCategory, jstring javaMessage) {
+    nativeApplication().Log(env, javaCategory, javaMessage);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSetAssetManager(
     JNIEnv* env, jobject, jobject javaAssetManager) {
     LOG_FUNCTION_SCOPE("nativeSetAssetManager");

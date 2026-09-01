@@ -44,5 +44,6 @@ $updatedLines = foreach ($line in $lines) {
     }
 }
 
-Set-Content -LiteralPath $versionFile -Value $updatedLines -Encoding utf8
+$versionText = $updatedLines -join [Environment]::NewLine
+[System.IO.File]::WriteAllText($versionFile, $versionText, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Version increased: $oldCode / $($oldName.ToString('0.00', $invariantCulture)) -> $newCode / $newName"

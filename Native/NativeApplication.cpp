@@ -24,6 +24,21 @@ namespace mobileclock::native {
         this->renderer->FlushLogs();
     }
 
+    void NativeApplication::Log(JNIEnv* env, jstring javaCategory, jstring javaMessage) {
+        const char* category = env->GetStringUTFChars(javaCategory, nullptr);
+        if (category == nullptr) {
+            return;
+        }
+        const char* message = env->GetStringUTFChars(javaMessage, nullptr);
+        if (message == nullptr) {
+            env->ReleaseStringUTFChars(javaCategory, category);
+            return;
+        }
+        LOG_INFO("[Kotlin:{}] {}", category, message);
+        env->ReleaseStringUTFChars(javaMessage, message);
+        env->ReleaseStringUTFChars(javaCategory, category);
+    }
+
     void NativeApplication::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
         LOG_FUNCTION_SCOPE("NativeApplication::SetAssetManager");
         this->renderer->SetAssetManager(env, javaAssetManager);
