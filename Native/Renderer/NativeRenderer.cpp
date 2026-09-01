@@ -20,9 +20,11 @@
 #include "ThirdParty/stb_truetype.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
-#include <cmath>
+#include <limits>
 #include <string>
+#include <cmath>
 
 namespace mobileclock::renderer {
     // State содержит весь ресурсный граф рендерера. Он живёт между кадрами,
@@ -37,7 +39,9 @@ namespace mobileclock::renderer {
         GLuint solidProgram = 0;
         GLuint vertexBuffer = 0;
         GLuint fontTexture = 0;
-        stbtt_bakedchar glyphs[96]{};
+        stbtt_packedchar asciiGlyphs[96]{};
+        stbtt_packedchar cyrillicGlyphs[256]{};
+        stbtt_packedchar settingsGlyph[1]{};
         mobileclock::ui::MainPageViewModel mainPageViewModel;
         std::unique_ptr<ControlRenderer> controlRenderer;
         int renderWidth = 0;
@@ -46,10 +50,15 @@ namespace mobileclock::renderer {
 }
 
 namespace {
-    constexpr int kFirstGlyph = 32; // ASCII-пробел.
-    constexpr int kGlyphCount = 96; // Символы ASCII от 32 до 127.
-    constexpr int kAtlasWidth = 512;
-    constexpr int kAtlasHeight = 512;
+    constexpr int kFirstAsciiGlyph = 32;
+    constexpr int kAsciiGlyphCount = 96;
+    constexpr int kFirstCyrillicGlyph = 0x0400;
+    constexpr int kCyrillicGlyphCount = 256;
+    constexpr int kSettingsGlyph = 0x2699;
+    constexpr float kAtlasFontSize = 64.0f;
+    constexpr int kAtlasWidth = 1024;
+    constexpr int kAtlasHeight = 1024;
+    constexpr int kMaxTextGlyphs = 256;
 
     // Вершина хранит позицию на экране и координату в текстурном атласе.
     constexpr char kVertexShader[] = R"(#version 300 es
@@ -144,25 +153,52 @@ namespace {
             return false;
         }
 
-        // Растеризуем ASCII в bitmap. Для Unicode и нескольких размеров атлас далее
-        // должен пополняться динамически, но принцип отрисовки останется тем же.
+        // ASCII и кириллица укладываются в один атлас. Размер текста при выводе
+        // масштабируется относительно базовых 64 px без пересоздания текстуры.
         auto* atlas = static_cast<unsigned char*>(std::malloc(kAtlasWidth * kAtlasHeight));
         if (atlas == nullptr) {
             std::free(fontData);
             return false;
         }
-        const int bakeResult = stbtt_BakeFontBitmap(
-            fontData,
-            0,
-            64.0f,
+        std::fill(atlas, atlas + kAtlasWidth * kAtlasHeight, 0);
+        stbtt_pack_context context{};
+        const int packStarted = stbtt_PackBegin(
+            &context,
             atlas,
             kAtlasWidth,
             kAtlasHeight,
-            kFirstGlyph,
-            kGlyphCount,
-            state.glyphs);
+            0,
+            1,
+            nullptr);
+        const int asciiPacked = packStarted == 0 ? 0 : stbtt_PackFontRange(
+            &context,
+            fontData,
+            0,
+            kAtlasFontSize,
+            kFirstAsciiGlyph,
+            kAsciiGlyphCount,
+            state.asciiGlyphs);
+        const int cyrillicPacked = asciiPacked == 0 ? 0 : stbtt_PackFontRange(
+            &context,
+            fontData,
+            0,
+            kAtlasFontSize,
+            kFirstCyrillicGlyph,
+            kCyrillicGlyphCount,
+            state.cyrillicGlyphs);
+        const int settingsPacked = cyrillicPacked == 0 ? 0 : stbtt_PackFontRange(
+            &context,
+            fontData,
+            0,
+            kAtlasFontSize,
+            kSettingsGlyph,
+            1,
+            state.settingsGlyph);
+        if (packStarted != 0) {
+            stbtt_PackEnd(&context);
+        }
         std::free(fontData);
-        if (bakeResult <= 0) {
+        if (asciiPacked == 0 || cyrillicPacked == 0 || settingsPacked == 0) {
             std::free(atlas);
             LOG_ERROR("Font atlas is too small");
             return false;
@@ -219,43 +255,115 @@ namespace {
         appendVertex(vertices, offset, quad.x0, quad.y1, quad.s0, quad.t1, width, height);
     }
 
+    uint32_t decodeUtf8(const char*& current, const char* end) {
+        const auto lead = static_cast<unsigned char>(*current++);
+        if (lead < 0x80) {
+            return lead;
+        }
+        if ((lead & 0xE0) == 0xC0 && current < end) {
+            const auto second = static_cast<unsigned char>(*current++);
+            return static_cast<uint32_t>(lead & 0x1F) << 6
+                | static_cast<uint32_t>(second & 0x3F);
+        }
+        if ((lead & 0xF0) == 0xE0 && end - current >= 2) {
+            const auto second = static_cast<unsigned char>(*current++);
+            const auto third = static_cast<unsigned char>(*current++);
+            return static_cast<uint32_t>(lead & 0x0F) << 12
+                | static_cast<uint32_t>(second & 0x3F) << 6
+                | static_cast<uint32_t>(third & 0x3F);
+        }
+        if ((lead & 0xF8) == 0xF0 && end - current >= 3) {
+            const auto second = static_cast<unsigned char>(*current++);
+            const auto third = static_cast<unsigned char>(*current++);
+            const auto fourth = static_cast<unsigned char>(*current++);
+            return static_cast<uint32_t>(lead & 0x07) << 18
+                | static_cast<uint32_t>(second & 0x3F) << 12
+                | static_cast<uint32_t>(third & 0x3F) << 6
+                | static_cast<uint32_t>(fourth & 0x3F);
+        }
+        return '?';
+    }
+
+    struct GlyphReference {
+        const stbtt_packedchar* glyphs = nullptr;
+        int index = 0;
+    };
+
+    GlyphReference glyphReference(
+        const mobileclock::renderer::NativeRenderer::State& state,
+        uint32_t codepoint) {
+        if (codepoint >= kFirstAsciiGlyph
+            && codepoint < kFirstAsciiGlyph + kAsciiGlyphCount) {
+            return {state.asciiGlyphs, static_cast<int>(codepoint) - kFirstAsciiGlyph};
+        }
+        if (codepoint >= kFirstCyrillicGlyph
+            && codepoint < kFirstCyrillicGlyph + kCyrillicGlyphCount) {
+            return {state.cyrillicGlyphs, static_cast<int>(codepoint) - kFirstCyrillicGlyph};
+        }
+        if (codepoint == kSettingsGlyph) {
+            return {state.settingsGlyph, 0};
+        }
+        return {state.asciiGlyphs, '?' - kFirstAsciiGlyph};
+    }
+
     void drawText(
         mobileclock::renderer::NativeRenderer::State& state,
         const xaml::Rect& bounds,
-        const char* text,
+        std::string_view text,
         int width,
-        xaml::attr::Color color) {
-        // Сначала измеряем строку, чтобы центрировать её. Эта минимальная версия
-        // поддерживает ASCII; для кириллицы и emoji нужен Unicode shaping-движок.
+        xaml::attr::Color color,
+        float fontSize,
+        std::string_view fontWeight) {
+        const float scale = fontSize / kAtlasFontSize;
         float textWidth = 0.0f;
-        for (const char* character = text; *character != '\0'; ++character) {
-            const int index = static_cast<unsigned char>(*character) - kFirstGlyph;
-            if (index >= 0 && index < kGlyphCount) {
-                textWidth += state.glyphs[index].xadvance;
-            }
+        float minimumY = std::numeric_limits<float>::max();
+        float maximumY = std::numeric_limits<float>::lowest();
+        int glyphCount = 0;
+        const char* current = text.data();
+        const char* const end = text.data() + text.size();
+        while (current < end && glyphCount < kMaxTextGlyphs) {
+            const GlyphReference reference = glyphReference(state, decodeUtf8(current, end));
+            const stbtt_packedchar& glyph = reference.glyphs[reference.index];
+            textWidth += glyph.xadvance * scale;
+            minimumY = std::min(minimumY, glyph.yoff * scale);
+            maximumY = std::max(maximumY, glyph.yoff2 * scale);
+            ++glyphCount;
+        }
+        if (glyphCount == 0) {
+            return;
         }
 
-        float cursorX = bounds.x + (bounds.width - textWidth) * 0.5f;
-        float cursorY = bounds.y + (bounds.height + 64.0f) * 0.5f; // Baseline текста.
-        // До 256 ASCII-символов по 6 вершин × 4 числа; для демо этого достаточно.
-        float vertices[256 * 6 * 4]{};
+        float cursorX = (bounds.x + (bounds.width - textWidth) * 0.5f) / scale;
+        float cursorY = (
+            bounds.y + (bounds.height - (maximumY - minimumY)) * 0.5f - minimumY) / scale;
+        float vertices[kMaxTextGlyphs * 6 * 4 * 2]{};
         int vertexDataSize = 0;
-        for (const char* character = text; *character != '\0'; ++character) {
-            const int index = static_cast<unsigned char>(*character) - kFirstGlyph;
-            if (index < 0 || index >= kGlyphCount) {
-                continue;
-            }
+        current = text.data();
+        int renderedGlyphs = 0;
+        const bool isBold = fontWeight == "Bold" || fontWeight == "SemiBold";
+        while (current < end && renderedGlyphs < kMaxTextGlyphs) {
+            const GlyphReference reference = glyphReference(state, decodeUtf8(current, end));
             stbtt_aligned_quad quad{};
-            stbtt_GetBakedQuad(
-                state.glyphs,
+            stbtt_GetPackedQuad(
+                reference.glyphs,
                 kAtlasWidth,
                 kAtlasHeight,
-                index,
+                reference.index,
                 &cursorX,
                 &cursorY,
                 &quad,
                 1);
+            quad.x0 *= scale;
+            quad.x1 *= scale;
+            quad.y0 *= scale;
+            quad.y1 *= scale;
             appendQuad(vertices, vertexDataSize, quad, width, state.renderHeight);
+            if (isBold) {
+                quad.x0 += 1.0f;
+                quad.x1 += 1.0f;
+                appendQuad(vertices, vertexDataSize, quad, width, state.renderHeight);
+            }
+            ++renderedGlyphs;
         }
 
         glUseProgram(state.program);
@@ -406,24 +514,6 @@ namespace {
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
         glLineWidth(thickness);
         glDrawArrays(GL_LINE_LOOP, 0, vertexCount);
-    }
-
-    void drawToggleSwitch(
-        mobileclock::renderer::NativeRenderer::State& state,
-        const xaml::Rect& bounds,
-        bool isOn) {
-        const xaml::attr::Color track = isOn
-            ? xaml::attr::Color{0.17f, 0.48f, 0.94f, 1.0f}
-            : xaml::attr::Color{0.34f, 0.34f, 0.36f, 1.0f};
-        drawRoundedRect(state, bounds, track, bounds.height / 2.0f);
-        const float inset = 4.0f;
-        const float thumbSize = bounds.height - inset * 2.0f;
-        const float thumbX = isOn ? bounds.x + bounds.width - inset - thumbSize : bounds.x + inset;
-        drawRoundedRect(
-            state,
-            {thumbX, bounds.y + inset, thumbSize, thumbSize},
-            {0.98f, 0.98f, 0.98f, 1.0f},
-            thumbSize / 2.0f);
     }
 
     void drawPage(mobileclock::renderer::NativeRenderer::State& state) {
@@ -580,15 +670,34 @@ namespace mobileclock::renderer {
                     cornerRadius,
                     thickness);
             },
-            [&state](const xaml::Rect& bounds, bool isOn) {
-                drawToggleSwitch(state, bounds, isOn);
-            },
             [&state](
                 const xaml::Rect& bounds,
                 std::string_view text,
-                xaml::attr::Color color) {
-                const std::string textCopy(text);
-                drawText(state, bounds, textCopy.c_str(), state.renderWidth, color);
+                xaml::attr::Color color,
+                float fontSize,
+                std::string_view fontWeight) {
+                drawText(state, bounds, text, state.renderWidth, color, fontSize, fontWeight);
+            },
+            [](const xaml::Rect&, std::string_view, xaml::attr::Color) {
+            },
+            [&state](const xaml::Rect& bounds) {
+                const int left = std::max(0, static_cast<int>(std::floor(bounds.x)));
+                const int right = std::min(
+                    state.renderWidth,
+                    static_cast<int>(std::ceil(bounds.x + bounds.width)));
+                const int top = std::max(0, static_cast<int>(std::floor(bounds.y)));
+                const int bottom = std::min(
+                    state.renderHeight,
+                    static_cast<int>(std::ceil(bounds.y + bounds.height)));
+                glEnable(GL_SCISSOR_TEST);
+                glScissor(
+                    left,
+                    state.renderHeight - bottom,
+                    std::max(0, right - left),
+                    std::max(0, bottom - top));
+            },
+            []() {
+                glDisable(GL_SCISSOR_TEST);
             });
         drawPage(state);
     }

@@ -5,22 +5,40 @@ namespace mobileclock::renderer {
         DrawOutlineCallback drawOutline,
         DrawRoundedRectCallback drawRoundedRect,
         DrawRoundedRectOutlineCallback drawRoundedRectOutline,
-        DrawToggleSwitchCallback drawToggleSwitch,
-        DrawTextCallback drawText)
+        DrawTextCallback drawText,
+        DrawImageCallback drawImage,
+        BeginClipCallback beginClip,
+        EndClipCallback endClip)
         : drawOutline(std::move(drawOutline))
         , drawRoundedRect(std::move(drawRoundedRect))
         , drawRoundedRectOutline(std::move(drawRoundedRectOutline))
-        , drawToggleSwitch(std::move(drawToggleSwitch))
-        , drawText(std::move(drawText)) {
+        , drawText(std::move(drawText))
+        , drawImage(std::move(drawImage))
+        , beginClip(std::move(beginClip))
+        , endClip(std::move(endClip)) {
     }
 
     //
-    // API
+    // IRenderBackend
     //
+    void ControlRenderer::BeginClip(const xaml::Rect& bounds) {
+        this->beginClip(bounds);
+    }
+
+    void ControlRenderer::EndClip() {
+        this->endClip();
+    }
+
+    void ControlRenderer::DrawOutline(
+        const xaml::Rect& bounds,
+        xaml::attr::Color color) {
+        this->drawOutline(bounds, color);
+    }
+
     void ControlRenderer::DrawRoundedRect(
         const xaml::Rect& bounds,
         xaml::attr::Color color,
-        float cornerRadius) const {
+        float cornerRadius) {
         this->drawRoundedRect(bounds, color, cornerRadius);
     }
 
@@ -28,24 +46,23 @@ namespace mobileclock::renderer {
         const xaml::Rect& bounds,
         xaml::attr::Color color,
         float cornerRadius,
-        float thickness) const {
+        float thickness) {
         this->drawRoundedRectOutline(bounds, color, cornerRadius, thickness);
-    }
-
-    void ControlRenderer::DrawToggleSwitch(const xaml::Rect& bounds, bool isOn) const {
-        this->drawToggleSwitch(bounds, isOn);
-    }
-
-    void ControlRenderer::DrawOutline(
-        const xaml::Rect& bounds,
-        xaml::attr::Color color) const {
-        this->drawOutline(bounds, color);
     }
 
     void ControlRenderer::DrawText(
         const xaml::Rect& bounds,
         std::string_view text,
-        xaml::attr::Color color) const {
-        this->drawText(bounds, text, color);
+        xaml::attr::Color color,
+        float fontSize,
+        std::string_view fontWeight) {
+        this->drawText(bounds, text, color, fontSize, fontWeight);
+    }
+
+    void ControlRenderer::DrawImage(
+        const xaml::Rect& bounds,
+        std::string_view source,
+        xaml::attr::Color tint) {
+        this->drawImage(bounds, source, tint);
     }
 }

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "XamlRuntime/XamlLayout.h"
 #include "XamlRuntime/Binding.h"
-#include "Interfaces/IControl.h"
+#include "XamlRuntime/XamlLayout.h"
 
 #include <functional>
 #include <memory>
@@ -28,24 +27,23 @@ namespace mobileclock::ui {
         };
 
         enum class Property {
-            isAlarmEnabled,
             clockText,
+            packageVersion,
         };
 
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        MainPageViewModel() = default;
+        MainPageViewModel();
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
         MainPageViewModel& operator=(const MainPageViewModel&) = delete;
 
-        bool IsAlarmEnabled() const;
-        void SetIsAlarmEnabled(bool value);
         const std::string& ClockText() const;
         void SetClockText(std::string value);
-        const std::vector<Alarm>& OtherAlarms() const;
+        const std::string& PackageVersion() const;
+        const std::vector<Alarm>& Alarms() const;
 
         void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y);
@@ -59,17 +57,17 @@ namespace mobileclock::ui {
         void NotifyPropertyChanged(Property property);
 
     private:
-        bool isAlarmEnabled = true;
         std::string clockText;
-        const std::vector<Alarm> otherAlarms{
-            {"06:18", true},
+        std::string packageVersion;
+        const std::vector<Alarm> alarms{
+            {"05:55", true},
+            {"06:18", false},
             {"06:30", true},
-            {"06:36", true},
+            {"06:36", false},
         };
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
-        std::vector<std::unique_ptr<IControl>> controls;
         xaml::BindingScope bindings;
-        IControl* capturedControl = nullptr;
+        xaml::Element* capturedElement = nullptr;
     };
 }

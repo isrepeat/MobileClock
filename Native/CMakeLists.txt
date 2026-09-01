@@ -82,6 +82,9 @@ file(GLOB mobileclock_xaml_generated_headers CONFIGURE_DEPENDS
 file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
+file(GLOB_RECURSE mobileclock_resource_files CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/*"
+)
 # Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
 # приложения показываем все её исходники и локальный ThirdParty/stb_truetype.h.
 list(FILTER mobileclock_header_files EXCLUDE REGEX "/UtilityHelpersLib/")
@@ -96,7 +99,9 @@ if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated
         "Generated XAML sources are missing. Run Scripts/PowerShell/build-android.ps1 first.")
 endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties(${mobileclock_resource_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 source_group("UI" FILES ${mobileclock_xaml_source})
+source_group("Resources\\Icons" FILES ${mobileclock_resource_files})
 source_group("Header Files" FILES ${mobileclock_header_files})
 source_group("!Generated\\Xaml" FILES
     ${mobileclock_xaml_generated}
@@ -109,16 +114,10 @@ add_library(mobileclock SHARED
     NativeApplication.cpp
     Renderer/ControlRenderer.cpp
     Renderer/NativeRenderer.cpp
-    Controls/ButtonControl.cpp
-    Controls/ControlChrome.cpp
-    Controls/BorderControl.cpp
-    Controls/PageControl.cpp
-    Controls/StackPanelControl.cpp
-    Controls/TextBlockControl.cpp
-    Controls/ToggleSwitchControl.cpp
     UI/MainPageViewModel.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}
+    ${mobileclock_resource_files}
     ${mobileclock_xaml_generated}
     ${mobileclock_xaml_generated_headers}
 )
