@@ -32,6 +32,8 @@ class UpdaterActivity : Activity() {
         if (requestCode != REQUEST_UNKNOWN_APP_SOURCES) {
             return
         }
+        // После системного экрана разрешений исходный APK и пакет берём из
+        // стартового Intent: в result этих данных Android не возвращает.
         val apkUri = intent.data
         val targetPackage = intent.getStringExtra(EXTRA_TARGET_PACKAGE)
         if (apkUri == null || targetPackage == null) {
@@ -138,6 +140,8 @@ class UpdaterActivity : Activity() {
             return
         }
         log("Starting system installation confirmation")
+        // Собственный интерфейс установки не рисуем: это системный диалог,
+        // который подтверждает источник APK и подпись пакета.
         startActivity(confirmation)
     }
 
@@ -177,6 +181,8 @@ class UpdaterActivity : Activity() {
         )
 
     private fun canInstallPackages(): Boolean =
+        // До Android 8 отдельное разрешение на установку из неизвестного источника
+        // задавалось глобально, а не для конкретного приложения.
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()
 
     @Suppress("DEPRECATION")

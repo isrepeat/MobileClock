@@ -30,6 +30,8 @@ import java.util.Date
 import java.util.Locale
 import kotlin.coroutines.resume
 
+// Один OAuth-сеанс обслуживает две операции: загрузку готового лога и снимка
+// экрана. Это не смешивается с авторизацией, используемой обновлением APK.
 class GoogleDriveUploadCoordinator(
     private val activity: ComponentActivity,
     private val createLogSnapshot: () -> File?,
@@ -64,6 +66,8 @@ class GoogleDriveUploadCoordinator(
         }
         log("Drive upload requested: $upload")
         isRunning = true
+        // Сохраняем выбранную операцию, пока Google при необходимости показывает
+        // собственный экран выдачи разрешения.
         pendingUpload = upload
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(DRIVE_SCOPE)))
@@ -132,11 +136,14 @@ class GoogleDriveUploadCoordinator(
         val rootView = activity.window.decorView.rootView
         val bitmap = Bitmap.createBitmap(rootView.width, rootView.height, Bitmap.Config.ARGB_8888)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            // На старых версиях Android PixelCopy ещё недоступен.
             rootView.draw(Canvas(bitmap))
             continuation.resume(bitmap)
             return@suspendCancellableCoroutine
         }
 
+        // Canvas не считывает содержимое отдельной OpenGL Surface. PixelCopy
+        // снимает сам Surface, а Android-элементы накладываются вторым слоем.
         val nativeSurface = findNativeRenderSurfaceView(rootView)
         if (nativeSurface == null || !nativeSurface.holder.surface.isValid) {
             bitmap.recycle()
@@ -210,6 +217,8 @@ class GoogleDriveUploadCoordinator(
     }
 
     private fun upload(file: File, mimeType: String, accessToken: String) {
+        // Google Drive принимает файл вместе с именем и ID папки одним multipart
+        // запросом; папка Screens используется и для скриншотов, и для логов.
         val boundary = "MobileClock${System.currentTimeMillis()}"
         val connection = (URL(UPLOAD_URL).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
@@ -234,6 +243,8 @@ class GoogleDriveUploadCoordinator(
     }
 
     private fun finish(message: String) {
+        // Сброс флага важен после любой ошибки: пользователь сразу может
+        // повторить ту же операцию без перезапуска приложения.
         log(message)
         pendingUpload = null
         isRunning = false

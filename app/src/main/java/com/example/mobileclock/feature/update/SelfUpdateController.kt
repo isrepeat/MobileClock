@@ -10,6 +10,8 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.launch
 
+// Управляет пользовательской частью обновления: защитой от двойного нажатия,
+// Google OAuth и сообщениями на экране. Работа с сетью вынесена в coordinator.
 class SelfUpdateController(
     private val activity: ComponentActivity,
     private val onAuthorizationRequired: (IntentSenderRequest) -> Unit,
@@ -27,6 +29,8 @@ class SelfUpdateController(
             return
         }
         isRunning = true
+        // Drive API выдаёт short-lived токен через Google Identity; приложение не
+        // хранит пароль или refresh token на устройстве.
         reportProgress("Проверяем доступ к Google Drive…")
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(DRIVE_SCOPE)))
@@ -44,6 +48,7 @@ class SelfUpdateController(
     }
 
     fun completeAuthorization(intent: Intent?) {
+        // Этот метод вызывается MainActivity после возврата из Google UI.
         UpdateDiagnostics.write(activity, "Google authorization UI returned; hasIntent=${intent != null}")
         try {
             handleAuthorizationResult(Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(intent))
@@ -53,6 +58,7 @@ class SelfUpdateController(
     }
 
     fun completeExternalUpdater(message: String) {
+        // При отмене установки updater возвращает MobileClock на передний план.
         finish(message)
     }
 
@@ -75,6 +81,8 @@ class SelfUpdateController(
         UpdateDiagnostics.write(activity, "Google Drive access token received")
 
         activity.lifecycleScope.launch {
+            // Coroutine привязана к Activity: при закрытии экрана она не оставит
+            // в памяти фоновую операцию со ссылкой на старый UI.
             when (val result = coordinator.downloadAndInstall(accessToken, ::reportProgress)) {
                 SelfUpdateResult.NoApk -> finish("В папке APKs нет APK-файлов")
                 SelfUpdateResult.NoUpdate -> finish("На Google Drive есть только более старая версия")

@@ -2,12 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Только APK, подписанный тем же ключом, может запускать скрытый updater. -->
     <permission
         android:name="com.example.mobileclock.permission.INSTALL_UPDATE"
         android:protectionLevel="signature" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="com.example.mobileclock.permission.INSTALL_UPDATE" />
+    <!-- Явный запуск updater-пакета разрешён правилами package visibility. -->
     <queries>
         <package android:name="com.example.mobileclock.updater" />
     </queries>
@@ -21,6 +23,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MobileClock">
+        <!-- Передаёт скачанный APK updater-у без открытия пути к файлу наружу. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

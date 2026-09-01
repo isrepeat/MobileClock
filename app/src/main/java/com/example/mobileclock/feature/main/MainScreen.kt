@@ -33,6 +33,7 @@ class MainScreen(private val context: Context) {
         }
 
     fun showUpdateStatus(message: String) {
+        // Контроллер обновления передаёт сюда прогресс без знания о структуре UI.
         updateStatus?.text = message
     }
 
@@ -43,6 +44,8 @@ class MainScreen(private val context: Context) {
         onUpdateApplication: () -> Unit,
     ): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
+        // Кнопка остаётся активной визуально, но повторный запрос блокируется
+        // SelfUpdateController, чтобы не создавать две install-session.
         addView(Button(context).apply {
             text = "ОБНОВИТЬ"
             textSize = 20.0f

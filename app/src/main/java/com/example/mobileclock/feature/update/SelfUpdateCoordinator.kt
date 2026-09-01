@@ -9,6 +9,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
+// Выполняет сетевую часть обновления: находит APK в Drive, скачивает его и
+// проверяет до того, как отдельный updater начнёт системную установку.
 class SelfUpdateCoordinator(private val context: Context) {
     suspend fun downloadAndInstall(
         accessToken: String,
@@ -24,6 +26,8 @@ class SelfUpdateCoordinator(private val context: Context) {
             onProgress("Проверяем скачанный APK…")
             val archive = context.packageManager.getPackageArchiveInfo(apk.absolutePath, 0)
                 ?: error("Google Drive вернул некорректный APK.")
+            // Нельзя передавать updater-у APK с другим package name, даже если
+            // файл оказался в той же папке Drive.
             if (archive.packageName != context.packageName) {
                 apk.delete()
                 error("APK предназначен для пакета ${archive.packageName}, а не ${context.packageName}.")
@@ -39,6 +43,8 @@ class SelfUpdateCoordinator(private val context: Context) {
             }
 
             onProgress("Запускаем MobileClock Updater…")
+            // startActivity должен выполняться на main thread. После передачи
+            // URI updater владеет install-session и переживает замену MobileClock.
             withContext(Dispatchers.Main) {
                 ExternalUpdaterLauncher.launch(context, apk)
             }
@@ -53,6 +59,8 @@ class SelfUpdateCoordinator(private val context: Context) {
     }
 
     private fun findLatestApk(accessToken: String): DriveFile? {
+        // В папке находится также MobileClockUpdater.apk. Регулярное выражение
+        // отбирает только versioned APK основного приложения.
         val query = "'$DRIVE_FOLDER_ID' in parents and trashed = false"
         val fields = "files(id,name,modifiedTime)"
         val url = URL(
@@ -94,6 +102,7 @@ class SelfUpdateCoordinator(private val context: Context) {
                     output.write(buffer, 0, readBytes)
                     downloadedBytes += readBytes
                     if (totalBytes > 0L) {
+                        // UI обновляется с шагом 1%, а не после каждого буфера.
                         val percent = (downloadedBytes * 100L / totalBytes).toInt()
                         if (percent >= reportedPercent + PROGRESS_STEP_PERCENT) {
                             reportedPercent = percent
@@ -115,6 +124,7 @@ class SelfUpdateCoordinator(private val context: Context) {
         .toLong()
 
     private fun openConnection(url: URL, accessToken: String): HttpURLConnection =
+        // Drive закрыт OAuth-токеном: ссылки на APK не вшиваются в приложение.
         (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = CONNECTION_TIMEOUT_MILLIS
             readTimeout = READ_TIMEOUT_MILLIS
