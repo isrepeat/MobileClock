@@ -6,7 +6,6 @@
 
 #include "!Generated/Build/BuildVersion.h"
 #include "!Generated/Xaml/MainPage.xaml.h"
-#include "Renderer/ControlRenderer.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -109,7 +108,7 @@ namespace mobileclock::ui {
         this->SetClockText(clockText);
     }
 
-    void MainPageViewModel::Render(mobileclock::renderer::ControlRenderer& renderer) const {
+    void MainPageViewModel::Render(xaml::IRenderBackend& renderer) const {
         xaml::Render(*this->page, renderer);
     }
 

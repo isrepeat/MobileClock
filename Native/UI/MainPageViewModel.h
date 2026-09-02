@@ -7,8 +7,8 @@
 #include <memory>
 #include <vector>
 
-namespace mobileclock::renderer {
-    class ControlRenderer;
+namespace xaml {
+    class IRenderBackend;
 }
 
 namespace mobileclock::ui {
@@ -50,7 +50,7 @@ namespace mobileclock::ui {
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
         void UpdateClock();
-        void Render(mobileclock::renderer::ControlRenderer& renderer) const;
+        void Render(xaml::IRenderBackend& renderer) const;
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
     private:

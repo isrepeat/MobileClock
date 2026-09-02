@@ -86,7 +86,7 @@ file(GLOB_RECURSE mobileclock_resource_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/Resources/*"
 )
 # Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
-# приложения показываем все её исходники и локальный ThirdParty/stb_truetype.h.
+# приложения показываем только её собственные исходники.
 list(FILTER mobileclock_header_files EXCLUDE REGEX "/UtilityHelpersLib/")
 # CMake-кэш и промежуточные результаты сборки не являются исходниками UI.
 list(FILTER mobileclock_header_files EXCLUDE REGEX "/out/")
@@ -112,7 +112,6 @@ source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 add_library(mobileclock SHARED
     main.cpp
     NativeApplication.cpp
-    Renderer/ControlRenderer.cpp
     Renderer/NativeRenderer.cpp
     UI/MainPageViewModel.cpp
     ${mobileclock_header_files}
@@ -154,6 +153,7 @@ find_library(log-lib log)
 # Системные Android-библиотеки ищем через NDK, а Logcat-обёртку над spdlog
 # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
+    utility_helpers::open_gles_renderer
     utility_helpers::xaml_runtime
     utility_helpers::android_logging
     # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
