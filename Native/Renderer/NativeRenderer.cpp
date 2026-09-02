@@ -12,6 +12,8 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace mobileclock::renderer {
@@ -27,23 +29,23 @@ namespace mobileclock::renderer {
 }
 
 namespace mobileclock::renderer::_details {
-    std::vector<unsigned char> ReadFont(AAssetManager* assetManager) {
+    std::vector<unsigned char> ReadAsset(AAssetManager* assetManager, std::string_view path) {
         if (assetManager == nullptr) {
             throw std::runtime_error("AssetManager was not passed from Kotlin");
         }
         AAsset* asset = AAssetManager_open(
             assetManager,
-            "Roboto-Regular.ttf",
+            std::string(path).c_str(),
             AASSET_MODE_BUFFER);
         if (asset == nullptr) {
-            throw std::runtime_error("Cannot open Roboto-Regular.ttf from assets");
+            throw std::runtime_error("Cannot open asset");
         }
         const auto size = static_cast<size_t>(AAsset_getLength(asset));
         std::vector<unsigned char> data(size);
         const int bytesRead = AAsset_read(asset, data.data(), size);
         AAsset_close(asset);
         if (bytesRead != static_cast<int>(size)) {
-            throw std::runtime_error("Cannot read Roboto-Regular.ttf");
+            throw std::runtime_error("Cannot read asset");
         }
         return data;
     }
@@ -163,12 +165,17 @@ namespace mobileclock::renderer {
             static_cast<float>(width),
             static_cast<float>(height),
         });
-        const std::vector<unsigned char> fontData = _details::ReadFont(state.assetManager);
+        const std::vector<unsigned char> fontData = _details::ReadAsset(
+            state.assetManager,
+            "Roboto-Regular.ttf");
         state.renderer = std::make_unique<es_renderer::OpenGlRenderer>(
             width,
             height,
             fontData.data(),
-            fontData.size());
+            fontData.size(),
+            [&state](std::string_view source) {
+                return _details::ReadAsset(state.assetManager, source);
+            });
         _details::DrawPage(state);
     }
 
