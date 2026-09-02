@@ -2,12 +2,14 @@
 
 #include <Helpers/platform/Android/Logging.h>
 #include <XamlRuntime/Input.h>
+#include <XamlRuntime/Animation.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/Build/BuildVersion.h"
 #include "!Generated/Xaml/MainPage.xaml.h"
 
 #include <algorithm>
+#include <chrono>
 #include <stdexcept>
 #include <ctime>
 
@@ -74,11 +76,26 @@ namespace mobileclock::ui {
         this->capturedElement = xaml::HitTest(*this->page, x, y);
     }
 
-    MainPageViewModel::TouchAction MainPageViewModel::HandleTouchUp(float x, float y) {
+    MainPageViewModel::TouchAction MainPageViewModel::HandleTouchUp(
+        float x,
+        float y,
+        xaml::AnimationController& animations) {
         xaml::Element* const element = this->capturedElement;
         this->capturedElement = nullptr;
-        if (element == nullptr || !xaml::HandleTap(*element)) {
+        if (element == nullptr) {
             return TouchAction::none;
+        }
+        const bool wasOn = element->IsOn();
+        if (!xaml::HandleTap(*element)) {
+            return TouchAction::none;
+        }
+        if (element->Type() == xaml::ElementType::toggleSwitch) {
+            animations.Animate(
+                *element,
+                xaml::AnimatedProperty::toggleProgress,
+                wasOn ? 1.0f : 0.0f,
+                wasOn ? 0.0f : 1.0f,
+                std::chrono::milliseconds(120));
         }
         if (element->Id() == "settingsButton") {
             return TouchAction::navigateToSettings;
@@ -113,6 +130,10 @@ namespace mobileclock::ui {
 
     void MainPageViewModel::Render(xaml::IRenderBackend& renderer) const {
         xaml::Render(*this->page, renderer);
+    }
+
+    xaml::Element& MainPageViewModel::Root() {
+        return *this->page;
     }
 
     //

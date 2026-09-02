@@ -15,9 +15,8 @@
           horizontalAlignment="Stretch">
       <columnDefinitions>
         <columnDefinition width="25%" />
-        <columnDefinition width="59%" />
-        <columnDefinition width="8%" />
-        <columnDefinition width="8%" />
+        <columnDefinition width="50%" />
+        <columnDefinition width="*" />
       </columnDefinitions>
       <TextBlock id="pageTitle"
                  text="Будильники"
@@ -34,36 +33,39 @@
                  horizontalAlignment="Center"
                  verticalAlignment="Center"
                  gridColumn="1" />
-      <Border id="addAlarmButton"
-              background="#292A23"
-              cornerRadius="24"
-              padding="18 18 10 10"
-              horizontalAlignment="Center"
-              verticalAlignment="Center"
-              gridColumn="2">
-        <SvgImage id="addAlarmIcon"
-                  source="Icons/add.svg"
-                  tint="#D5BD7D"
-                  width="24"
-                  height="24"
-                  horizontalAlignment="Center"
-                  verticalAlignment="Center" />
-      </Border>
-      <Border id="settingsButton"
-              background="#292A23"
-              cornerRadius="24"
-              padding="18 18 10 10"
-              horizontalAlignment="Center"
-              verticalAlignment="Center"
-              gridColumn="3">
-        <SvgImage id="settingsNavigation"
-                  source="Icons/settings.svg"
-                  tint="#9D9477"
-                  width="22"
-                  height="22"
-                  horizontalAlignment="Center"
-                  verticalAlignment="Center" />
-      </Border>
+      <StackPanel gridColumn="2"
+                  orientation="Horizontal"
+                  horizontalAlignment="Right">
+        <Border id="addAlarmButton"
+                background="#292A23"
+                cornerRadius="24"
+                padding="18 18 10 10"
+                horizontalAlignment="Center"
+                verticalAlignment="Center">
+          <SvgImage id="addAlarmIcon"
+                    source="Icons/add.svg"
+                    tint="#D5BD7D"
+                    width="30"
+                    height="30"
+                    horizontalAlignment="Center"
+                    verticalAlignment="Center" />
+        </Border>
+        <Border margin="10 10 0 0"/>
+        <Border id="settingsButton"
+                background="#292A23"
+                cornerRadius="24"
+                padding="18 18 10 10"
+                horizontalAlignment="Center"
+                verticalAlignment="Center">
+          <SvgImage id="settingsNavigation"
+                    source="Icons/settings.svg"
+                    tint="#EADCB5"
+                    width="30"
+                    height="30"
+                    horizontalAlignment="Center"
+                    verticalAlignment="Center" />
+        </Border>
+      </StackPanel>
     </Grid>
     <StackPanel id="nextAlarmSummary"
                 height="120"
@@ -80,7 +82,6 @@
                  horizontalAlignment="Center" />
     </StackPanel>
     <Border id="alarmsCard"
-            height="600"
             background="#22231E"
             cornerRadius="20"
             horizontalAlignment="Stretch"

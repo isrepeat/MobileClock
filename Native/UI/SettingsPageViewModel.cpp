@@ -1,11 +1,13 @@
 #include "UI/SettingsPageViewModel.h"
 
 #include <XamlRuntime/Input.h>
+#include <XamlRuntime/Animation.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/Xaml/SettingsPage.xaml.h"
 
 #include <utility>
+#include <chrono>
 
 namespace mobileclock::ui {
     //
@@ -30,11 +32,26 @@ namespace mobileclock::ui {
         this->capturedElement = xaml::HitTest(*this->page, x, y);
     }
 
-    SettingsPageViewModel::TouchAction SettingsPageViewModel::HandleTouchUp(float x, float y) {
+    SettingsPageViewModel::TouchAction SettingsPageViewModel::HandleTouchUp(
+        float x,
+        float y,
+        xaml::AnimationController& animations) {
         xaml::Element* const element = this->capturedElement;
         this->capturedElement = nullptr;
-        if (element == nullptr || !xaml::HandleTap(*element)) {
+        if (element == nullptr) {
             return TouchAction::none;
+        }
+        const bool wasOn = element->IsOn();
+        if (!xaml::HandleTap(*element)) {
+            return TouchAction::none;
+        }
+        if (element->Type() == xaml::ElementType::toggleSwitch) {
+            animations.Animate(
+                *element,
+                xaml::AnimatedProperty::toggleProgress,
+                wasOn ? 1.0f : 0.0f,
+                wasOn ? 0.0f : 1.0f,
+                std::chrono::milliseconds(120));
         }
         if (element->Id() == "backNavigation") {
             return TouchAction::navigateToMain;
@@ -49,6 +66,10 @@ namespace mobileclock::ui {
 
     void SettingsPageViewModel::Render(xaml::IRenderBackend& renderer) const {
         xaml::Render(*this->page, renderer);
+    }
+
+    xaml::Element& SettingsPageViewModel::Root() {
+        return *this->page;
     }
 
     SettingsPageViewModel::Unsubscribe SettingsPageViewModel::Subscribe(PropertyChangedHandler handler) {

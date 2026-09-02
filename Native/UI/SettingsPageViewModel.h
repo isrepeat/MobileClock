@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace xaml {
+    class AnimationController;
     class IRenderBackend;
 }
 
@@ -39,9 +40,10 @@ namespace mobileclock::ui {
 
         void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y);
-        TouchAction HandleTouchUp(float x, float y);
+        TouchAction HandleTouchUp(float x, float y, xaml::AnimationController& animations);
         void CancelTouch();
         void Render(xaml::IRenderBackend& renderer) const;
+        xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
     private:

@@ -4,6 +4,9 @@
 #include "UI/SettingsPageViewModel.h"
 
 #include <XamlRuntime/XamlLayout.h>
+#include <XamlRuntime/Animation.h>
+
+#include <chrono>
 
 namespace xaml {
     class IRenderBackend;
@@ -33,6 +36,10 @@ namespace mobileclock::ui {
 
     private:
         Page currentPage = Page::main;
+        Page outgoingPage = Page::main;
+        bool isTransitioning = false;
+        std::chrono::steady_clock::time_point transitionEndsAt{};
+        xaml::AnimationController animations;
         MainPageViewModel mainPageViewModel;
         SettingsPageViewModel settingsPageViewModel;
     };
