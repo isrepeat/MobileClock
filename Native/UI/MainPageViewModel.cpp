@@ -74,14 +74,17 @@ namespace mobileclock::ui {
         this->capturedElement = xaml::HitTest(*this->page, x, y);
     }
 
-    bool MainPageViewModel::HandleTouchUp(float x, float y) {
+    MainPageViewModel::TouchAction MainPageViewModel::HandleTouchUp(float x, float y) {
         xaml::Element* const element = this->capturedElement;
         this->capturedElement = nullptr;
         if (element == nullptr || !xaml::HandleTap(*element)) {
-            return false;
+            return TouchAction::none;
+        }
+        if (element->Id() == "settingsButton") {
+            return TouchAction::navigateToSettings;
         }
         this->bindings.UpdateSource(*element);
-        return true;
+        return TouchAction::contentChanged;
     }
 
     void MainPageViewModel::CancelTouch() {

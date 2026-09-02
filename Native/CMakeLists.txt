@@ -114,6 +114,8 @@ add_library(mobileclock SHARED
     NativeApplication.cpp
     Renderer/NativeRenderer.cpp
     UI/MainPageViewModel.cpp
+    UI/PageManager.cpp
+    UI/SettingsPageViewModel.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}
     ${mobileclock_resource_files}

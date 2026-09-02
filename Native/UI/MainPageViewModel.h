@@ -31,6 +31,12 @@ namespace mobileclock::ui {
             packageVersion,
         };
 
+        enum class TouchAction {
+            none,
+            contentChanged,
+            navigateToSettings,
+        };
+
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
@@ -47,7 +53,7 @@ namespace mobileclock::ui {
 
         void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y);
-        bool HandleTouchUp(float x, float y);
+        TouchAction HandleTouchUp(float x, float y);
         void CancelTouch();
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer) const;

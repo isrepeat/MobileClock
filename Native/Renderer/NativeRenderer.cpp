@@ -8,7 +8,7 @@
 #include <EGL/egl.h>
 
 #include "Renderer/NativeRenderer.h"
-#include "UI/MainPageViewModel.h"
+#include "UI/PageManager.h"
 
 #include <memory>
 #include <stdexcept>
@@ -23,7 +23,7 @@ namespace mobileclock::renderer {
         EGLContext context = EGL_NO_CONTEXT;
         ANativeWindow* window = nullptr;
         AAssetManager* assetManager = nullptr;
-        mobileclock::ui::MainPageViewModel mainPageViewModel;
+        mobileclock::ui::PageManager pageManager;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
     };
 }
@@ -55,8 +55,8 @@ namespace mobileclock::renderer::_details {
             return;
         }
         state.renderer->BeginFrame();
-        state.mainPageViewModel.UpdateClock();
-        state.mainPageViewModel.Render(*state.renderer);
+        state.pageManager.UpdateClock();
+        state.pageManager.Render(*state.renderer);
         eglSwapBuffers(state.display, state.surface);
     }
 
@@ -161,7 +161,7 @@ namespace mobileclock::renderer {
             nullptr);
         eglMakeCurrent(state.display, state.surface, state.surface, state.context);
 
-        state.mainPageViewModel.Initialize({
+        state.pageManager.Initialize({
             static_cast<float>(width),
             static_cast<float>(height),
         });
@@ -187,17 +187,17 @@ namespace mobileclock::renderer {
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
         LOG_FUNCTION_SCOPE("NativeRenderer::Touch: action={}, x={}, y={}", action, x, y);
         if (action == AMOTION_EVENT_ACTION_DOWN) {
-            this->state->mainPageViewModel.HandleTouchDown(x, y);
+            this->state->pageManager.HandleTouchDown(x, y);
             return;
         }
         if (action == AMOTION_EVENT_ACTION_CANCEL) {
-            this->state->mainPageViewModel.CancelTouch();
+            this->state->pageManager.CancelTouch();
             return;
         }
         if (action != AMOTION_EVENT_ACTION_UP) {
             return;
         }
-        if (!this->state->mainPageViewModel.HandleTouchUp(x, y)) {
+        if (!this->state->pageManager.HandleTouchUp(x, y)) {
             return;
         }
         _details::DrawPage(*this->state);

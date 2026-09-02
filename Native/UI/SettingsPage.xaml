@@ -1,0 +1,98 @@
+<Page id="settingsPage"
+      background="#1B1C17"
+      padding="24 24 80 24">
+    <StackPanel orientation="Vertical"
+                horizontalAlignment="Stretch"
+                verticalAlignment="Top">
+        <Grid height="90"
+              borderBrush="#4E4B3D"
+              borderThickness="0 0 0 1"
+              horizontalAlignment="Stretch">
+            <columnDefinitions>
+                <columnDefinition width="12%" />
+                <columnDefinition width="76%" />
+                <columnDefinition width="12%" />
+            </columnDefinitions>
+            <Border id="backNavigation"
+                    background="#292A23"
+                    cornerRadius="24"
+                    padding="10"
+                    horizontalAlignment="Center"
+                    verticalAlignment="Center">
+                <SvgImage source="Icons/back.svg"
+                          tint="#EADCB5"
+                          width="28"
+                          height="28"
+                          horizontalAlignment="Center"
+                          verticalAlignment="Center" />
+            </Border>
+            <TextBlock text="Настройки"
+                       fontSize="30"
+                       fontWeight="Bold"
+                       foreground="#EADCB5"
+                       horizontalAlignment="Center"
+                       verticalAlignment="Center"
+                       gridColumn="1" />
+        </Grid>
+        <TextBlock text="Оформление"
+                   fontSize="18"
+                   fontWeight="Bold"
+                   foreground="#9D9477"
+                   margin="8 36 0 12" />
+        <Border background="#292A23"
+                borderBrush="#4E4B3D"
+                borderThickness="1"
+                cornerRadius="16"
+                padding="24"
+                horizontalAlignment="Stretch">
+            <Grid height="72"
+                  horizontalAlignment="Stretch">
+                <columnDefinitions>
+                    <columnDefinition width="40%" />
+                    <columnDefinition width="60%" />
+                </columnDefinitions>
+                <TextBlock text="Тема"
+                           fontSize="24"
+                           foreground="#EADCB5"
+                           horizontalAlignment="Left"
+                           verticalAlignment="Center" />
+                <TextBlock text="{Binding Theme}"
+                           fontSize="20"
+                           foreground="#D5BD7D"
+                           horizontalAlignment="Right"
+                           verticalAlignment="Center"
+                           gridColumn="1" />
+            </Grid>
+        </Border>
+        <TextBlock text="Будильники"
+                   fontSize="18"
+                   fontWeight="Bold"
+                   foreground="#9D9477"
+                   margin="8 36 0 12" />
+        <Border background="#292A23"
+                borderBrush="#4E4B3D"
+                borderThickness="1"
+                cornerRadius="16"
+                padding="24"
+                horizontalAlignment="Stretch">
+            <Grid height="72"
+                  horizontalAlignment="Stretch">
+                <columnDefinitions>
+                    <columnDefinition width="40%" />
+                    <columnDefinition width="60%" />
+                </columnDefinitions>
+                <TextBlock text="Звук"
+                           fontSize="24"
+                           foreground="#EADCB5"
+                           horizontalAlignment="Left"
+                           verticalAlignment="Center" />
+                <TextBlock text="{Binding Sound}"
+                           fontSize="20"
+                           foreground="#D5BD7D"
+                           horizontalAlignment="Right"
+                           verticalAlignment="Center"
+                           gridColumn="1" />
+            </Grid>
+        </Border>
+    </StackPanel>
+</Page>
