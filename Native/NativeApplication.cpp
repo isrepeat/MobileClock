@@ -1,7 +1,7 @@
-#include "NativeApplication.h"
-#include "Renderer/NativeRenderer.h"
+#include <Helpers.Logging/Logging.h>
 
-#include <Helpers/platform/Android/Logging.h>
+#include "Renderer/NativeRenderer.h"
+#include "NativeApplication.h"
 
 namespace mobileclock::native {
     NativeApplication::NativeApplication()
@@ -20,7 +20,7 @@ namespace mobileclock::native {
     }
 
     void NativeApplication::FlushLogs() {
-        LOG_FUNCTION_SCOPE("NativeApplication::FlushLogs");
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::FlushLogs");
         this->renderer->FlushLogs();
     }
 
@@ -34,28 +34,28 @@ namespace mobileclock::native {
             env->ReleaseStringUTFChars(javaCategory, category);
             return;
         }
-        LOG_INFO("[Kotlin:{}] {}", category, message);
+        LOG_INFO("MobileClock.Kotlin", "{}: {}", category, message);
         env->ReleaseStringUTFChars(javaMessage, message);
         env->ReleaseStringUTFChars(javaCategory, category);
     }
 
     void NativeApplication::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
-        LOG_FUNCTION_SCOPE("NativeApplication::SetAssetManager");
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::SetAssetManager");
         this->renderer->SetAssetManager(env, javaAssetManager);
     }
 
     void NativeApplication::SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
-        LOG_FUNCTION_SCOPE("NativeApplication::SurfaceChanged: {}x{}", width, height);
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::SurfaceChanged: {}x{}", width, height);
         this->renderer->SurfaceChanged(env, androidSurface, width, height);
     }
 
     void NativeApplication::SurfaceDestroyed() {
-        LOG_FUNCTION_SCOPE("NativeApplication::SurfaceDestroyed");
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::SurfaceDestroyed");
         this->renderer->SurfaceDestroyed();
     }
 
     void NativeApplication::Touch(jint action, jfloat x, jfloat y) {
-        LOG_FUNCTION_SCOPE("NativeApplication::Touch: action={}, x={}, y={}", action, x, y);
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::Touch: action={}, x={}, y={}", action, x, y);
         this->renderer->Touch(action, x, y);
     }
 

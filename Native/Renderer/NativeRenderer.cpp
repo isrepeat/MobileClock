@@ -1,19 +1,20 @@
-#include <Helpers/platform/Android/Logging.h>
+#include <Helpers.Logging/Logging.h>
+#include <ESRenderer/OpenGlRenderer.h>
 #include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
 #include <android/native_window.h>
 #include <android/asset_manager.h>
 #include <android/input.h>
-#include <ESRenderer/OpenGlRenderer.h>
 #include <EGL/egl.h>
 
-#include "Renderer/NativeRenderer.h"
-#include "UI/PageManager.h"
+#include "../UI/PageManager.h"
+#include "NativeRenderer.h"
 
-#include <memory>
-#include <stdexcept>
-#include <string>
 #include <string_view>
+#include <filesystem>
+#include <stdexcept>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace mobileclock::renderer {
@@ -105,20 +106,23 @@ namespace mobileclock::renderer {
         if (utf8Path == nullptr) {
             return;
         }
-        utility_helpers::android::configureLogFile(utf8Path);
+        utility_helpers::logging::Configure({
+            std::filesystem::path(utf8Path),
+        });
+        utility_helpers::logging::Initialize("MobileClock");
         env->ReleaseStringUTFChars(javaLogFilePath, utf8Path);
     }
 
     void NativeRenderer::FlushLogs() {
-        LOG_FUNCTION_SCOPE("NativeRenderer::FlushLogs");
-        utility_helpers::android::flushLogging();
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::FlushLogs");
+        utility_helpers::logging::Flush();
     }
 
     void NativeRenderer::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
-        LOG_FUNCTION_SCOPE("NativeRenderer::SetAssetManager");
-        utility_helpers::android::initializeLogging("MobileClock");
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::SetAssetManager");
+        utility_helpers::logging::Initialize("MobileClock");
         this->state->assetManager = AAssetManager_fromJava(env, javaAssetManager);
-        LOG_INFO("Android AssetManager connected");
+        LOG_INFO("MobileClock", "Android AssetManager connected");
     }
 
     void NativeRenderer::SurfaceChanged(
@@ -126,8 +130,8 @@ namespace mobileclock::renderer {
         jobject androidSurface,
         jint width,
         jint height) {
-        LOG_FUNCTION_SCOPE("NativeRenderer::SurfaceChanged: {}x{}", width, height);
-        utility_helpers::android::initializeLogging("MobileClock");
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::SurfaceChanged: {}x{}", width, height);
+        utility_helpers::logging::Initialize("MobileClock");
         State& state = *this->state;
         _details::DestroyRenderer(state);
         state.window = ANativeWindow_fromSurface(env, androidSurface);
@@ -180,12 +184,12 @@ namespace mobileclock::renderer {
     }
 
     void NativeRenderer::SurfaceDestroyed() {
-        LOG_FUNCTION_SCOPE("NativeRenderer::SurfaceDestroyed");
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::SurfaceDestroyed");
         _details::DestroyRenderer(*this->state);
     }
 
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
-        LOG_FUNCTION_SCOPE("NativeRenderer::Touch: action={}, x={}, y={}", action, x, y);
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::Touch: action={}, x={}, y={}", action, x, y);
         if (action == AMOTION_EVENT_ACTION_DOWN) {
             this->state->pageManager.HandleTouchDown(x, y);
             return;

@@ -157,7 +157,6 @@ find_library(log-lib log)
 target_link_libraries(mobileclock
     utility_helpers::open_gles_renderer
     utility_helpers::xaml_runtime
-    utility_helpers::android_logging
     # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
     # preset. Линкуем рантайм статически, не требуя отдельный libc++_shared.so.
     c++_static

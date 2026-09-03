@@ -1,16 +1,15 @@
-#include "UI/MainPageViewModel.h"
-
-#include <Helpers/platform/Android/Logging.h>
-#include <XamlRuntime/Input.h>
-#include <XamlRuntime/Animation.h>
+#include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
+#include <XamlRuntime/Animation.h>
+#include <XamlRuntime/Input.h>
 
-#include "!Generated/Build/BuildVersion.h"
-#include "!Generated/Xaml/MainPage.xaml.h"
+#include "../!Generated/Build/BuildVersion.h"
+#include "../!Generated/Xaml/MainPage.xaml.h"
+#include "MainPageViewModel.h"
 
+#include <stdexcept>
 #include <algorithm>
 #include <chrono>
-#include <stdexcept>
 #include <ctime>
 
 namespace mobileclock::ui::_details {
@@ -65,7 +64,7 @@ namespace mobileclock::ui {
     }
 
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
-        LOG_FUNCTION_SCOPE("MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
+        LOG_FUNCTION_SCOPE("MobileClock", "MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
         this->capturedElement = nullptr;
         this->bindings.Clear();
         this->page = xaml::generated::MainPage::Create(*this, this->bindings);
