@@ -27,13 +27,18 @@ namespace mobileclock::ui {
         : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION) {
     }
 
-    MainPageViewModel::Alarm::Alarm(std::string time, bool isEnabled)
+    MainPageViewModel::Alarm::Alarm(std::string time, std::string repeat, bool isEnabled)
         : time(std::move(time))
+        , repeat(std::move(repeat))
         , isEnabled(isEnabled) {
     }
 
     const std::string& MainPageViewModel::Alarm::Time() const {
         return this->time;
+    }
+
+    const std::string& MainPageViewModel::Alarm::Repeat() const {
+        return this->repeat;
     }
 
     bool MainPageViewModel::Alarm::IsEnabled() const {

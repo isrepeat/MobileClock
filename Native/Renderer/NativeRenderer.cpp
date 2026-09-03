@@ -169,14 +169,24 @@ namespace mobileclock::renderer {
             static_cast<float>(width),
             static_cast<float>(height),
         });
-        const std::vector<unsigned char> fontData = _details::ReadAsset(
+        const std::vector<unsigned char> regularFontData = _details::ReadAsset(
             state.assetManager,
             "Roboto-Regular.ttf");
+        const std::vector<unsigned char> boldFontData = _details::ReadAsset(
+            state.assetManager,
+            "Roboto-Bold.ttf");
+        const std::vector<unsigned char> blackFontData = _details::ReadAsset(
+            state.assetManager,
+            "Roboto-Black.ttf");
         state.renderer = std::make_unique<es_renderer::OpenGlRenderer>(
             width,
             height,
-            fontData.data(),
-            fontData.size(),
+            regularFontData.data(),
+            regularFontData.size(),
+            boldFontData.data(),
+            boldFontData.size(),
+            blackFontData.data(),
+            blackFontData.size(),
             [&state](std::string_view source) {
                 return _details::ReadAsset(state.assetManager, source);
             });

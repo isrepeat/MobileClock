@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace xaml {
@@ -17,13 +18,15 @@ namespace mobileclock::ui {
     public:
         class Alarm final {
         public:
-            Alarm(std::string time, bool isEnabled);
+            Alarm(std::string time, std::string repeat, bool isEnabled);
 
             const std::string& Time() const;
+            const std::string& Repeat() const;
             bool IsEnabled() const;
 
         private:
             std::string time;
+            std::string repeat;
             bool isEnabled = false;
         };
 
@@ -68,10 +71,10 @@ namespace mobileclock::ui {
         std::string clockText;
         std::string packageVersion;
         const std::vector<Alarm> alarms{
-            {"05:55", true},
-            {"06:18", false},
-            {"06:30", true},
-            {"06:36", false},
+            {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
+            {"06:18", "Сб, Вс", false},
+            {"06:30", "Ежедневно", true},
+            {"06:36", "Пн, Ср, Пт", false},
         };
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;

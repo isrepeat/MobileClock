@@ -1,156 +1,181 @@
 <Page id="root"
       borderThickness="0"
-      background="#1B1C17"
-      padding="24 24 80 24">
-  <StackPanel id="alarmPage"
-              borderThickness="0"
-              orientation="Vertical"
-              horizontalAlignment="Stretch"
-              verticalAlignment="Top">
-    <Grid id="pageHeader"
-          background="#1B1C17"
-          borderBrush="#4E4B3D"
-          borderThickness="0 0 0 1"
-          height="90"
-          horizontalAlignment="Stretch">
-      <columnDefinitions>
-        <columnDefinition width="25%" />
-        <columnDefinition width="50%" />
-        <columnDefinition width="*" />
-      </columnDefinitions>
-      <TextBlock id="pageTitle"
-                 text="Будильники"
-                 fontSize="30"
-                 fontWeight="Bold"
-                 foreground="#EADCB5"
-                 horizontalAlignment="Left"
-                 verticalAlignment="Center" />
-      <TextBlock id="packageVersion"
-                 text="{Binding PackageVersion}"
-                 fontSize="40"
-                 fontWeight="Bold"
-                 foreground="#9D9477"
-                 horizontalAlignment="Center"
-                 verticalAlignment="Center"
-                 gridColumn="1" />
-      <StackPanel gridColumn="2"
-                  orientation="Horizontal"
-                  horizontalAlignment="Right">
-        <Border id="addAlarmButton"
-                background="#292A23"
-                cornerRadius="24"
-                padding="18 18 10 10"
-                horizontalAlignment="Center"
-                verticalAlignment="Center">
-          <SvgImage id="addAlarmIcon"
-                    source="Icons/add.svg"
-                    tint="#D5BD7D"
-                    width="30"
-                    height="30"
-                    horizontalAlignment="Center"
-                    verticalAlignment="Center" />
-        </Border>
-        <Border margin="10 10 0 0"/>
-        <Border id="settingsButton"
-                background="#292A23"
-                cornerRadius="24"
-                padding="18 18 10 10"
-                horizontalAlignment="Center"
-                verticalAlignment="Center">
-          <SvgImage id="settingsNavigation"
-                    source="Icons/settings.svg"
-                    tint="#EADCB5"
-                    width="30"
-                    height="30"
-                    horizontalAlignment="Center"
-                    verticalAlignment="Center" />
-        </Border>
-      </StackPanel>
-    </Grid>
-    <StackPanel id="nextAlarmSummary"
-                height="120"
+      background="#171813"
+      padding="60 60 48 32">
+    <StackPanel id="alarmPage"
+                borderThickness="0"
                 orientation="Vertical"
-                horizontalAlignment="Stretch">
-      <TextBlock text="До ближайшего"
-                 fontSize="16"
-                 foreground="#9D9477"
-                 horizontalAlignment="Center" />
-      <TextBlock id="clockText"
-                 text="{Binding ClockText}"
-                 fontSize="44"
-                 foreground="#EADCB5"
-                 horizontalAlignment="Center" />
-    </StackPanel>
-    <Border id="alarmsCard"
-            background="#22231E"
-            cornerRadius="20"
-            horizontalAlignment="Stretch"
-            margin="14 14 0 0">
-      <ListView id="alarms"
                 horizontalAlignment="Stretch"
-                itemsSource="{Binding Alarms}">
-        <ListView.ItemTemplate>
-          <DataTemplate>
-            <Grid height="150"
-                  margin="10"
+                verticalAlignment="Top">
+        <Grid id="pageHeader"
+              height="94"
+              horizontalAlignment="Stretch">
+            <columnDefinitions>
+                <columnDefinition width="*" />
+                <columnDefinition width="Auto" />
+                <columnDefinition width="12" />
+                <columnDefinition width="Auto" />
+            </columnDefinitions>
+            <TextBlock id="pageTitle"
+                       text="Будильники"
+                       fontSize="36"
+                       fontWeight="Bold"
+                       foreground="#F1E8D2"
+                       horizontalAlignment="Left"
+                       verticalAlignment="Center" />
+            <Border id="addAlarmButton"
+                    background="#2A2B24"
+                    cornerRadius="24"
+                    padding="12"
+                    horizontalAlignment="Center"
+                    verticalAlignment="Center"
+                    gridColumn="1">
+                <SvgImage id="addAlarmIcon"
+                          source="Icons/add.svg"
+                          tint="#E2C878"
+                          width="26"
+                          height="26"
+                          horizontalAlignment="Center"
+                          verticalAlignment="Center" />
+            </Border>
+            <Border id="settingsButton"
+                    background="#2A2B24"
+                    cornerRadius="24"
+                    padding="12"
+                    horizontalAlignment="Center"
+                    verticalAlignment="Center"
+                    gridColumn="3">
+                <SvgImage id="settingsNavigation"
+                          source="Icons/settings.svg"
+                          tint="#F1E8D2"
+                          width="26"
+                          height="26"
+                          horizontalAlignment="Center"
+                          verticalAlignment="Center" />
+            </Border>
+        </Grid>
+        <StackPanel id="nextAlarmSummary"
+                    height="94"
+                    orientation="Vertical"
+                    horizontalAlignment="Stretch">
+            <TextBlock text="До ближайшего будильника"
+                       fontSize="18"
+                       foreground="#938E78"
+                       horizontalAlignment="Center" />
+            <TextBlock id="clockText"
+                       text="{Binding ClockText}"
+                       fontSize="40"
+                       foreground="#E7D8AB"
+                       horizontalAlignment="Center" />
+        </StackPanel>
+        <ListView id="alarms"
                   horizontalAlignment="Stretch"
-                  borderBrush="#4E4B3D"
-                  borderThickness="10">
-              <TextBlock text="{Binding Time}"
-                         fontSize="42"
-                         foreground="#EADCB5"
-                         horizontalAlignment="Center"
-                         verticalAlignment="Center" />
-              <Grid horizontalAlignment="Stretch">
-                <columnDefinitions>
-                  <columnDefinition width="86%" />
-                  <columnDefinition width="14%" />
-                </columnDefinitions>
-                <ToggleSwitch height="42"
-                              background="#D5BD7D"
-                              borderBrush="#555447"
-                              foreground="#1B1C17"
-                              tint="#CFC29B"
-                              isOn="{Binding IsEnabled}"
-                              horizontalAlignment="Stretch"
-                              verticalAlignment="Center"
-                              gridColumn="1" />
-              </Grid>
-            </Grid>
-          </DataTemplate>
-        </ListView.ItemTemplate>
-      </ListView>
-    </Border>
-    <Grid id="pageFooter"
-          background="#1B1C17"
-          borderBrush="#4E4B3D"
-          borderThickness="0 1 0 0"
-          height="90"
-          horizontalAlignment="Stretch"
-          margin="0 0 14 0">
-      <columnDefinitions>
-        <columnDefinition width="33%" />
-        <columnDefinition width="34%" />
-        <columnDefinition width="33%" />
-      </columnDefinitions>
-      <TextBlock text="Будильники"
-                 fontSize="13"
-                 fontWeight="Bold"
-                 foreground="#D5BD7D"
-                 horizontalAlignment="Center"
-                 verticalAlignment="Center" />
-      <TextBlock text="Таймер"
-                 fontSize="13"
-                 foreground="#9D9477"
-                 horizontalAlignment="Center"
-                 verticalAlignment="Center"
-                 gridColumn="1" />
-      <TextBlock text="Секундомер"
-                 fontSize="13"
-                 foreground="#9D9477"
-                 horizontalAlignment="Center"
-                 verticalAlignment="Center"
-                 gridColumn="2" />
-    </Grid>
-  </StackPanel>
+                  itemsSource="{Binding Alarms}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Border background="#22231D"
+                            borderBrush="#32332B"
+                            borderThickness="1"
+                            cornerRadius="20"
+                            margin="0 0 0 14"
+                            padding="22 18 22 18"
+                            horizontalAlignment="Stretch">
+                        <Grid height="140"
+                              horizontalAlignment="Stretch">
+                            <columnDefinitions>
+                                <columnDefinition width="80%" />
+                                <columnDefinition width="*" />
+                                <columnDefinition width="18%" />
+                            </columnDefinitions>
+                            <Grid horizontalAlignment="Stretch"
+                                  verticalAlignment="Stretch">
+                                <rowDefinitions>
+                                    <rowDefinition height="75%" />
+                                    <rowDefinition height="25%" />
+                                </rowDefinitions>
+                                <TextBlock text="{Binding Time}"
+                                           fontSize="82"
+                                           fontWeight="Bold"
+                                           foreground="#F1E8D2"
+                                           horizontalAlignment="Left"
+                                           verticalAlignment="Center" />
+                                <Border horizontalAlignment="Stretch"
+                                        verticalAlignment="Top"
+                                        gridRow="1">
+                                    <TextBlock text="{Binding Repeat}"
+                                               fontSize="38"
+                                               foreground="#9E9985"
+                                               horizontalAlignment="Left"
+                                               verticalAlignment="Top" />
+                                </Border>
+                            </Grid>
+                            <ToggleSwitch height="54"
+                                          background="#E2C878"
+                                          borderBrush="#555447"
+                                          foreground="#171813"
+                                          tint="#D8CC9C"
+                                          isOn="{Binding IsEnabled}"
+                                          horizontalAlignment="Stretch"
+                                          verticalAlignment="Center"
+                                          gridColumn="2" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <Grid id="pageFooter"
+              borderBrush="#34352D"
+              borderThickness="0 1 0 0"
+              height="116"
+              horizontalAlignment="Stretch"
+              margin="0 10 0 0">
+            <columnDefinitions>
+                <columnDefinition width="33%" />
+                <columnDefinition width="34%" />
+                <columnDefinition width="33%" />
+            </columnDefinitions>
+            <StackPanel orientation="Vertical"
+                        horizontalAlignment="Center"
+                        verticalAlignment="Center">
+                <SvgImage source="Icons/alarm.svg"
+                          tint="#E2C878"
+                          width="28"
+                          height="28"
+                          horizontalAlignment="Center" />
+                <TextBlock text="Будильники"
+                           fontSize="20"
+                           fontWeight="Bold"
+                           foreground="#E2C878"
+                           horizontalAlignment="Center" />
+            </StackPanel>
+            <StackPanel orientation="Vertical"
+                        horizontalAlignment="Center"
+                        verticalAlignment="Center"
+                        gridColumn="1">
+                <SvgImage source="Icons/timer.svg"
+                          tint="#938E78"
+                          width="28"
+                          height="28"
+                          horizontalAlignment="Center" />
+                <TextBlock text="Таймер"
+                           fontSize="20"
+                           foreground="#938E78"
+                           horizontalAlignment="Center" />
+            </StackPanel>
+            <StackPanel orientation="Vertical"
+                        horizontalAlignment="Center"
+                        verticalAlignment="Center"
+                        gridColumn="2">
+                <SvgImage source="Icons/stopwatch.svg"
+                          tint="#938E78"
+                          width="28"
+                          height="28"
+                          horizontalAlignment="Center" />
+                <TextBlock text="Секундомер"
+                           fontSize="20"
+                           foreground="#938E78"
+                           horizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </StackPanel>
 </Page>
