@@ -13,46 +13,50 @@
             <columnDefinitions>
                 <columnDefinition width="*" />
                 <columnDefinition width="Auto" />
-                <columnDefinition width="12" />
-                <columnDefinition width="Auto" />
+                <columnDefinition width="*" />
             </columnDefinitions>
             <TextBlock id="pageTitle"
                        text="Будильники"
-                       fontSize="36"
-                       fontWeight="Bold"
+                       fontSize="40"
+                       fontWeight="Normal"
                        foreground="#F1E8D2"
                        horizontalAlignment="Left"
                        verticalAlignment="Center" />
-            <Border id="addAlarmButton"
-                    background="#2A2B24"
-                    cornerRadius="24"
-                    padding="12"
-                    horizontalAlignment="Center"
-                    verticalAlignment="Center"
-                    gridColumn="1">
-                <SvgImage id="addAlarmIcon"
-                          source="Icons/add.svg"
-                          tint="#E2C878"
-                          width="26"
-                          height="26"
-                          horizontalAlignment="Center"
-                          verticalAlignment="Center" />
-            </Border>
-            <Border id="settingsButton"
-                    background="#2A2B24"
-                    cornerRadius="24"
-                    padding="12"
-                    horizontalAlignment="Center"
-                    verticalAlignment="Center"
-                    gridColumn="3">
-                <SvgImage id="settingsNavigation"
-                          source="Icons/settings.svg"
-                          tint="#F1E8D2"
-                          width="26"
-                          height="26"
-                          horizontalAlignment="Center"
-                          verticalAlignment="Center" />
-            </Border>
+            <StackPanel id="pageActions"
+                        orientation="Horizontal"
+                        horizontalAlignment="Right"
+                        verticalAlignment="Center"
+                        gridColumn="3">
+                <Border id="addAlarmButton"
+                        background="#2A2B24"
+                        cornerRadius="20"
+                        padding="16 16 12 12"
+                        margin="0 16 0 0"
+                        horizontalAlignment="Center"
+                        verticalAlignment="Center">
+                    <SvgImage id="addAlarmIcon"
+                              source="Icons/add.svg"
+                              tint="#E2C878"
+                              width="40"
+                              height="40"
+                              horizontalAlignment="Center"
+                              verticalAlignment="Center" />
+                </Border>
+                <Border id="settingsButton"
+                        background="#2A2B24"
+                        cornerRadius="20"
+                        padding="16 16 12 12"
+                        horizontalAlignment="Center"
+                        verticalAlignment="Center">
+                    <SvgImage id="settingsNavigation"
+                              source="Icons/settings.svg"
+                              tint="#F1E8D2"
+                              width="40"
+                              height="40"
+                              horizontalAlignment="Center"
+                              verticalAlignment="Center" />
+                </Border>
+            </StackPanel>
         </Grid>
         <StackPanel id="nextAlarmSummary"
                     height="94"
