@@ -1,0 +1,12 @@
+{
+  "MainPage": {
+    "settingsButton": {
+      "tap": { "type": "navigate", "target": "SettingsPage", "transition": "slideLeft" }
+    }
+  },
+  "SettingsPage": {
+    "backNavigation": {
+      "tap": { "type": "navigate", "target": "MainPage", "transition": "slideRight" }
+    }
+  }
+}

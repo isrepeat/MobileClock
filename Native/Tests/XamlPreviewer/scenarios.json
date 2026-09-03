@@ -1,0 +1,21 @@
+{
+  "MainPage": {
+    "Будильники": {
+      "PackageVersion": "1.4.0",
+      "ClockText": "через 6 ч 35 мин",
+      "Alarms": [
+        { "Time": "05:55", "Repeat": "Пн, Вт, Ср, Чт, Пт", "IsEnabled": true },
+        { "Time": "06:18", "Repeat": "Пн, Вт, Ср, Чт", "IsEnabled": false },
+        { "Time": "06:30", "Repeat": "Ежедневно", "IsEnabled": true },
+        { "Time": "06:36", "Repeat": "Пн, Ср, Пт", "IsEnabled": false }
+      ]
+    }
+  },
+  "SettingsPage": {
+    "Основной": {
+      "PackageVersion": "1.4.0",
+      "Theme": "Тёмная",
+      "Sound": "Мелодия по умолчанию"
+    }
+  }
+}
