@@ -166,6 +166,18 @@
                                        intensity="0.95"
                                        spread="1.5"
                                        fadeExponent="1.6" />
+                    <FloatAnimation property="waveOpacity"
+                                    from="0"
+                                    to="1"
+                                    duration="1"
+                                    easing="Linear" />
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <FloatAnimation property="waveOpacity"
+                                    from="Current"
+                                    to="0"
+                                    duration="280"
+                                    easing="CubicOut" />
                 </Storyboard>
             </Button.Storyboards>
         </Button>
