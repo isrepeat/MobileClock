@@ -7,7 +7,6 @@
 #include "!Generated/Xaml/SettingsPage.xaml.h"
 
 #include <utility>
-#include <chrono>
 
 namespace mobileclock::ui {
     //
@@ -41,18 +40,13 @@ namespace mobileclock::ui {
         if (element == nullptr) {
             return TouchAction::none;
         }
-        const bool wasOn = element->IsOn();
         if (!xaml::HandleTap(*element)) {
             return TouchAction::none;
         }
         if (element->Type() == xaml::ElementType::toggleSwitch) {
-            animations.Animate(
-                *element,
-                xaml::AnimatedProperty::toggleProgress,
-                wasOn ? 1.0f : 0.0f,
-                wasOn ? 0.0f : 1.0f,
-                std::chrono::milliseconds(120));
+            animations.Start(*element, xaml::AnimationTrigger::toggled);
         }
+        animations.Start(*element, xaml::AnimationTrigger::pointerUp);
         if (element->Id() == "backNavigation") {
             return TouchAction::navigateToMain;
         }

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Firebase', 'Drive', 'All')]
+    [ValidateSet('Drive')]
     [string]$Destination,
 
     # Пересобирает APK с текущим versionCode для быстрой тестовой переустановки.
@@ -14,23 +14,10 @@ $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $bumpVersion = Join-Path $PSScriptRoot 'bump-version.ps1'
 $buildAndroid = Join-Path $PSScriptRoot 'build-android.ps1'
 $uploadToDrive = Join-Path $PSScriptRoot 'upload-apk-to-drive.ps1'
-$gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
 $sourceApk = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'
 $sourceUpdaterApk = Join-Path $projectRoot 'updater\build\outputs\apk\debug\updater-debug.apk'
 $versionProperties = Join-Path $projectRoot 'version.properties'
 $distributionOutput = Join-Path $projectRoot 'out\distribution'
-
-function Invoke-Checked {
-    param(
-        [Parameter(Mandatory)] [string]$Program,
-        [Parameter(Mandatory)] [string[]]$Arguments
-    )
-
-    & $Program @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Command failed with exit code ${LASTEXITCODE}: $Program $($Arguments -join ' ')"
-    }
-}
 
 if ($KeepVersion) {
     Write-Host '==> Keeping the current Android version for a test reinstall'
@@ -46,18 +33,7 @@ New-Item -ItemType Directory -Path $distributionOutput -Force | Out-Null
 Copy-Item -LiteralPath $sourceApk -Destination $destinationApk -Force
 Copy-Item -LiteralPath $sourceUpdaterApk -Destination $destinationUpdaterApk -Force
 
-if ($Destination -in @('Firebase', 'All')) {
-    Write-Host '==> Uploading APK to Firebase App Distribution'
-    Push-Location $projectRoot
-    try {
-        Invoke-Checked $gradleWrapper @('--no-daemon', 'appDistributionUploadDebug')
-    } finally {
-        Pop-Location
-    }
-    Write-Host "APK uploaded to Firebase App Distribution: $destinationApk"
-}
-
-if ($Destination -in @('Drive', 'All')) {
+if ($Destination -eq 'Drive') {
     Write-Host '==> Uploading MobileClock APK to Google Drive'
     & $uploadToDrive -ApkPath $destinationApk
     Write-Host "APK uploaded to Google Drive: $destinationApk"

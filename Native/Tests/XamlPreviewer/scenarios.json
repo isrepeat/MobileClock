@@ -6,8 +6,7 @@
       "Alarms": [
         { "Time": "05:55", "Repeat": "Пн, Вт, Ср, Чт, Пт", "IsEnabled": true },
         { "Time": "06:18", "Repeat": "Пн, Вт, Ср, Чт", "IsEnabled": false },
-        { "Time": "06:30", "Repeat": "Ежедневно", "IsEnabled": true },
-        { "Time": "06:36", "Repeat": "Пн, Ср, Пт", "IsEnabled": false }
+        { "Time": "06:30", "Repeat": "Ежедневно", "IsEnabled": true }
       ]
     }
   },

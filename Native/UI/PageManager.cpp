@@ -14,7 +14,7 @@ namespace mobileclock::ui {
 
     void PageManager::HandleTouchDown(float x, float y) {
         if (this->currentPage == Page::main) {
-            this->mainPageViewModel.HandleTouchDown(x, y);
+            this->mainPageViewModel.HandleTouchDown(x, y, this->animations);
             return;
         }
         this->settingsPageViewModel.HandleTouchDown(x, y);

@@ -9,7 +9,6 @@
 
 #include <stdexcept>
 #include <algorithm>
-#include <chrono>
 #include <ctime>
 
 namespace mobileclock::ui::_details {
@@ -76,8 +75,14 @@ namespace mobileclock::ui {
         xaml::layout(*this->page, availableSize);
     }
 
-    void MainPageViewModel::HandleTouchDown(float x, float y) {
+    void MainPageViewModel::HandleTouchDown(
+        float x,
+        float y,
+        xaml::AnimationController& animations) {
         this->capturedElement = xaml::HitTest(*this->page, x, y);
+        if (this->capturedElement != nullptr) {
+            animations.Start(*this->capturedElement, xaml::AnimationTrigger::pointerDown);
+        }
     }
 
     MainPageViewModel::TouchAction MainPageViewModel::HandleTouchUp(
@@ -89,17 +94,12 @@ namespace mobileclock::ui {
         if (element == nullptr) {
             return TouchAction::none;
         }
-        const bool wasOn = element->IsOn();
         if (!xaml::HandleTap(*element)) {
             return TouchAction::none;
         }
+        animations.Start(*element, xaml::AnimationTrigger::pointerUp);
         if (element->Type() == xaml::ElementType::toggleSwitch) {
-            animations.Animate(
-                *element,
-                xaml::AnimatedProperty::toggleProgress,
-                wasOn ? 1.0f : 0.0f,
-                wasOn ? 0.0f : 1.0f,
-                std::chrono::milliseconds(120));
+            animations.Start(*element, xaml::AnimationTrigger::toggled);
         }
         if (element->Id() == "settingsButton") {
             return TouchAction::navigateToSettings;

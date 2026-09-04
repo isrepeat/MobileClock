@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?mobileclock-preview width="720" height="360"?>
+<?mobileclock-preview width="400" height="300"?>
 <Page xmlns="urn:mobileclock:xaml"
       id="buttonPressExample"
       background="#181A15"

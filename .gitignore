@@ -21,7 +21,6 @@ captures/
 Native/out/
 Native/!Generated/
 
-# Создаются Scripts/setup-vs-android-intellisense.bat как hardlink на NDK.
 Native/cmake/vs-android-drivers/**/clang.exe
 Native/cmake/vs-android-drivers/**/clang++.exe
 Native/cmake/vs-android-drivers/**/libwinpthread-1.dll

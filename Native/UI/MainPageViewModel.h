@@ -56,7 +56,7 @@ namespace mobileclock::ui {
         const std::vector<Alarm>& Alarms() const;
 
         void Initialize(xaml::Size availableSize);
-        void HandleTouchDown(float x, float y);
+        void HandleTouchDown(float x, float y, xaml::AnimationController& animations);
         TouchAction HandleTouchUp(float x, float y, xaml::AnimationController& animations);
         void CancelTouch();
         void UpdateClock();
@@ -74,7 +74,6 @@ namespace mobileclock::ui {
             {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
             {"06:18", "Сб, Вс", false},
             {"06:30", "Ежедневно", true},
-            {"06:36", "Пн, Ср, Пт", false},
         };
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;

@@ -1,4 +1,0 @@
-# One existing file path per line. Empty lines and lines beginning with # are ignored.
-# The script opens each file in the running Visual Studio instance, waits briefly for
-# IntelliSense, then closes only the tab it opened.
-C:\Program Files (x86)\Android\AndroidNDK\android-ndk-r27c\toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\include\c++\v1\__memory\shared_ptr.h

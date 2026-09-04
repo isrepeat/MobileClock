@@ -126,12 +126,49 @@
                                           isOn="{Binding IsEnabled}"
                                           horizontalAlignment="Stretch"
                                           verticalAlignment="Center"
-                                          gridColumn="2" />
+                                          gridColumn="2">
+                                <ToggleSwitch.Storyboards>
+                                    <Storyboard trigger="Toggled">
+                                        <FloatAnimation property="toggleProgress"
+                                                        from="Current"
+                                                        to="ToggleState"
+                                                        duration="120"
+                                                        easing="CubicOut" />
+                                    </Storyboard>
+                                </ToggleSwitch.Storyboards>
+                            </ToggleSwitch>
                         </Grid>
                     </Border>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <Button id="wavePreviewButton"
+                text="Проверить анимацию"
+                command="hold"
+                background="#303128"
+                borderBrush="#47483D"
+                borderThickness="1"
+                cornerRadius="16"
+                fontSize="28"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                height="76"
+                margin="0 6 0 16"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <RendererAnimation name="SoftPulse"
+                                       from="0"
+                                       to="1"
+                                       duration="1000"
+                                       easing="CubicOut"
+                                       intensity="0.95"
+                                       spread="1.5"
+                                       fadeExponent="1.6" />
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
         <Grid id="pageFooter"
               borderBrush="#34352D"
               borderThickness="0 1 0 0"
