@@ -1,4 +1,6 @@
-<Page id="settingsPage"
+<?xml version="1.0" encoding="utf-8"?>
+<Page xmlns="urn:mobileclock:xaml"
+      id="settingsPage"
       background="#1B1C17"
       padding="24 24 80 24">
     <StackPanel orientation="Vertical"
@@ -15,6 +17,7 @@
             </columnDefinitions>
             <Border id="backNavigation"
                     background="#292A23"
+                    command="navigateToMain"
                     cornerRadius="24"
                     padding="10"
                     horizontalAlignment="Center"

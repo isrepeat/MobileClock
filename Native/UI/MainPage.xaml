@@ -1,4 +1,6 @@
-<Page id="root"
+<?xml version="1.0" encoding="utf-8"?>
+<Page xmlns="urn:mobileclock:xaml"
+      id="root"
       borderThickness="0"
       background="#171813"
       padding="60 60 48 32">
@@ -29,6 +31,7 @@
                         gridColumn="3">
                 <Border id="addAlarmButton"
                         background="#2A2B24"
+                        command="createAlarm"
                         cornerRadius="20"
                         padding="16 16 12 12"
                         margin="0 16 0 0"
@@ -44,6 +47,7 @@
                 </Border>
                 <Border id="settingsButton"
                         background="#2A2B24"
+                        command="navigateToSettings"
                         cornerRadius="20"
                         padding="16 16 12 12"
                         horizontalAlignment="Center"
@@ -114,6 +118,7 @@
                                 </Border>
                             </Grid>
                             <ToggleSwitch height="54"
+                                          command="toggleAlarm"
                                           background="#E2C878"
                                           borderBrush="#555447"
                                           foreground="#171813"

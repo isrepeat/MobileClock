@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?mobileclock-preview width="720" height="460"?>
+<Page xmlns="urn:mobileclock:xaml"
+      id="buttonStatesExample"
+      background="#181A15"
+      padding="48">
+    <StackPanel orientation="Vertical"
+                horizontalAlignment="Center"
+                verticalAlignment="Center">
+        <TextBlock text="Кнопка: состояния"
+                   fontSize="28"
+                   fontWeight="Bold"
+                   foreground="#F1E8D2"
+                   horizontalAlignment="Center"
+                   margin="0 0 0 32" />
+        <Button id="defaultButton"
+                text="Включить будильник"
+                command="toggleAlarm"
+                background="#303128"
+                activeBackground="#E6CA69"
+                borderBrush="#47483D"
+                activeBorderBrush="#E6CA69"
+                borderThickness="1"
+                cornerRadius="14"
+                padding="24 16 24 16"
+                fontSize="18"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                activeForeground="#1C1C16"
+                width="280"
+                height="64"
+                horizontalAlignment="Center" />
+        <Button id="activeButton"
+                text="Будильник включён"
+                command="toggleAlarm"
+                background="#303128"
+                activeBackground="#E6CA69"
+                borderBrush="#47483D"
+                activeBorderBrush="#E6CA69"
+                borderThickness="1"
+                cornerRadius="14"
+                padding="24 16 24 16"
+                fontSize="18"
+                fontWeight="Bold"
+                foreground="#1C1C16"
+                activeForeground="#1C1C16"
+                isOn="True"
+                width="280"
+                height="64"
+                margin="0 16 0 0"
+                horizontalAlignment="Center" />
+    </StackPanel>
+</Page>
