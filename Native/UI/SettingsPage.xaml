@@ -97,5 +97,83 @@
                            gridColumn="1" />
             </Grid>
         </Border>
+        <Button id="shareLogsButton"
+                text="Поделиться логом"
+                command="shareLogs"
+                background="#303128"
+                borderBrush="#47483D"
+                borderThickness="1"
+                foreground="#F1E8D2"
+                cornerRadius="16"
+                fontSize="24"
+                fontWeight="Bold"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <RendererAnimation name="SoftPulse"
+                                       from="0"
+                                       to="1"
+                                       duration="1000"
+                                       easing="CubicOut"
+                                       intensity="0.95"
+                                       spread="1.5"
+                                       fadeExponent="1.6" />
+                    <FloatAnimation property="waveOpacity"
+                                    from="0"
+                                    to="1"
+                                    duration="1"
+                                    easing="Linear" />
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <FloatAnimation property="waveOpacity"
+                                    from="Current"
+                                    to="0"
+                                    duration="280"
+                                    easing="CubicOut" />
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
+        <Button id="exportLogsButton"
+                text="Экспортировать логи"
+                command="exportLogs"
+                background="#303128"
+                borderBrush="#47483D"
+                borderThickness="1"
+                foreground="#F1E8D2"
+                cornerRadius="16"
+                fontSize="24"
+                fontWeight="Bold"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <RendererAnimation name="SoftPulse"
+                                       from="0"
+                                       to="1"
+                                       duration="1000"
+                                       easing="CubicOut"
+                                       intensity="0.95"
+                                       spread="1.5"
+                                       fadeExponent="1.6" />
+                    <FloatAnimation property="waveOpacity"
+                                    from="0"
+                                    to="1"
+                                    duration="1"
+                                    easing="Linear" />
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <FloatAnimation property="waveOpacity"
+                                    from="Current"
+                                    to="0"
+                                    duration="280"
+                                    easing="CubicOut" />
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
     </StackPanel>
 </Page>

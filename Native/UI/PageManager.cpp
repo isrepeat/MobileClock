@@ -12,6 +12,25 @@ namespace mobileclock::ui {
         this->settingsPageViewModel.Initialize(availableSize);
     }
 
+    void PageManager::SetCommandHandler(std::function<void(const std::string&)> handler) {
+        this->commandHandler = std::move(handler);
+        const auto dispatch = [this](const std::string& command) {
+            if (this->commandHandler) {
+                this->commandHandler(command);
+            }
+        };
+        this->mainPageViewModel.BindCommand("createAlarm", [dispatch]() { dispatch("createAlarm"); });
+        this->mainPageViewModel.BindCommand("toggleAlarm", [dispatch]() { dispatch("toggleAlarm"); });
+        this->mainPageViewModel.BindCommand("updateApplication", [dispatch]() { dispatch("updateApplication"); });
+        this->mainPageViewModel.BindCommand("uploadScreenshot", [dispatch]() { dispatch("uploadScreenshot"); });
+        this->settingsPageViewModel.BindCommand("shareLogs", [dispatch]() { dispatch("shareLogs"); });
+        this->settingsPageViewModel.BindCommand("exportLogs", [dispatch]() { dispatch("exportLogs"); });
+    }
+
+    void PageManager::SetStatus(std::string value) {
+        this->mainPageViewModel.SetStatus(std::move(value));
+    }
+
     void PageManager::HandleTouchDown(float x, float y) {
         if (this->currentPage == Page::main) {
             this->mainPageViewModel.HandleTouchDown(x, y, this->animations);

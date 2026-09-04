@@ -17,6 +17,15 @@ object NativeRenderer {
         // Kotlin подготавливает Android-зависимые объекты до первого GL-кадра.
         configureLogFile(filesDirectory)
         nativeSetAssetManager(assetManager)
+        nativeSetCommandDispatcher(NativeCommandDispatcher)
+    }
+
+    fun setCommandHandler(handler: (String) -> Unit) {
+        NativeCommandDispatcher.handler = handler
+    }
+
+    fun setStatus(message: String) {
+        nativeSetStatus(message)
     }
 
     fun log(filesDirectory: File, category: String, message: String) {
@@ -63,10 +72,22 @@ object NativeRenderer {
     // Int -> jint, Float -> jfloat, String -> jstring.
     private external fun nativeSurfaceChanged(surface: Surface, width: Int, height: Int)
     private external fun nativeSetAssetManager(assetManager: AssetManager)
+    private external fun nativeSetCommandDispatcher(dispatcher: NativeCommandDispatcher)
+    private external fun nativeSetStatus(status: String)
     private external fun nativeSetLogFile(path: String)
     private external fun nativeFlushLogs()
     private external fun nativeLog(category: String, message: String)
     private external fun nativeSurfaceDestroyed()
     private external fun nativeTouch(action: Int, x: Float, y: Float)
     private external fun nativeRender()
+}
+
+object NativeCommandDispatcher {
+    @Volatile
+    var handler: ((String) -> Unit)? = null
+
+    // Вызывается C++ только после успешного отпускания touch на native-кнопке.
+    fun dispatch(command: String) {
+        handler?.invoke(command)
+    }
 }

@@ -113,6 +113,7 @@ add_library(mobileclock SHARED
     main.cpp
     NativeApplication.cpp
     Renderer/NativeRenderer.cpp
+    UI/CommandBindings.cpp
     UI/MainPageViewModel.cpp
     UI/PageManager.cpp
     UI/SettingsPageViewModel.cpp

@@ -38,6 +38,18 @@ Java_com_example_mobileclock_native_NativeRenderer_nativeSetAssetManager(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_native_NativeRenderer_nativeSetCommandDispatcher(
+    JNIEnv* env, jobject, jobject javaDispatcher) {
+    nativeApplication().SetCommandDispatcher(env, javaDispatcher);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_native_NativeRenderer_nativeSetStatus(
+    JNIEnv* env, jobject, jstring javaStatus) {
+    nativeApplication().SetStatus(env, javaStatus);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSurfaceChanged(
     JNIEnv* env, jobject, jobject androidSurface, jint width, jint height) {
     LOG_FUNCTION_SCOPE("MobileClock", "nativeSurfaceChanged: {}x{}", width, height);

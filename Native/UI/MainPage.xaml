@@ -142,45 +142,6 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button id="wavePreviewButton"
-                text="Проверить анимацию"
-                command="hold"
-                background="#303128"
-                borderBrush="#47483D"
-                borderThickness="1"
-                cornerRadius="16"
-                fontSize="28"
-                fontWeight="Bold"
-                foreground="#F1E8D2"
-                height="76"
-                margin="0 6 0 16"
-                contentAlignment="Center"
-                horizontalAlignment="Stretch">
-            <Button.Storyboards>
-                <Storyboard trigger="PointerDown">
-                    <RendererAnimation name="SoftPulse"
-                                       from="0"
-                                       to="1"
-                                       duration="1000"
-                                       easing="CubicOut"
-                                       intensity="0.95"
-                                       spread="1.5"
-                                       fadeExponent="1.6" />
-                    <FloatAnimation property="waveOpacity"
-                                    from="0"
-                                    to="1"
-                                    duration="1"
-                                    easing="Linear" />
-                </Storyboard>
-                <Storyboard trigger="PointerUp">
-                    <FloatAnimation property="waveOpacity"
-                                    from="Current"
-                                    to="0"
-                                    duration="280"
-                                    easing="CubicOut" />
-                </Storyboard>
-            </Button.Storyboards>
-        </Button>
         <Grid id="pageFooter"
               borderBrush="#34352D"
               borderThickness="0 1 0 0"
@@ -235,5 +196,88 @@
                            horizontalAlignment="Center" />
             </StackPanel>
         </Grid>
+        <Button id="updateApplicationButton"
+                text="Обновить"
+                command="updateApplication"
+                background="#303128"
+                borderBrush="#47483D"
+                borderThickness="1"
+                cornerRadius="16"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                height="76"
+                margin="0 6 0 16"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <RendererAnimation name="SoftPulse"
+                                       from="0"
+                                       to="1"
+                                       duration="1000"
+                                       easing="CubicOut"
+                                       intensity="0.95"
+                                       spread="1.5"
+                                       fadeExponent="1.6" />
+                    <FloatAnimation property="waveOpacity"
+                                    from="0"
+                                    to="1"
+                                    duration="1"
+                                    easing="Linear" />
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <FloatAnimation property="waveOpacity"
+                                    from="Current"
+                                    to="0"
+                                    duration="280"
+                                    easing="CubicOut" />
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
+        <TextBlock text="{Binding Status}"
+                   fontSize="18"
+                   foreground="#D5BD7D"
+                   margin="8 0 8 12"
+                   horizontalAlignment="Center" />
+        <Button id="uploadScreenshotButton"
+                text="Скриншот в Google Drive"
+                command="uploadScreenshot"
+                background="#303128"
+                borderBrush="#47483D"
+                borderThickness="1"
+                cornerRadius="16"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                height="76"
+                margin="0 0 0 16"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <RendererAnimation name="SoftPulse"
+                                       from="0"
+                                       to="1"
+                                       duration="1000"
+                                       easing="CubicOut"
+                                       intensity="0.95"
+                                       spread="1.5"
+                                       fadeExponent="1.6" />
+                    <FloatAnimation property="waveOpacity"
+                                    from="0"
+                                    to="1"
+                                    duration="1"
+                                    easing="Linear" />
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <FloatAnimation property="waveOpacity"
+                                    from="Current"
+                                    to="0"
+                                    duration="280"
+                                    easing="CubicOut" />
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
     </StackPanel>
 </Page>

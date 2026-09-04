@@ -4,22 +4,13 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.example.mobileclock.feature.logs.LogExportCoordinator
-import com.example.mobileclock.feature.main.MainScreen
-import com.example.mobileclock.feature.main.MainUiEvent
-import com.example.mobileclock.feature.main.MainViewModel
 import com.example.mobileclock.feature.screenshot.GoogleDriveUploadCoordinator
 import com.example.mobileclock.feature.update.SelfUpdateController
 import com.example.mobileclock.feature.update.UpdateDiagnostics
 import com.example.mobileclock.native.NativeRenderer
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: MainViewModel by viewModels()
     private lateinit var logExportCoordinator: LogExportCoordinator
     private lateinit var googleDriveUploadCoordinator: GoogleDriveUploadCoordinator
     private lateinit var selfUpdateController: SelfUpdateController
@@ -45,24 +36,16 @@ class MainActivity : ComponentActivity() {
             activity = this,
             createLogSnapshot = logExportCoordinator::createSnapshot,
             onAuthorizationRequired = authorizeGoogleDrive::launch,
-            onCompleted = { message -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show() },
+            onCompleted = ::showNativeStatus,
         )
-        val mainScreen = MainScreen(this)
         selfUpdateController = SelfUpdateController(
             activity = this,
             onAuthorizationRequired = authorizeGoogleDriveUpdate::launch,
-            onProgress = mainScreen::showUpdateStatus,
-            onCompleted = { message -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show() },
+            onProgress = NativeRenderer::setStatus,
+            onCompleted = ::showNativeStatus,
         )
-        setContentView(
-            mainScreen.createView(
-                onShareLogs = viewModel::onShareLogsClick,
-                onExportLogs = viewModel::onExportLogsClick,
-                onUploadScreenshotToGoogleDrive = viewModel::onUploadScreenshotToGoogleDriveClick,
-                onUpdateApplication = viewModel::onUpdateApplicationClick,
-            ),
-        )
-        observeUiEvents()
+        NativeRenderer.setCommandHandler(::handleNativeCommand)
+        setContentView(com.example.mobileclock.native.NativeRenderSurfaceView(this))
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -125,25 +108,24 @@ class MainActivity : ComponentActivity() {
         UpdateDiagnostics.write(this, "MainActivity.onWindowFocusChanged hasFocus=$hasFocus")
     }
 
-    private fun observeUiEvents() {
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.events.collect { event ->
-                    when (event) {
-                        MainUiEvent.ShareLogs -> shareLogs()
-                        MainUiEvent.ExportLogs -> googleDriveUploadCoordinator.startLogUpload()
-                        MainUiEvent.UploadScreenshotToGoogleDrive -> googleDriveUploadCoordinator.startScreenshotUpload()
-                        MainUiEvent.UpdateApplication -> selfUpdateController.start()
-                    }
-                }
-            }
+    private fun handleNativeCommand(command: String) {
+        when (command) {
+            "shareLogs" -> shareLogs()
+            "exportLogs" -> googleDriveUploadCoordinator.startLogUpload()
+            "uploadScreenshot" -> googleDriveUploadCoordinator.startScreenshotUpload()
+            "updateApplication" -> selfUpdateController.start()
         }
     }
 
     private fun shareLogs() {
         if (!logExportCoordinator.share()) {
-            Toast.makeText(this, "Не удалось подготовить лог", Toast.LENGTH_SHORT).show()
+            showNativeStatus("Не удалось подготовить лог")
         }
+    }
+
+    private fun showNativeStatus(message: String) {
+        NativeRenderer.setStatus(message)
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private companion object {

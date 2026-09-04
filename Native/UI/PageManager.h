@@ -7,6 +7,8 @@
 #include <XamlRuntime/Animation.h>
 
 #include <chrono>
+#include <functional>
+#include <string>
 
 namespace xaml {
     class IRenderBackend;
@@ -22,6 +24,8 @@ namespace mobileclock::ui {
         PageManager& operator=(const PageManager&) = delete;
 
         void Initialize(xaml::Size availableSize);
+        void SetCommandHandler(std::function<void(const std::string&)> handler);
+        void SetStatus(std::string value);
         void HandleTouchDown(float x, float y);
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
@@ -42,5 +46,6 @@ namespace mobileclock::ui {
         xaml::AnimationController animations;
         MainPageViewModel mainPageViewModel;
         SettingsPageViewModel settingsPageViewModel;
+        std::function<void(const std::string&)> commandHandler;
     };
 }

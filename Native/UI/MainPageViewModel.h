@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/CommandBindings.h"
 #include "XamlRuntime/Binding.h"
 #include "XamlRuntime/XamlLayout.h"
 
@@ -33,6 +34,7 @@ namespace mobileclock::ui {
         enum class Property {
             clockText,
             packageVersion,
+            status,
         };
 
         enum class TouchAction {
@@ -53,8 +55,11 @@ namespace mobileclock::ui {
         const std::string& ClockText() const;
         void SetClockText(std::string value);
         const std::string& PackageVersion() const;
+        const std::string& Status() const;
         const std::vector<Alarm>& Alarms() const;
 
+        void BindCommand(std::string name, CommandBindings::Handler handler);
+        void SetStatus(std::string value);
         void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y, xaml::AnimationController& animations);
         TouchAction HandleTouchUp(float x, float y, xaml::AnimationController& animations);
@@ -70,6 +75,7 @@ namespace mobileclock::ui {
     private:
         std::string clockText;
         std::string packageVersion;
+        std::string status = "Готово к проверке обновлений";
         const std::vector<Alarm> alarms{
             {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
             {"06:18", "Сб, Вс", false},
@@ -78,6 +84,7 @@ namespace mobileclock::ui {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
+        CommandBindings commands;
         xaml::Element* capturedElement = nullptr;
     };
 }

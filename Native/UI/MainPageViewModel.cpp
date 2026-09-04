@@ -63,8 +63,24 @@ namespace mobileclock::ui {
         return this->packageVersion;
     }
 
+    const std::string& MainPageViewModel::Status() const {
+        return this->status;
+    }
+
     const std::vector<MainPageViewModel::Alarm>& MainPageViewModel::Alarms() const {
         return this->alarms;
+    }
+
+    void MainPageViewModel::BindCommand(std::string name, CommandBindings::Handler handler) {
+        this->commands.Bind(std::move(name), std::move(handler));
+    }
+
+    void MainPageViewModel::SetStatus(std::string value) {
+        if (this->status == value) {
+            return;
+        }
+        this->status = std::move(value);
+        this->NotifyPropertyChanged(Property::status);
     }
 
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
@@ -101,10 +117,11 @@ namespace mobileclock::ui {
         if (element->Type() == xaml::ElementType::toggleSwitch) {
             animations.Start(*element, xaml::AnimationTrigger::toggled);
         }
-        if (element->Id() == "settingsButton") {
+        this->bindings.UpdateSource(*element);
+        if (element->Command() == "navigateToSettings") {
             return TouchAction::navigateToSettings;
         }
-        this->bindings.UpdateSource(*element);
+        this->commands.Execute(element->Command());
         return TouchAction::contentChanged;
     }
 

@@ -44,6 +44,14 @@ namespace mobileclock::native {
         this->renderer->SetAssetManager(env, javaAssetManager);
     }
 
+    void NativeApplication::SetCommandDispatcher(JNIEnv* env, jobject javaDispatcher) {
+        this->renderer->SetCommandDispatcher(env, javaDispatcher);
+    }
+
+    void NativeApplication::SetStatus(JNIEnv* env, jstring javaStatus) {
+        this->renderer->SetStatus(env, javaStatus);
+    }
+
     void NativeApplication::SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
         LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::SurfaceChanged: {}x{}", width, height);
         this->renderer->SurfaceChanged(env, androidSurface, width, height);

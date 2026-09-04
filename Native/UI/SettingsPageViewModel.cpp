@@ -20,6 +20,10 @@ namespace mobileclock::ui {
         return this->sound;
     }
 
+    void SettingsPageViewModel::BindCommand(std::string name, CommandBindings::Handler handler) {
+        this->commands.Bind(std::move(name), std::move(handler));
+    }
+
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
         this->capturedElement = nullptr;
         this->bindings.Clear();
@@ -47,10 +51,11 @@ namespace mobileclock::ui {
             animations.Start(*element, xaml::AnimationTrigger::toggled);
         }
         animations.Start(*element, xaml::AnimationTrigger::pointerUp);
-        if (element->Id() == "backNavigation") {
+        if (element->Command() == "navigateToMain") {
             return TouchAction::navigateToMain;
         }
         this->bindings.UpdateSource(*element);
+        this->commands.Execute(element->Command());
         return TouchAction::none;
     }
 

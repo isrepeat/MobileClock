@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UI/CommandBindings.h"
 #include "XamlRuntime/Binding.h"
 #include "XamlRuntime/XamlLayout.h"
 
@@ -38,6 +39,7 @@ namespace mobileclock::ui {
         const std::string& Theme() const;
         const std::string& Sound() const;
 
+        void BindCommand(std::string name, CommandBindings::Handler handler);
         void Initialize(xaml::Size availableSize);
         void HandleTouchDown(float x, float y);
         TouchAction HandleTouchUp(float x, float y, xaml::AnimationController& animations);
@@ -52,6 +54,7 @@ namespace mobileclock::ui {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
+        CommandBindings commands;
         xaml::Element* capturedElement = nullptr;
     };
 }

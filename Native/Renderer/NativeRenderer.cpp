@@ -24,6 +24,9 @@ namespace mobileclock::renderer {
         EGLContext context = EGL_NO_CONTEXT;
         ANativeWindow* window = nullptr;
         AAssetManager* assetManager = nullptr;
+        JavaVM* javaVm = nullptr;
+        jobject commandDispatcher = nullptr;
+        jmethodID dispatchCommand = nullptr;
         mobileclock::ui::PageManager pageManager;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
     };
@@ -87,15 +90,46 @@ namespace mobileclock::renderer::_details {
         state.context = EGL_NO_CONTEXT;
         state.window = nullptr;
     }
+
+    void DispatchCommand(NativeRenderer::State& state, const std::string& command) {
+        if (state.javaVm == nullptr || state.commandDispatcher == nullptr || state.dispatchCommand == nullptr) {
+            return;
+        }
+        JNIEnv* env = nullptr;
+        bool isAttached = false;
+        if (state.javaVm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+            if (state.javaVm->AttachCurrentThread(&env, nullptr) != JNI_OK) {
+                return;
+            }
+            isAttached = true;
+        }
+        jstring javaCommand = env->NewStringUTF(command.c_str());
+        if (javaCommand != nullptr) {
+            env->CallVoidMethod(state.commandDispatcher, state.dispatchCommand, javaCommand);
+            env->DeleteLocalRef(javaCommand);
+        }
+        if (isAttached) {
+            state.javaVm->DetachCurrentThread();
+        }
+    }
 }
 
 namespace mobileclock::renderer {
     NativeRenderer::NativeRenderer()
         : state(std::make_unique<State>()) {
+        this->state->pageManager.SetCommandHandler([this](const std::string& command) {
+            _details::DispatchCommand(*this->state, command);
+        });
     }
 
     NativeRenderer::~NativeRenderer() {
         this->SurfaceDestroyed();
+        if (this->state->commandDispatcher != nullptr && this->state->javaVm != nullptr) {
+            JNIEnv* env = nullptr;
+            if (this->state->javaVm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK) {
+                env->DeleteGlobalRef(this->state->commandDispatcher);
+            }
+        }
     }
 
     //
@@ -123,6 +157,28 @@ namespace mobileclock::renderer {
         utility_helpers::logging::Initialize("MobileClock");
         this->state->assetManager = AAssetManager_fromJava(env, javaAssetManager);
         LOG_INFO("MobileClock", "Android AssetManager connected");
+    }
+
+    void NativeRenderer::SetCommandDispatcher(JNIEnv* env, jobject javaDispatcher) {
+        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::SetCommandDispatcher");
+        State& state = *this->state;
+        env->GetJavaVM(&state.javaVm);
+        if (state.commandDispatcher != nullptr) {
+            env->DeleteGlobalRef(state.commandDispatcher);
+        }
+        state.commandDispatcher = env->NewGlobalRef(javaDispatcher);
+        const jclass dispatcherClass = env->GetObjectClass(javaDispatcher);
+        state.dispatchCommand = env->GetMethodID(dispatcherClass, "dispatch", "(Ljava/lang/String;)V");
+        env->DeleteLocalRef(dispatcherClass);
+    }
+
+    void NativeRenderer::SetStatus(JNIEnv* env, jstring javaStatus) {
+        const char* status = env->GetStringUTFChars(javaStatus, nullptr);
+        if (status == nullptr) {
+            return;
+        }
+        this->state->pageManager.SetStatus(status);
+        env->ReleaseStringUTFChars(javaStatus, status);
     }
 
     void NativeRenderer::SurfaceChanged(
