@@ -82,8 +82,15 @@ file(GLOB mobileclock_xaml_generated_headers CONFIGURE_DEPENDS
 file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
-file(GLOB_RECURSE mobileclock_resource_files CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/*"
+file(GLOB_RECURSE mobileclock_icon_files CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icons/*"
+)
+file(GLOB_RECURSE mobileclock_shader_files CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Shaders/*"
+)
+set(mobileclock_resource_files
+    ${mobileclock_icon_files}
+    ${mobileclock_shader_files}
 )
 # Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
 # приложения показываем только её собственные исходники.
@@ -101,7 +108,8 @@ endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties(${mobileclock_resource_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 source_group("UI" FILES ${mobileclock_xaml_source})
-source_group("Resources\\Icons" FILES ${mobileclock_resource_files})
+source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
+source_group("Resources\\Shaders" FILES ${mobileclock_shader_files})
 source_group("Header Files" FILES ${mobileclock_header_files})
 source_group("!Generated\\Xaml" FILES
     ${mobileclock_xaml_generated}
@@ -112,6 +120,9 @@ source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 add_library(mobileclock SHARED
     main.cpp
     NativeApplication.cpp
+    Renderer/AnimationRenderers.cpp
+    Renderer/AnimationShaders.cpp
+    Renderer/AssetsManager.cpp
     Renderer/NativeRenderer.cpp
     UI/CommandBindings.cpp
     UI/MainPageViewModel.cpp
@@ -157,6 +168,7 @@ find_library(log-lib log)
 # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
     utility_helpers::open_gles_renderer
+    utility_helpers::new
     utility_helpers::xaml_runtime
     # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
     # preset. Линкуем рантайм статически, не требуя отдельный libc++_shared.so.

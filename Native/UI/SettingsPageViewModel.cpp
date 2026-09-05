@@ -63,8 +63,10 @@ namespace mobileclock::ui {
         this->capturedElement = nullptr;
     }
 
-    void SettingsPageViewModel::Render(xaml::IRenderBackend& renderer) const {
-        xaml::Render(*this->page, renderer);
+    void SettingsPageViewModel::Render(
+        xaml::IRenderBackend& renderer,
+        const xaml::RendererRegistry& renderers) const {
+        xaml::Render(*this->page, renderer, renderers);
     }
 
     xaml::Element& SettingsPageViewModel::Root() {

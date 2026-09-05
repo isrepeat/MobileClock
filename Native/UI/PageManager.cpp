@@ -137,18 +137,20 @@ namespace mobileclock::ui {
         this->mainPageViewModel.UpdateClock();
     }
 
-    void PageManager::Render(xaml::IRenderBackend& renderer) const {
+    void PageManager::Render(
+        xaml::IRenderBackend& renderer,
+        const xaml::RendererRegistry& renderers) const {
         if (this->isTransitioning) {
             if (this->outgoingPage == Page::main) {
-                this->mainPageViewModel.Render(renderer);
+                this->mainPageViewModel.Render(renderer, renderers);
             } else {
-                this->settingsPageViewModel.Render(renderer);
+                this->settingsPageViewModel.Render(renderer, renderers);
             }
         }
         if (this->currentPage == Page::main) {
-            this->mainPageViewModel.Render(renderer);
+            this->mainPageViewModel.Render(renderer, renderers);
             return;
         }
-        this->settingsPageViewModel.Render(renderer);
+        this->settingsPageViewModel.Render(renderer, renderers);
     }
 }

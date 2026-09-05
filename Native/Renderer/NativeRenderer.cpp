@@ -1,16 +1,16 @@
 #include <Helpers.Logging/Logging.h>
 #include <ESRenderer/OpenGlRenderer.h>
-#include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
 #include <android/native_window.h>
-#include <android/asset_manager.h>
 #include <android/input.h>
 #include <EGL/egl.h>
 
 #include "../UI/PageManager.h"
+#include "AnimationRenderers.h"
+#include "AnimationShaders.h"
+#include "AssetsManager.h"
 #include "NativeRenderer.h"
 
-#include <string_view>
 #include <filesystem>
 #include <stdexcept>
 #include <memory>
@@ -23,44 +23,47 @@ namespace mobileclock::renderer {
         EGLSurface surface = EGL_NO_SURFACE;
         EGLContext context = EGL_NO_CONTEXT;
         ANativeWindow* window = nullptr;
-        AAssetManager* assetManager = nullptr;
+        std::unique_ptr<AssetsManager> assetsManager;
         JavaVM* javaVm = nullptr;
         jobject commandDispatcher = nullptr;
         jmethodID dispatchCommand = nullptr;
         mobileclock::ui::PageManager pageManager;
+        xaml::RendererRegistry renderers;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
     };
 }
 
 namespace mobileclock::renderer::_details {
-    std::vector<unsigned char> ReadAsset(AAssetManager* assetManager, std::string_view path) {
-        if (assetManager == nullptr) {
-            throw std::runtime_error("AssetManager was not passed from Kotlin");
-        }
-        AAsset* asset = AAssetManager_open(
-            assetManager,
-            std::string(path).c_str(),
-            AASSET_MODE_BUFFER);
-        if (asset == nullptr) {
-            throw std::runtime_error("Cannot open asset");
-        }
-        const auto size = static_cast<size_t>(AAsset_getLength(asset));
-        std::vector<unsigned char> data(size);
-        const int bytesRead = AAsset_read(asset, data.data(), size);
-        AAsset_close(asset);
-        if (bytesRead != static_cast<int>(size)) {
-            throw std::runtime_error("Cannot read asset");
-        }
-        return data;
-    }
-
+    // Схема кадра для Button с renderer="wave-outline":
+    // Choreographer.doFrame()
+    // └─ NativeRenderSurfaceView.doFrame()
+    //    ├─ NativeRenderer.render() [Kotlin]
+    //    │  └─ nativeRender() [JNI]
+    //    │     └─ NativeApplication::Render()
+    //    │        └─ NativeRenderer::Render()
+    //    │           └─ DrawPage()
+    //    │              ├─ PageManager::UpdateClock()
+    //    │              │  └─ AnimationController::Update() обновляет WaveProgress и WaveOpacity
+    //    │              ├─ PageManager::Render()
+    //    │              │  └─ MainPageViewModel::Render()
+    //    │              │     └─ xaml::Render()
+    //    │              │        └─ xaml::_details::RenderElement()
+    //    │              │           └─ RendererRegistry::Render()
+    //    │              │              └─ RenderWaveOutline()
+    //    │              │                 ├─ context.RenderDefaultElement()
+    //    │              │                 │  ├─ RenderChrome()
+    //    │              │                 │  ├─ RenderButtonWave()
+    //    │              │                 │  └─ DrawText()
+    //    │              │                 └─ DrawRoundedRectOutline() для дополнительной обводки
+    //    │              └─ eglSwapBuffers() показывает завершённый кадр.
+    //    └─ Choreographer.postFrameCallback() планирует следующий VSync.
     void DrawPage(NativeRenderer::State& state) {
         if (state.renderer == nullptr) {
             return;
         }
         state.renderer->BeginFrame();
         state.pageManager.UpdateClock();
-        state.pageManager.Render(*state.renderer);
+        state.pageManager.Render(*state.renderer, state.renderers);
         eglSwapBuffers(state.display, state.surface);
     }
 
@@ -117,6 +120,7 @@ namespace mobileclock::renderer::_details {
 namespace mobileclock::renderer {
     NativeRenderer::NativeRenderer()
         : state(std::make_unique<State>()) {
+        RegisterAnimationRenderers(this->state->renderers);
         this->state->pageManager.SetCommandHandler([this](const std::string& command) {
             _details::DispatchCommand(*this->state, command);
         });
@@ -155,7 +159,7 @@ namespace mobileclock::renderer {
     void NativeRenderer::SetAssetManager(JNIEnv* env, jobject javaAssetManager) {
         LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::SetAssetManager");
         utility_helpers::logging::Initialize("MobileClock");
-        this->state->assetManager = AAssetManager_fromJava(env, javaAssetManager);
+        this->state->assetsManager = std::make_unique<AssetsManager>(env, javaAssetManager);
         LOG_INFO("MobileClock", "Android AssetManager connected");
     }
 
@@ -189,6 +193,9 @@ namespace mobileclock::renderer {
         LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::SurfaceChanged: {}x{}", width, height);
         utility_helpers::logging::Initialize("MobileClock");
         State& state = *this->state;
+        if (state.assetsManager == nullptr) {
+            throw std::logic_error("AssetsManager must be set before creating a surface");
+        }
         _details::DestroyRenderer(state);
         state.window = ANativeWindow_fromSurface(env, androidSurface);
         state.display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -225,15 +232,11 @@ namespace mobileclock::renderer {
             static_cast<float>(width),
             static_cast<float>(height),
         });
-        const std::vector<unsigned char> regularFontData = _details::ReadAsset(
-            state.assetManager,
-            "Roboto-Regular.ttf");
-        const std::vector<unsigned char> boldFontData = _details::ReadAsset(
-            state.assetManager,
-            "Roboto-Bold.ttf");
-        const std::vector<unsigned char> blackFontData = _details::ReadAsset(
-            state.assetManager,
-            "Roboto-Black.ttf");
+        const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Roboto-Regular.ttf");
+        const std::vector<unsigned char> boldFontData = state.assetsManager->ReadBytes("Roboto-Bold.ttf");
+        const std::vector<unsigned char> blackFontData = state.assetsManager->ReadBytes("Roboto-Black.ttf");
+        const std::vector<unsigned char> rippleVertexShader = state.assetsManager->ReadBytes("Shaders/Ripple.vert");
+        const std::vector<unsigned char> rippleFragmentShader = state.assetsManager->ReadBytes("Shaders/Ripple.frag");
         state.renderer = std::make_unique<es_renderer::OpenGlRenderer>(
             width,
             height,
@@ -243,8 +246,9 @@ namespace mobileclock::renderer {
             boldFontData.size(),
             blackFontData.data(),
             blackFontData.size(),
-            [&state](std::string_view source) {
-                return _details::ReadAsset(state.assetManager, source);
+            CreateShaderPrograms(rippleVertexShader, rippleFragmentShader),
+            [&assetsManager = *state.assetsManager](std::string_view source) {
+                return assetsManager.ReadBytes(source);
             });
         _details::DrawPage(state);
     }

@@ -149,8 +149,10 @@ namespace mobileclock::ui {
         this->SetClockText(clockText);
     }
 
-    void MainPageViewModel::Render(xaml::IRenderBackend& renderer) const {
-        xaml::Render(*this->page, renderer);
+    void MainPageViewModel::Render(
+        xaml::IRenderBackend& renderer,
+        const xaml::RendererRegistry& renderers) const {
+        xaml::Render(*this->page, renderer, renderers);
     }
 
     xaml::Element& MainPageViewModel::Root() {

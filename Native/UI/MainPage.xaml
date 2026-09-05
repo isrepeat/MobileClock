@@ -199,6 +199,7 @@
         <Button id="updateApplicationButton"
                 text="Обновить"
                 command="updateApplication"
+                renderer="wave-outline"
                 background="#303128"
                 borderBrush="#47483D"
                 borderThickness="1"

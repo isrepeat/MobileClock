@@ -12,6 +12,7 @@
 
 namespace xaml {
     class IRenderBackend;
+    class RendererRegistry;
 }
 
 namespace mobileclock::ui {
@@ -30,7 +31,7 @@ namespace mobileclock::ui {
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
         void UpdateClock();
-        void Render(xaml::IRenderBackend& renderer) const;
+        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
 
     private:
         enum class Page {
