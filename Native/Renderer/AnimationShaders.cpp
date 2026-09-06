@@ -1,4 +1,4 @@
-#include "Resources/XamlHost/Shaders.h"
+#include "Resources/Effects/Shaders.h"
 #include "AnimationShaders.h"
 
 namespace mobileclock::renderer {

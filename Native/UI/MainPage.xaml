@@ -4,6 +4,30 @@
       borderThickness="0"
       background="#171813"
       padding="60 60 48 32">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="0"
+                            to="1"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="Current"
+                            to="0"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+    </Page.Storyboards>
     <StackPanel id="alarmPage"
                 borderThickness="0"
                 orientation="Vertical"
@@ -91,9 +115,9 @@
                         <Grid height="140"
                               horizontalAlignment="Stretch">
                             <columnDefinitions>
-                                <columnDefinition width="80%"/>
+                                <columnDefinition width="70%"/>
                                 <columnDefinition width="*"/>
-                                <columnDefinition width="18%"/>
+                                <columnDefinition width="20%"/>
                             </columnDefinitions>
                             <Grid horizontalAlignment="Stretch"
                                   verticalAlignment="Stretch">
@@ -117,7 +141,7 @@
                                                verticalAlignment="Top"/>
                                 </Border>
                             </Grid>
-                            <ToggleSwitch height="54"
+                            <ToggleSwitch height="60"
                                           command="toggleAlarm"
                                           background="#E2C878"
                                           borderBrush="#555447"
@@ -132,7 +156,7 @@
                                         <FloatAnimation property="toggleProgress"
                                                         from="Current"
                                                         to="ToggleState"
-                                                        duration="120"
+                                                        duration="350"
                                                         easing="CubicOut"/>
                                     </Storyboard>
                                 </ToggleSwitch.Storyboards>
@@ -196,6 +220,11 @@
                            horizontalAlignment="Center"/>
             </StackPanel>
         </Grid>
+        <TextBlock text="{Binding Status}"
+                   fontSize="18"
+                   foreground="#D5BD7D"
+                   margin="8 0 8 12"
+                   horizontalAlignment="Center"/>
         <Button id="updateApplicationButton"
                 text="Обновить"
                 command="updateApplication"
@@ -207,7 +236,7 @@
                 fontSize="24"
                 fontWeight="Bold"
                 foreground="#F1E8D2"
-                height="76"
+                height="120"
                 margin="0 6 0 16"
                 contentAlignment="Center"
                 horizontalAlignment="Stretch">
@@ -236,11 +265,6 @@
                 </Storyboard>
             </Button.Storyboards>
         </Button>
-        <TextBlock text="{Binding Status}"
-                   fontSize="18"
-                   foreground="#D5BD7D"
-                   margin="8 0 8 12"
-                   horizontalAlignment="Center"/>
         <Button renderer="rendererWave"
                 id="uploadScreenshotButton"
                 text="Скриншот в Google Drive"

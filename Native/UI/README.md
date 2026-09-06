@@ -22,7 +22,7 @@
 ## Кто предоставляет эффекты и шейдеры
 
 Движок не регистрирует конкретные эффекты автоматически. MobileClock явно
-подключает модуль хоста `Native/Resources/XamlHost`:
+подключает модуль хоста `Native/Resources/Effects`:
 `Effects.cpp` содержит Fade, SlideFade, Wave и Glow, `Shaders.cpp` — GLSL волны.
 Базовые шейдеры фигур, текста и изображений встроены в OpenGLESRenderer.
 Эти исходники компилируются в хост, а не в XamlRuntime или OpenGLESRenderer.
@@ -895,6 +895,359 @@ xaml::Render(root, backend, renderers);
 | Собственное визуальное поведение | Общую структуру, анимацию и renderer |
 | Полностью своё изображение кнопки | Renderer без RenderDefault(), при необходимости свой шейдер |
 
+## Переходы между страницами: от простого к сложному
+
+Переход состоит из двух независимых частей: исходная страница выполняет
+`Hide`, целевая — `Show`. PageManager меняет видимость, а Storyboard
+каждой страницы определяет её визуальное поведение. Обе страницы остаются
+доступны для отрисовки до завершения перехода.
+
+Примеры ниже заменяют соответствующие Storyboard страницы, а не добавляются
+поверх существующих. Несколько Storyboard с одинаковым событием запускаются
+вместе; это не список альтернатив на выбор.
+
+### Шаг 1. Простое появление и исчезновение страницы
+
+Самый простой переход — плавное изменение прозрачности. В обеих страницах:
+
+```xml
+<Page.Storyboards>
+    <Storyboard trigger="Show">
+        <Animation name="animationFade"
+                   duration="180"/>
+    </Storyboard>
+    <Storyboard trigger="Hide">
+        <Animation name="animationFade"
+                   duration="180"/>
+    </Storyboard>
+</Page.Storyboards>
+```
+
+Фрагмент размещается внутри корневого `Page` с
+`xmlns="urn:mobileclock:xaml"`. Сам эффект уже зарегистрирован приложением.
+При переходе исходная страница исчезает, а целевая одновременно появляется.
+
+### Шаг 2. Разное поведение при входе и выходе
+
+Например, страница появляется снизу с затуханием, а уходит только через
+прозрачность:
+
+```xml
+<Page.Storyboards>
+    <Storyboard trigger="Show">
+        <Animation name="animationSlideFade"
+                   duration="320"
+                   distance="32"/>
+    </Storyboard>
+    <Storyboard trigger="Hide">
+        <Animation name="animationFade"
+                   duration="120"/>
+    </Storyboard>
+</Page.Storyboards>
+```
+
+У `animationSlideFade` расстояние — вертикальное смещение в единицах
+layout. Здесь `32` не означает долю ширины страницы.
+Для каждой страницы можно выбрать свои эффекты и длительности.
+
+### Шаг 3. Горизонтальная навигация вперёд и назад
+
+Так устроен текущий переход MainPage ↔ SettingsPage:
+
+```xml
+<Page.Storyboards>
+    <Storyboard trigger="Show">
+        <Animation name="animationPageTransition"
+                   duration="240"
+                   distance="1"
+                   easing="CubicOut"/>
+        <FloatAnimation property="opacity"
+                        from="0"
+                        to="1"
+                        duration="180"
+                        easing="CubicOut"/>
+    </Storyboard>
+    <Storyboard trigger="Hide">
+        <Animation name="animationPageTransition"
+                   duration="240"
+                   distance="1"
+                   easing="CubicOut"/>
+        <FloatAnimation property="opacity"
+                        from="Current"
+                        to="0"
+                        duration="180"
+                        easing="CubicOut"/>
+    </Storyboard>
+</Page.Storyboards>
+```
+
+Оба трека события запускаются одновременно. Сдвиг длится 240 мс,
+прозрачность — 180 мс. Можно менять длительности и сглаживание независимо.
+
+`animationPageTransition` отвечает только за горизонтальный сдвиг.
+Его `distance="1"` означает одну ширину страницы, `0.5` — половину.
+При движении вперёд новая страница приходит справа, исходная уходит влево.
+При возврате стороны меняются. Ширину и направление вычисляет обработчик C++;
+настройки эффекта и отдельный трек прозрачности находятся в XAML.
+
+Без навигационных данных обработчик использует направление вперёд.
+В приложении PageManager передаёт `PageTransitionData` с полями
+`from`, `to`, `direction` перед запуском событий.
+
+Полный компилируемый пример:
+[NavigationTransition.xaml](Examples/Pages/NavigationTransition.xaml).
+Параметры эффекта перечислены в разделе «MobileClock и предпросмотр».
+
+### Шаг 4. Из одной страницы в три: разные анимации появления
+
+Пусть из `main` можно открыть `settings`, `alarm` и `about`.
+Это условная расширенная навигация: сейчас PageManager приложения содержит
+только `main` и `settings`.
+
+Без дополнительного C++ можно выбрать разные Show целевых страниц:
+
+| Переход | Hide исходной main | Show целевой страницы |
+|---|---|---|
+| main → settings | Общий для main | Горизонтальный сдвиг |
+| main → alarm | Тот же Hide | Только прозрачность |
+| main → about | Тот же Hide | Вертикальный сдвиг с прозрачностью |
+
+В `settings`:
+
+```xml
+<Storyboard trigger="Show">
+    <Animation name="animationPageTransition"
+               duration="240"
+               distance="1"
+               easing="CubicOut"/>
+</Storyboard>
+```
+
+В `alarm`:
+
+```xml
+<Storyboard trigger="Show">
+    <Animation name="animationFade"
+               duration="180"/>
+</Storyboard>
+```
+
+В `about`:
+
+```xml
+<Storyboard trigger="Show">
+    <Animation name="animationSlideFade"
+               duration="300"
+               distance="32"/>
+</Storyboard>
+```
+
+Каждый фрагмент находится в `Page.Storyboards` соответствующей страницы.
+Это три альтернативных примера для разных страниц. Чтобы закончить их
+оформление, добавьте Hide из шага 1. После Hide с `animationFade`
+показ также должен восстанавливать прозрачность: для settings добавьте
+`<Animation name="animationFade" duration="180"/>` в тот же Show.
+У alarm и about восстановление уже входит в выбранный эффект.
+
+Таким способом переходы выглядят по-разному, но main всегда уходит одинаково.
+
+### Шаг 5. Разная анимация ухода в зависимости от назначения
+
+Чтобы main тоже уходила по-разному, сейчас нужен обработчик C++,
+который читает `PageTransitionData.to`. Условия `from`/`to` на
+`Storyboard` и binding его параметров не поддерживаются.
+
+Ниже — полный пример дополнительного обработчика. Имя
+`animationExitByDestination` пока не зарегистрировано в приложении:
+этот шаг показывает, как добавить такую возможность, и не описывает
+уже подключённый эффект.
+
+Выбираем соответствие:
+
+| Назначение | Уход main |
+|---|---|
+| settings | Сдвиг влево |
+| alarm | Затухание |
+| about | Сдвиг влево и затухание |
+
+В отдельном файле приложения, например `ExitByDestination.cpp`:
+
+```cpp
+#include <XamlRuntime/Animation.h>
+
+#include "Resources/Effects/Effects.h"
+#include "UI/PageTransition.h"
+
+namespace mobileclock::renderer::_details {
+    bool ValidExitDuration(const int& duration) {
+        return duration >= 0;
+    }
+
+    bool ConfigureExitByDestination(
+        xaml::AnimationContext<
+            mobileclock::resources::effects::PageTransitionAnimation>& context) {
+        if (context.Trigger() != xaml::AnimationTrigger::hide) {
+            return false;
+        }
+
+        const auto* navigation =
+            context.Parameters().TryGet<ui::PageTransitionData>();
+        if (navigation == nullptr || navigation->from != "main") {
+            return false;
+        }
+
+        const bool slide =
+            navigation->to == "settings" || navigation->to == "about";
+        const bool fade =
+            navigation->to == "alarm" || navigation->to == "about";
+        if (!slide && !fade) {
+            return false;
+        }
+
+        const auto& settings = context.State();
+        const auto duration = std::chrono::milliseconds(settings.duration);
+        if (slide) {
+            context.AnimateTransform(
+                &xaml::VisualTransform::offsetX,
+                -context.Target().Bounds().width * settings.distance,
+                duration);
+        }
+        if (fade) {
+            context.AnimateTransform(
+                &xaml::VisualTransform::opacity,
+                0.0f,
+                duration);
+        }
+        return true;
+    }
+}
+
+namespace mobileclock::renderer {
+    void RegisterDestinationAnimations(xaml::AnimationRegistry& animations) {
+        using mobileclock::resources::effects::PageTransitionAnimation;
+        animations.Register<PageTransitionAnimation>(
+            "animationExitByDestination",
+            {
+                xaml::Option(
+                    "duration",
+                    &PageTransitionAnimation::duration,
+                    _details::ValidExitDuration),
+                xaml::Option("distance", &PageTransitionAnimation::distance),
+            },
+            _details::ConfigureExitByDestination);
+    }
+}
+```
+
+Добавьте этот `.cpp` в CMake-цель приложения. В заголовке
+`Renderer/AnimationRenderers.h`, внутри `mobileclock::renderer`,
+объявите:
+
+```cpp
+void RegisterDestinationAnimations(xaml::AnimationRegistry& animations);
+```
+
+В `PageManager::Initialize()` вызовите функцию после существующей
+регистрации эффектов и до `animations.Attach(...)`:
+
+```cpp
+xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
+renderer::RegisterAnimations(registry);
+renderer::RegisterDestinationAnimations(registry);
+```
+
+`CreateAnimations()` уже регистрирует тип состояния
+`PageTransitionAnimation`. Дополнительный обработчик использует его
+`duration` и `distance`; сглаживание в этом примере — штатное CubicOut.
+
+В MainPage.xaml задаём специальный Hide и обычный Show для возврата:
+
+```xml
+<Page.Storyboards>
+    <Storyboard trigger="Show">
+        <Animation name="animationPageTransition"
+                   duration="240"
+                   distance="1"
+                   easing="CubicOut"/>
+        <Animation name="animationFade"
+                   duration="180"/>
+    </Storyboard>
+    <Storyboard trigger="Hide">
+        <Animation name="animationExitByDestination"
+                   duration="240"
+                   distance="1"/>
+    </Storyboard>
+</Page.Storyboards>
+```
+
+Здесь для Show намеренно используется `animationFade`: она восстанавливает
+тот же канал `VisualTransform::opacity`, который изменяет обработчик ухода.
+`FloatAnimation property="opacity"` меняет базовое свойство элемента —
+это другой канал, и он сам по себе не сбросит нулевую прозрачность transform.
+При переходе с примера шага 3 замените Storyboard и пересоздайте страницу,
+как при обычной инициализации приложения.
+
+Показ остальных страниц можно оформить так же, а для их Hide использовать
+горизонтальный переход вместе с `animationFade`:
+
+```xml
+<Storyboard trigger="Hide">
+    <Animation name="animationPageTransition"
+               duration="240"
+               distance="1"
+               easing="CubicOut"/>
+    <Animation name="animationFade"
+               duration="180"/>
+</Storyboard>
+```
+
+### Шаг 6. Передача назначения и жизненный цикл перехода
+
+Обработчик узнаёт цель из данных события, а не из id элемента или команды
+нажатой кнопки. Пример запуска main → about для уже созданных корней:
+
+```cpp
+const PageTransitionData transition{
+    "main",
+    "about",
+    NavigationDirection::forward,
+};
+const auto parameters = [transition]() {
+    return xaml::AnimationParameters::Create(transition);
+};
+
+mainRoot.SetAnimationParametersProvider(parameters);
+aboutRoot.SetAnimationParametersProvider(parameters);
+
+mainRoot.SetVisibility(xaml::attr::Visibility::collapsed);
+aboutRoot.SetVisibility(xaml::attr::Visibility::visible);
+```
+
+Этот фрагмент выполняется в `mobileclock::ui`. `mainRoot` и
+`aboutRoot` — ссылки на корни страниц, заранее подключённых к одному
+контроллеру через `animations.Attach(root, registry)`. Целевая страница
+до перехода скрыта. Начальную видимость задавайте до Attach, чтобы
+инициализация не запускала уход страницы.
+
+В текущем PageManager провайдер уже формирует данные по
+`outgoingPage`/`currentPage`. При добавлении alarm и about нужно:
+
+1. Создать их ViewModel/корни, подключить анимации и начальную видимость.
+2. Расширить список страниц, команды навигации и формирование имён
+   `from`/`to`; текущие тернарные выражения различают только две страницы.
+3. Установить исходную и целевую страницы до изменения видимости.
+4. Во время перехода обновлять контроллер и рисовать обе страницы.
+5. Сохранять корни до завершения анимаций и блокировать новые касания,
+   как уже делает PageManager для main/settings.
+
+Для возврата передайте обратную пару и `NavigationDirection::backward`.
+После скрытия обе анимации могут иметь разные длительности: переход
+заканчивается, когда завершились анимации обеих страниц.
+
+В шагах 1–4 выбор эффектов задаётся XAML каждой страницы. В шаге 5
+соответствие «назначение → эффект» находится в C++-обработчике.
+Чтобы выбирать весь Storyboard по паре страниц исключительно из XAML,
+потребуется расширение компилятора и runtime; сейчас такого синтаксиса нет.
 ## Справочник XAML: анимации
 
 Внутри `Storyboard` есть два вида записей:
@@ -1208,7 +1561,7 @@ xaml::Render(root, backend, renderers);
 
 Старые `animation="..."`, `<Element.Animation>`, `RendererAnimation` и синтаксис `effect` больше не поддерживаются.
 
-Примеры в отдельных файлах: [PageTransitions.xaml](Examples/Pages/PageTransitions.xaml) и [CustomPageAnimation.xaml](Examples/Pages/CustomPageAnimation.xaml).
+Примеры: [PageTransitions.xaml](Examples/Pages/PageTransitions.xaml), [NavigationTransition.xaml](Examples/Pages/NavigationTransition.xaml) и [CustomPageAnimation.xaml](Examples/Pages/CustomPageAnimation.xaml).
 
 ## Типизированное состояние и регистрация
 
@@ -1227,7 +1580,7 @@ struct Glow {
 };
 ```
 
-Этот тип объявлен в `Native/Resources/XamlHost/Effects.h` в namespace `mobileclock::resources::effects`.
+Этот тип объявлен в `Native/Resources/Effects/Effects.h` в namespace `mobileclock::resources::effects`.
 Типы готовых эффектов явно регистрирует `mobileclock::resources::effects::CreateStates()`.
 Пример разметки: [ButtonGlow.xaml](Examples/Buttons/ButtonGlow.xaml).
 
@@ -1429,12 +1782,68 @@ PageManager регистрирует `animationPageTransition` и `animationSett
 назначает провайдеры навигационных данных и меняет видимость страниц.
 В runtime нет специальных событий Forward/Backward.
 
-`animationPageTransition` сохраняет горизонтальный переход 240 мс и fade 180 мс.
+Переходы главной страницы и настроек задаются в их `Page.Storyboards` отдельно
+для `Show` и `Hide`. PageManager не назначает эффект по умолчанию.
+
+`animationPageTransition` отвечает только за горизонтальное перемещение:
+C++ вычисляет знак по направлению навигации и умножает ширину страницы на
+`distance`. Настройки эффекта:
+
+| Настройка | Значение |
+|---|---|
+| `duration` | Длительность сдвига в мс; неотрицательная, по умолчанию 0 |
+| `distance` | Доля ширины страницы; по умолчанию 1, отрицательная меняет сторону |
+| `easing` | `Linear` или `CubicOut`; по умолчанию `CubicOut` |
+
+В MainPage.xaml и SettingsPage.xaml явно заданы `duration="240"`,
+`distance="1"` и `easing="CubicOut"`. Прозрачность анимируется отдельным
+`FloatAnimation property="opacity"` длительностью 180 мс: при Show от 0 до 1,
+при Hide от Current до 0. Эти значения, сглаживание и состав треков можно
+менять в XAML независимо для каждой страницы и события.
+В обработчике C++ нет анимации прозрачности и фиксированных длительностей.
+См. полный пример [NavigationTransition.xaml](Examples/Pages/NavigationTransition.xaml).
+
 `animationSettingsReveal` использует отдельную логику Show/Hide и настройку
 `duration`; в примере заданы 320 и 120 мс соответственно.
 
-XamlPreviewer использует тот же runtime и проверку схем. Он явно регистрирует анимации модуля хоста, `rendererGlow` и `rendererWaveOutline`. Обработчики приложения,
-не зарегистрированные в хосте предпросмотра, используют штатный fallback.
+XamlPreviewer использует тот же runtime и проверку схем. NativeBridge
+регистрирует эффекты из Resources/Effects и анимации приложения из
+Renderer/AnimationRenderers.cpp, включая `animationPageTransition` и
+`animationSettingsReveal`. При навигации выполняются настоящие Hide/Show
+обеих страниц, а не WPF-анимация снимка. Исходная сессия освобождается,
+когда обе страницы закончили анимации; новые касания до этого блокируются.
+
+В interactions.json задаются цель и направление, а эффект — в XAML:
+
+```json
+{
+  "MainPage": {
+    "settingsButton": {
+      "tap": { "type": "navigate", "target": "SettingsPage", "direction": "forward" }
+    }
+  },
+  "SettingsPage": {
+    "backNavigation": {
+      "tap": { "type": "navigate", "target": "MainPage", "direction": "backward" }
+    }
+  }
+}
+```
+
+NativeBridge получает снимок `PageTransitionData` для каждой страницы.
+Имена файлов нормализуются: MainPage → main, SettingsPage → settings
+(удаляется расширение и суффикс Page, первая буква становится строчной).
+При отсутствии direction используется forward; старое
+`transition="slideRight"` означает backward. Старые fade/slideLeft больше
+не выбирают отдельный эффект: его определяют Storyboard страницы.
+
+Скорость предпросмотра применяется к обеим сессиям. Перезагрузка XAML,
+смена страницы вручную и закрытие предпросмотра освобождают уходящую сессию.
+При обычном открытии и обновлении предпросмотра страница сразу отображается
+без начального Show. Переход запускается только при навигации через смену
+видимости страниц; пересоздание сессии не повторяет анимацию.
+Новые обработчики приложения нужно включать в общий RegisterAnimations;
+другие незарегистрированные имена по-прежнему используют штатный fallback.
 
 ## Стандартные шейдеры библиотеки и эффекты приложения
 
@@ -1450,7 +1859,7 @@ ShaderProgramSources, и базовая отрисовка продолжит р
 вызывает ошибку, а не молчаливый возврат к стандартному шейдеру.
 
 Волна и Glow — эффекты приложения. Их состояния и обработчики находятся в
-Native/Resources/XamlHost/Effects.cpp. Шейдер волны находится там же в
+Native/Resources/Effects/Effects.cpp. Шейдер волны находится там же в
 Shaders.cpp; ключ `"button-wave"` известен только хосту. Glow сейчас рисует
 обводку через базовые операции backend и отдельного GLSL-шейдера не имеет.
 Библиотека не регистрирует эти эффекты и не хранит их поля в Element.

@@ -11,9 +11,15 @@ add_custom_command(OUTPUT "${generated}" "${CMAKE_CURRENT_BINARY_DIR}/PageTransi
     COMMAND XamlCompiler "${example}" "${generated}"
     DEPENDS XamlCompiler "${example}"
     VERBATIM)
-add_executable(PageTransitionsTests main.cpp "${generated}")
+set(navigation_example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Examples/Pages/NavigationTransition.xaml")
+set(navigation_generated "${CMAKE_CURRENT_BINARY_DIR}/NavigationTransition.xaml.cpp")
+add_custom_command(OUTPUT "${navigation_generated}" "${CMAKE_CURRENT_BINARY_DIR}/NavigationTransition.xaml.h"
+    COMMAND XamlCompiler "${navigation_example}" "${navigation_generated}"
+    DEPENDS XamlCompiler "${navigation_example}"
+    VERBATIM)
+add_executable(PageTransitionsTests main.cpp "${generated}" "${navigation_generated}")
 target_include_directories(PageTransitionsTests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_LIST_DIR}/../..")
-target_sources(PageTransitionsTests PRIVATE "../../Renderer/AnimationRenderers.cpp" "../../Resources/XamlHost/Effects.cpp")
+target_sources(PageTransitionsTests PRIVATE "../../Renderer/AnimationRenderers.cpp" "../../Resources/Effects/Effects.cpp")
 target_link_libraries(PageTransitionsTests PRIVATE utility_helpers::xaml_runtime)
 target_compile_features(PageTransitionsTests PRIVATE cxx_std_17)
 enable_testing()

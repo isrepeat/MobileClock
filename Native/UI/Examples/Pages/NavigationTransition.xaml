@@ -1,0 +1,27 @@
+<Page xmlns="urn:mobileclock:xaml"
+      background="#171813">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="0"
+                            to="1"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="Current"
+                            to="0"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+    </Page.Storyboards>
+</Page>

@@ -5,10 +5,12 @@
 
 #include "Renderer/AnimationRenderers.h"
 #include "UI/PageTransition.h"
+#include "NavigationTransition.xaml.h"
 #include "PageTransitions.xaml.h"
 
 #include <stdexcept>
 #include <iostream>
+#include <utility>
 #include <cmath>
 
 namespace _details {
@@ -83,9 +85,7 @@ namespace _details {
     void SetAnimation(xaml::Element& element, const char* name, const char* duration = "180") {
         xaml::AnimationTrack track;
         track.name = name;
-        if (std::string(name) != "animationPageTransition") {
-            track.settings.Set("duration", duration);
-        }
+        track.settings.Set("duration", duration);
         element.SetStoryboards({
             {xaml::AnimationTrigger::show, {track}},
             {xaml::AnimationTrigger::hide, {track}},
@@ -106,8 +106,10 @@ namespace _details {
         using namespace mobileclock::ui;
         AnimationRegistry animations = mobileclock::resources::effects::CreateAnimations();
         mobileclock::renderer::RegisterAnimations(animations);
-        Element page(ElementType::page);
-        page.SetDefaultAnimation("animationPageTransition");
+        int viewModel = 0;
+        BindingScope bindings;
+        auto generatedPage = generated::NavigationTransition::Create(viewModel, bindings);
+        Element& page = *generatedPage;
         PageTransitionData data{"main", "settings", NavigationDirection::forward};
         page.SetAnimationParametersProvider([&]() { return AnimationParameters::Create(data); });
         layout(page, {320, 200});
@@ -116,9 +118,12 @@ namespace _details {
         page.SetVisibility(attr::Visibility::visible);
         RecordingBackend backend;
         Require(page.State<VisualTransform>().offsetX == 320, "forward enter offset");
-        Require(page.State<VisualTransform>().opacity == 0, "forward enter opacity");
-        AnimationController::Update(page, std::chrono::milliseconds(240));
-        Require(page.State<VisualTransform>().offsetX == 0 && page.State<VisualTransform>().opacity == 1, "forward enter end");
+        Require(page.Opacity() == 0, "forward enter opacity");
+        AnimationController::Update(page, std::chrono::milliseconds(180));
+        Require(Near(page.Opacity(), 1) && AnimationController::IsAnimating(page),
+            "XAML fade duration must be independent of slide duration");
+        AnimationController::Update(page, std::chrono::milliseconds(60));
+        Require(page.State<VisualTransform>().offsetX == 0 && page.Opacity() == 1, "forward enter end");
         page.SetVisibility(attr::Visibility::collapsed);
         AnimationController::Update(page, std::chrono::milliseconds(240));
         Require(page.State<VisualTransform>().offsetX == -320, "forward exit offset");
@@ -139,6 +144,102 @@ namespace _details {
         page.SetVisibility(attr::Visibility::collapsed);
         AnimationController::Update(page, std::chrono::milliseconds(120));
         Require(!page.IsPresent() && page.State<VisualTransform>().offsetX == -48, "asymmetric hide not applied");
+    }
+
+    void PageTransitionOptions() {
+        using namespace xaml;
+        AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
+        mobileclock::renderer::RegisterAnimations(registry);
+        AnimationController controller;
+        Element page(ElementType::page);
+        AnimationTrack slide;
+        slide.name = "animationPageTransition";
+        slide.settings.Set("duration", "400");
+        slide.settings.Set("distance", "0.5");
+        slide.settings.Set("easing", "Linear");
+        page.SetStoryboards({
+            {AnimationTrigger::show, {slide}},
+            {AnimationTrigger::hide, {slide}},
+        });
+        layout(page, {320, 200});
+        page.SetVisibility(attr::Visibility::collapsed);
+        controller.Attach(page, registry);
+        page.SetVisibility(attr::Visibility::visible);
+        Require(Near(page.State<VisualTransform>().offsetX, 160), "distance option ignored");
+        AnimationController::Update(page, std::chrono::milliseconds(200));
+        Require(Near(page.State<VisualTransform>().offsetX, 80), "duration or Linear easing ignored");
+        Require(Near(page.Opacity(), 1) && Near(page.State<VisualTransform>().opacity, 1),
+            "slide must not animate opacity");
+        AnimationController::Update(page, std::chrono::milliseconds(200));
+        Require(!AnimationController::IsAnimating(page), "configured slide did not finish");
+
+        slide.settings.Set("duration", "100");
+        slide.settings.Set("distance", "-0.25");
+        page.SetStoryboards({{AnimationTrigger::hide, {slide}}});
+        page.SetVisibility(attr::Visibility::collapsed);
+        AnimationController::Update(page, std::chrono::milliseconds(100));
+        Require(!page.IsPresent() && Near(page.State<VisualTransform>().offsetX, 80),
+            "Hide options or negative distance ignored");
+
+        slide.settings.Set("duration", "0");
+        page.SetStoryboards({{AnimationTrigger::show, {slide}}});
+        page.SetVisibility(attr::Visibility::visible);
+        Require(!AnimationController::IsAnimating(page) && Near(page.State<VisualTransform>().offsetX, 0),
+            "zero duration must finish immediately");
+
+        for (const auto& invalid : {
+            std::pair<const char*, const char*>{"duration", "-1"},
+            std::pair<const char*, const char*>{"easing", "Unknown"},
+        }) {
+            Element invalidPage(ElementType::page);
+            AnimationTrack invalidSlide = slide;
+            invalidSlide.settings.Set(invalid.first, invalid.second);
+            invalidPage.SetStoryboards({{AnimationTrigger::hide, {invalidSlide}}});
+            bool rejected = false;
+            try {
+                controller.Attach(invalidPage, registry);
+                invalidPage.SetVisibility(attr::Visibility::collapsed);
+            } catch (const std::invalid_argument&) {
+                rejected = true;
+            }
+            Require(rejected, "invalid transition option accepted");
+        }
+    }
+    void ToggleFirstAnimation() {
+        using namespace xaml;
+        for (bool initiallyOn : {false, true}) {
+            Element toggle(ElementType::toggleSwitch);
+            toggle.SetIsOn(initiallyOn);
+            AnimationTrack track;
+            track.property = AnimatedProperty::toggleProgress;
+            track.fromCurrent = true;
+            track.toToggleState = true;
+            track.duration = std::chrono::milliseconds(920);
+            track.easing = Easing::linear;
+            toggle.AddStoryboard({AnimationTrigger::toggled, {track}});
+            AnimationController controller;
+            controller.Attach(toggle, mobileclock::resources::effects::CreateAnimations());
+            Require(HandleTap(toggle), "toggle tap not handled");
+            controller.Start(toggle, AnimationTrigger::toggled);
+            Require(Near(toggle.ToggleProgress(), initiallyOn ? 1.0f : 0.0f),
+                "first toggle must start at the previous logical state");
+            AnimationController::Update(toggle, std::chrono::milliseconds(460));
+            Require(Near(toggle.ToggleProgress(), 0.5f) && AnimationController::IsAnimating(toggle),
+                "first toggle ignored XAML duration");
+            HandleTap(toggle);
+            controller.Start(toggle, AnimationTrigger::toggled);
+            Require(Near(toggle.ToggleProgress(), 0.5f), "reversed toggle lost its current progress");
+            AnimationController::Update(toggle, std::chrono::milliseconds(920));
+            Require(Near(toggle.ToggleProgress(), initiallyOn ? 1.0f : 0.0f), "toggle reversal did not finish");
+            HandleTap(toggle);
+            controller.Start(toggle, AnimationTrigger::toggled);
+            AnimationController::Update(toggle, std::chrono::milliseconds(460));
+            Require(Near(toggle.ToggleProgress(), 0.5f), "later toggles use a different duration");
+        }
+        Element plain(ElementType::toggleSwitch);
+        HandleTap(plain);
+        Require(plain.IsOn() && plain.ToggleProgress() < 0.0f,
+            "a toggle without animation must keep following IsOn immediately");
     }
 
     void Lifecycle() {
@@ -532,6 +633,8 @@ namespace _details {
 
 int main() {
     _details::PageTransitions();
+    _details::PageTransitionOptions();
+    _details::ToggleFirstAnimation();
     _details::Lifecycle();
     _details::TypedRegistration();
     _details::HostEffectsAreExplicit();
