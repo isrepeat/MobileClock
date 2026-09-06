@@ -221,7 +221,7 @@
             </StackPanel>
         </Grid>
         <TextBlock text="{Binding Status}"
-                   fontSize="18"
+                   fontSize="40"
                    foreground="#D5BD7D"
                    margin="8 0 8 12"
                    horizontalAlignment="Center"/>
