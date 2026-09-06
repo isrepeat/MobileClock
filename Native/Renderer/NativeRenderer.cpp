@@ -28,7 +28,7 @@ namespace mobileclock::renderer {
         jobject commandDispatcher = nullptr;
         jmethodID dispatchCommand = nullptr;
         mobileclock::ui::PageManager pageManager;
-        xaml::RendererRegistry renderers;
+        xaml::RendererRegistry renderers = mobileclock::resources::effects::CreateRenderers();
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
     };
 }
@@ -43,7 +43,7 @@ namespace mobileclock::renderer::_details {
     //    │        └─ NativeRenderer::Render()
     //    │           └─ DrawPage()
     //    │              ├─ PageManager::UpdateClock()
-    //    │              │  └─ AnimationController::Update() обновляет WaveProgress и WaveOpacity
+    //    │              │  └─ AnimationController::Update() обновляет поля состояния эффекта хоста
     //    │              ├─ PageManager::Render()
     //    │              │  └─ MainPageViewModel::Render()
     //    │              │     └─ xaml::Render()
@@ -52,8 +52,8 @@ namespace mobileclock::renderer::_details {
     //    │              │              └─ RenderWaveOutline()
     //    │              │                 ├─ context.RenderDefaultElement()
     //    │              │                 │  ├─ RenderChrome()
-    //    │              │                 │  ├─ RenderButtonWave()
     //    │              │                 │  └─ DrawText()
+    //    │              │                 ├─ mobileclock::resources::effects::RenderWave()
     //    │              │                 └─ DrawRoundedRectOutline() для дополнительной обводки
     //    │              └─ eglSwapBuffers() показывает завершённый кадр.
     //    └─ Choreographer.postFrameCallback() планирует следующий VSync.

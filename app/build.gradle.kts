@@ -68,6 +68,8 @@ android {
     }
     sourceSets {
         getByName("main").assets.srcDir("../Native/Resources")
+        // Исходники модуля хоста компилируются в native-библиотеку и не нужны в assets.
+        getByName("main").assets.exclude("XamlHost/**")
     }
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Resources/XamlHost/Effects.h"
+
 namespace xaml {
     class RendererRegistry;
     class AnimationRegistry;

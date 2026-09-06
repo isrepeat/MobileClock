@@ -11,9 +11,9 @@
               borderThickness="0 0 0 1"
               horizontalAlignment="Stretch">
             <columnDefinitions>
-                <columnDefinition width="12%" />
-                <columnDefinition width="76%" />
-                <columnDefinition width="12%" />
+                <columnDefinition width="12%"/>
+                <columnDefinition width="76%"/>
+                <columnDefinition width="12%"/>
             </columnDefinitions>
             <Border id="backNavigation"
                     background="#292A23"
@@ -27,7 +27,7 @@
                           width="40"
                           height="40"
                           horizontalAlignment="Center"
-                          verticalAlignment="Center" />
+                          verticalAlignment="Center"/>
             </Border>
             <TextBlock text="Настройки"
                        fontSize="40"
@@ -35,13 +35,13 @@
                        foreground="#EADCB5"
                        horizontalAlignment="Center"
                        verticalAlignment="Center"
-                       gridColumn="1" />
+                       gridColumn="1"/>
         </Grid>
         <TextBlock text="Оформление"
                    fontSize="18"
                    fontWeight="Bold"
                    foreground="#9D9477"
-                   margin="8 36 0 12" />
+                   margin="8 36 0 12"/>
         <Border background="#292A23"
                 borderBrush="#4E4B3D"
                 borderThickness="1"
@@ -51,27 +51,27 @@
             <Grid height="72"
                   horizontalAlignment="Stretch">
                 <columnDefinitions>
-                    <columnDefinition width="40%" />
-                    <columnDefinition width="60%" />
+                    <columnDefinition width="40%"/>
+                    <columnDefinition width="60%"/>
                 </columnDefinitions>
                 <TextBlock text="Тема"
                            fontSize="24"
                            foreground="#EADCB5"
                            horizontalAlignment="Left"
-                           verticalAlignment="Center" />
+                           verticalAlignment="Center"/>
                 <TextBlock text="{Binding Theme}"
                            fontSize="20"
                            foreground="#D5BD7D"
                            horizontalAlignment="Right"
                            verticalAlignment="Center"
-                           gridColumn="1" />
+                           gridColumn="1"/>
             </Grid>
         </Border>
         <TextBlock text="Будильники"
                    fontSize="18"
                    fontWeight="Bold"
                    foreground="#9D9477"
-                   margin="8 36 0 12" />
+                   margin="8 36 0 12"/>
         <Border background="#292A23"
                 borderBrush="#4E4B3D"
                 borderThickness="1"
@@ -81,23 +81,24 @@
             <Grid height="72"
                   horizontalAlignment="Stretch">
                 <columnDefinitions>
-                    <columnDefinition width="40%" />
-                    <columnDefinition width="60%" />
+                    <columnDefinition width="40%"/>
+                    <columnDefinition width="60%"/>
                 </columnDefinitions>
                 <TextBlock text="Звук"
                            fontSize="24"
                            foreground="#EADCB5"
                            horizontalAlignment="Left"
-                           verticalAlignment="Center" />
+                           verticalAlignment="Center"/>
                 <TextBlock text="{Binding Sound}"
                            fontSize="20"
                            foreground="#D5BD7D"
                            horizontalAlignment="Right"
                            verticalAlignment="Center"
-                           gridColumn="1" />
+                           gridColumn="1"/>
             </Grid>
         </Border>
-        <Button id="shareLogsButton"
+        <Button renderer="rendererWave"
+                id="shareLogsButton"
                 text="Поделиться логом"
                 command="shareLogs"
                 background="#303128"
@@ -120,23 +121,24 @@
                                easing="CubicOut"
                                intensity="0.95"
                                spread="1.5"
-                               fadeExponent="1.6" />
-                    <FloatAnimation property="waveOpacity"
-                                    from="0"
-                                    to="1"
-                                    duration="1"
-                                    easing="Linear" />
+                               fadeExponent="1.6"/>
+                    <Animation name="animationWaveOpacity"
+                               from="0"
+                               to="1"
+                               duration="1"
+                               easing="Linear"/>
                 </Storyboard>
                 <Storyboard trigger="PointerUp">
-                    <FloatAnimation property="waveOpacity"
-                                    from="Current"
-                                    to="0"
-                                    duration="280"
-                                    easing="CubicOut" />
+                    <Animation name="animationWaveOpacity"
+                               from="Current"
+                               to="0"
+                               duration="280"
+                               easing="CubicOut"/>
                 </Storyboard>
             </Button.Storyboards>
         </Button>
-        <Button id="exportLogsButton"
+        <Button renderer="rendererWave"
+                id="exportLogsButton"
                 text="Экспортировать логи"
                 command="exportLogs"
                 background="#303128"
@@ -159,19 +161,19 @@
                                easing="CubicOut"
                                intensity="0.95"
                                spread="1.5"
-                               fadeExponent="1.6" />
-                    <FloatAnimation property="waveOpacity"
-                                    from="0"
-                                    to="1"
-                                    duration="1"
-                                    easing="Linear" />
+                               fadeExponent="1.6"/>
+                    <Animation name="animationWaveOpacity"
+                               from="0"
+                               to="1"
+                               duration="1"
+                               easing="Linear"/>
                 </Storyboard>
                 <Storyboard trigger="PointerUp">
-                    <FloatAnimation property="waveOpacity"
-                                    from="Current"
-                                    to="0"
-                                    duration="280"
-                                    easing="CubicOut" />
+                    <Animation name="animationWaveOpacity"
+                               from="Current"
+                               to="0"
+                               duration="280"
+                               easing="CubicOut"/>
                 </Storyboard>
             </Button.Storyboards>
         </Button>

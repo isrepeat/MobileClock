@@ -14,7 +14,7 @@ namespace mobileclock::ui {
         this->isTransitioning = false;
         this->mainPageViewModel.Initialize(availableSize);
         this->settingsPageViewModel.Initialize(availableSize);
-        xaml::AnimationRegistry registry;
+        xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
         renderer::RegisterAnimations(registry);
         const auto parameters = [this]() {
             return xaml::AnimationParameters::Create(PageTransitionData{

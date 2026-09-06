@@ -13,9 +13,9 @@
               height="94"
               horizontalAlignment="Stretch">
             <columnDefinitions>
-                <columnDefinition width="*" />
-                <columnDefinition width="Auto" />
-                <columnDefinition width="*" />
+                <columnDefinition width="*"/>
+                <columnDefinition width="Auto"/>
+                <columnDefinition width="*"/>
             </columnDefinitions>
             <TextBlock id="pageTitle"
                        text="Будильники"
@@ -23,7 +23,7 @@
                        fontWeight="Normal"
                        foreground="#F1E8D2"
                        horizontalAlignment="Left"
-                       verticalAlignment="Center" />
+                       verticalAlignment="Center"/>
             <StackPanel id="pageActions"
                         orientation="Horizontal"
                         horizontalAlignment="Right"
@@ -43,7 +43,7 @@
                               width="40"
                               height="40"
                               horizontalAlignment="Center"
-                              verticalAlignment="Center" />
+                              verticalAlignment="Center"/>
                 </Border>
                 <Border id="settingsButton"
                         background="#2A2B24"
@@ -58,7 +58,7 @@
                               width="40"
                               height="40"
                               horizontalAlignment="Center"
-                              verticalAlignment="Center" />
+                              verticalAlignment="Center"/>
                 </Border>
             </StackPanel>
         </Grid>
@@ -69,12 +69,12 @@
             <TextBlock text="До ближайшего будильника"
                        fontSize="18"
                        foreground="#938E78"
-                       horizontalAlignment="Center" />
+                       horizontalAlignment="Center"/>
             <TextBlock id="clockText"
                        text="{Binding ClockText}"
                        fontSize="40"
                        foreground="#E7D8AB"
-                       horizontalAlignment="Center" />
+                       horizontalAlignment="Center"/>
         </StackPanel>
         <ListView id="alarms"
                   horizontalAlignment="Stretch"
@@ -91,22 +91,22 @@
                         <Grid height="140"
                               horizontalAlignment="Stretch">
                             <columnDefinitions>
-                                <columnDefinition width="80%" />
-                                <columnDefinition width="*" />
-                                <columnDefinition width="18%" />
+                                <columnDefinition width="80%"/>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="18%"/>
                             </columnDefinitions>
                             <Grid horizontalAlignment="Stretch"
                                   verticalAlignment="Stretch">
                                 <rowDefinitions>
-                                    <rowDefinition height="75%" />
-                                    <rowDefinition height="25%" />
+                                    <rowDefinition height="75%"/>
+                                    <rowDefinition height="25%"/>
                                 </rowDefinitions>
                                 <TextBlock text="{Binding Time}"
                                            fontSize="82"
                                            fontWeight="Bold"
                                            foreground="#F1E8D2"
                                            horizontalAlignment="Left"
-                                           verticalAlignment="Center" />
+                                           verticalAlignment="Center"/>
                                 <Border horizontalAlignment="Stretch"
                                         verticalAlignment="Top"
                                         gridRow="1">
@@ -114,7 +114,7 @@
                                                fontSize="38"
                                                foreground="#9E9985"
                                                horizontalAlignment="Left"
-                                               verticalAlignment="Top" />
+                                               verticalAlignment="Top"/>
                                 </Border>
                             </Grid>
                             <ToggleSwitch height="54"
@@ -133,7 +133,7 @@
                                                         from="Current"
                                                         to="ToggleState"
                                                         duration="120"
-                                                        easing="CubicOut" />
+                                                        easing="CubicOut"/>
                                     </Storyboard>
                                 </ToggleSwitch.Storyboards>
                             </ToggleSwitch>
@@ -149,9 +149,9 @@
               horizontalAlignment="Stretch"
               margin="0 10 0 0">
             <columnDefinitions>
-                <columnDefinition width="33%" />
-                <columnDefinition width="34%" />
-                <columnDefinition width="33%" />
+                <columnDefinition width="33%"/>
+                <columnDefinition width="34%"/>
+                <columnDefinition width="33%"/>
             </columnDefinitions>
             <StackPanel orientation="Vertical"
                         horizontalAlignment="Center"
@@ -160,12 +160,12 @@
                           tint="#E2C878"
                           width="28"
                           height="28"
-                          horizontalAlignment="Center" />
+                          horizontalAlignment="Center"/>
                 <TextBlock text="Будильники"
                            fontSize="20"
                            fontWeight="Bold"
                            foreground="#E2C878"
-                           horizontalAlignment="Center" />
+                           horizontalAlignment="Center"/>
             </StackPanel>
             <StackPanel orientation="Vertical"
                         horizontalAlignment="Center"
@@ -175,11 +175,11 @@
                           tint="#938E78"
                           width="28"
                           height="28"
-                          horizontalAlignment="Center" />
+                          horizontalAlignment="Center"/>
                 <TextBlock text="Таймер"
                            fontSize="20"
                            foreground="#938E78"
-                           horizontalAlignment="Center" />
+                           horizontalAlignment="Center"/>
             </StackPanel>
             <StackPanel orientation="Vertical"
                         horizontalAlignment="Center"
@@ -189,11 +189,11 @@
                           tint="#938E78"
                           width="28"
                           height="28"
-                          horizontalAlignment="Center" />
+                          horizontalAlignment="Center"/>
                 <TextBlock text="Секундомер"
                            fontSize="20"
                            foreground="#938E78"
-                           horizontalAlignment="Center" />
+                           horizontalAlignment="Center"/>
             </StackPanel>
         </Grid>
         <Button id="updateApplicationButton"
@@ -220,19 +220,19 @@
                                easing="CubicOut"
                                intensity="0.95"
                                spread="1.5"
-                               fadeExponent="1.6" />
-                    <FloatAnimation property="waveOpacity"
-                                    from="0"
-                                    to="1"
-                                    duration="1"
-                                    easing="Linear" />
+                               fadeExponent="1.6"/>
+                    <Animation name="animationWaveOpacity"
+                               from="0"
+                               to="1"
+                               duration="1"
+                               easing="Linear"/>
                 </Storyboard>
                 <Storyboard trigger="PointerUp">
-                    <FloatAnimation property="waveOpacity"
-                                    from="Current"
-                                    to="0"
-                                    duration="280"
-                                    easing="CubicOut" />
+                    <Animation name="animationWaveOpacity"
+                               from="Current"
+                               to="0"
+                               duration="280"
+                               easing="CubicOut"/>
                 </Storyboard>
             </Button.Storyboards>
         </Button>
@@ -240,8 +240,9 @@
                    fontSize="18"
                    foreground="#D5BD7D"
                    margin="8 0 8 12"
-                   horizontalAlignment="Center" />
-        <Button id="uploadScreenshotButton"
+                   horizontalAlignment="Center"/>
+        <Button renderer="rendererWave"
+                id="uploadScreenshotButton"
                 text="Скриншот в Google Drive"
                 command="uploadScreenshot"
                 background="#303128"
@@ -264,19 +265,19 @@
                                easing="CubicOut"
                                intensity="0.95"
                                spread="1.5"
-                               fadeExponent="1.6" />
-                    <FloatAnimation property="waveOpacity"
-                                    from="0"
-                                    to="1"
-                                    duration="1"
-                                    easing="Linear" />
+                               fadeExponent="1.6"/>
+                    <Animation name="animationWaveOpacity"
+                               from="0"
+                               to="1"
+                               duration="1"
+                               easing="Linear"/>
                 </Storyboard>
                 <Storyboard trigger="PointerUp">
-                    <FloatAnimation property="waveOpacity"
-                                    from="Current"
-                                    to="0"
-                                    duration="280"
-                                    easing="CubicOut" />
+                    <Animation name="animationWaveOpacity"
+                               from="Current"
+                               to="0"
+                               duration="280"
+                               easing="CubicOut"/>
                 </Storyboard>
             </Button.Storyboards>
         </Button>
