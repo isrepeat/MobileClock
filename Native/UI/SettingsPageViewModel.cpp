@@ -44,13 +44,18 @@ namespace mobileclock::ui {
         if (element == nullptr) {
             return TouchAction::none;
         }
+        // Завершаем визуальное нажатие и при отпускании за пределами кнопки.
+        animations.Start(*element, xaml::AnimationTrigger::pointerUp);
+        // Команда выполняется только на том элементе, где началось касание.
+        if (xaml::HitTest(*this->page, x, y) != element) {
+            return TouchAction::none;
+        }
         if (!xaml::HandleTap(*element)) {
             return TouchAction::none;
         }
         if (element->Type() == xaml::ElementType::toggleSwitch) {
             animations.Start(*element, xaml::AnimationTrigger::toggled);
         }
-        animations.Start(*element, xaml::AnimationTrigger::pointerUp);
         if (element->Command() == "navigateToMain") {
             return TouchAction::navigateToMain;
         }
