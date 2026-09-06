@@ -67,9 +67,11 @@ android {
         buildConfig = true
     }
     sourceSets {
-        getByName("main").assets.srcDir("../Native/Resources")
+        getByName("main").assets.directories += "../Native/Resources"
+    }
+    androidResources {
         // Исходники модуля хоста компилируются в native-библиотеку и не нужны в assets.
-        getByName("main").assets.exclude("XamlHost/**")
+        ignoreAssetsPatterns += "XamlHost"
     }
 }
 
