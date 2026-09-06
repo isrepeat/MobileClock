@@ -19,6 +19,34 @@
 Новые renderer из примеров нужно реализовать и зарегистрировать; одно имя
 в XAML не создаёт обработчик. Сборки для чтения этого руководства не нужны.
 
+## Кто предоставляет эффекты и шейдеры
+
+Движок не регистрирует конкретные эффекты автоматически. MobileClock явно
+подключает модуль хоста `Native/Resources/XamlHost`:
+`Effects.cpp` содержит Fade, SlideFade, Wave и Glow, `Shaders.cpp` — GLSL волны.
+Базовые шейдеры фигур, текста и изображений встроены в OpenGLESRenderer.
+Эти исходники компилируются в хост, а не в XamlRuntime или OpenGLESRenderer.
+XamlPreviewer в этой рабочей копии подключает те же исходники из ресурсов MobileClock.
+Другой хост может не подключать его вообще.
+
+Начальная регистрация для примеров с готовыми эффектами:
+
+```cpp
+auto animations = mobileclock::resources::effects::CreateAnimations();
+auto renderers = mobileclock::resources::effects::CreateRenderers();
+auto programs = mobileclock::resources::effects::CreateShaderPrograms();
+```
+
+Для собственных эффектов можно начать с пустых реестров либо передать
+`mobileclock::resources::effects::CreateStates()` и дополнить их своими типами. Пустые реестры
+содержат только общие `VisualTransform` и `EmptyState`, без Wave или Glow.
+`Element` не имеет Wave-свойств. Поля `progress`, `opacity`, `intensity`,
+`spread` и `fadeExponent` объявлены в `mobileclock::resources::effects::WaveAnimation`.
+
+Обычная кнопка без `renderer` рисует фон и текст. Для волны нужен явно выбранный
+`renderer="rendererWave"` либо другой renderer хоста, который рисует эту волну.
+Анимация сама по себе не выбирает отрисовку.
+
 ## Отрисовка без анимации
 
 Renderer не обязан иметь анимацию. Он может каждый раз рисовать одно и то же
@@ -54,9 +82,9 @@ Renderer не обязан иметь анимацию. Он может кажд
 | opacity | Общая прозрачность элемента и содержимого |
 | width / height / margin | Размеры и внешние отступы layout |
 
-Шейдеры фона и текста уже встроены в OpenGlRenderer. Не нужно писать GLSL,
+Шейдеры фона, текста и изображений предоставляет сама библиотека OpenGLESRenderer. Не нужно писать GLSL,
 загружать файлы или указывать renderer. В обычной кнопке волна не рисуется,
-пока её waveOpacity равно нулю.
+если не выбран renderer волны и не запущены его анимации.
 
 В существующем приложении достаточно поменять XAML. Если дерево создаётся
 в собственном хосте, стандартный проход выглядит так:
@@ -375,25 +403,25 @@ namespace mobileclock::renderer::_details {
 }
 ```
 
-В существующей CreateShaderPrograms заменяем пустой результат регистрацией
-своей программы. Шейдеры имеют статическое время жизни, поэтому string_view
+В CreateShaderPrograms добавляем свою программу к набору хоста. Шейдеры имеют статическое время жизни, поэтому string_view
 в ShaderProgramSource не ссылаются на уничтоженные локальные строки:
 
 ```cpp
 namespace mobileclock::renderer {
     es_renderer::OpenGlRenderer::ShaderProgramSources CreateShaderPrograms() {
-        return {
-            {"shaderGradient", {
+        auto programs = mobileclock::resources::effects::CreateShaderPrograms();
+        programs.emplace("shaderGradient",
+            es_renderer::OpenGlRenderer::ShaderProgramSource{
                 _details::GradientVertex,
                 _details::GradientFragment,
-            }},
-        };
+            });
+        return programs;
     }
 }
 ```
 
 MobileClock уже передаёт результат этой функции в конструктор OpenGlRenderer.
-Встроенные программы при этом сохраняются. Ключ shaderGradient принадлежит
+Программы хоста при этом сохраняются. Ключ shaderGradient принадлежит
 приложению; стандартный renderer движка о нём ничего не знает.
 
 Теперь обработчик, который вызывает программу и рисует текст:
@@ -501,10 +529,11 @@ Highlight нужно добавить в приложение и зарегис�
 | Renderer | Определяет, что рисовать, используя текущие значения |
 | Шейдер | Вычисляет изображение на GPU по команде renderer |
 
-### Шаг 1. Стандартная кнопка со встроенной анимацией
+### Шаг 1. Стандартная кнопка с анимацией хоста
 
 ```xml
-<Button text="Сохранить"
+<Button renderer="rendererWave"
+        text="Сохранить"
         command="save"
         background="#303128"
         foreground="#FFFFFF">
@@ -512,27 +541,25 @@ Highlight нужно добавить в приложение и зарегис�
         <Storyboard trigger="PointerDown">
             <Animation name="animationSoftPulse"
                        duration="650"/>
-            <FloatAnimation property="waveOpacity"
-                            from="0"
-                            to="1"
-                            duration="0"/>
+            <Animation name="animationWaveOpacity"
+                       to="1"
+                       duration="0"/>
         </Storyboard>
         <Storyboard trigger="PointerUp">
-            <FloatAnimation property="waveOpacity"
-                            from="Current"
-                            to="0"
-                            duration="200"/>
+            <Animation name="animationWaveOpacity"
+                       to="0"
+                       duration="200"/>
         </Storyboard>
     </Button.Storyboards>
 </Button>
 ```
 
-При PointerDown обработчик animationSoftPulse запускает изменение waveProgress,
-а FloatAnimation сразу делает волну видимой. Стандартный renderer использует
-прогресс при рисовании встроенным шейдером. При отпускании waveOpacity уменьшается
-до нуля. Кастомный renderer здесь не нужен.
+При PointerDown обработчик animationSoftPulse запускает изменение progress,
+а animationWaveOpacity делает волну видимой. Зарегистрированный rendererWave
+читает поля progress и opacity из состояния WaveAnimation. При отпускании
+animationWaveOpacity уменьшает opacity до нуля. Оба обработчика принадлежат хосту.
 
-Настройки встроенной волны можно менять непосредственно в XAML:
+Настройки волны хоста можно менять непосредственно в XAML:
 
 ```xml
 <Animation name="animationSoftPulse"
@@ -552,45 +579,28 @@ Highlight нужно добавить в приложение и зарегис�
 </Button.Storyboards>
 ```
 
-### Шаг 2. Изменить только шейдер встроенной волны
+### Шаг 2. Изменить только шейдер волны хоста
 
-XAML предыдущего шага остаётся прежним. Стандартный renderer вызывает
-`xaml::BuiltinShaders::buttonWave` — публичный ключ только программы волны,
-а не всей кнопки. Фон и текст используют другие встроенные программы.
-
-OpenGlRenderer уже содержит исходники волны. Чтобы заменить её изображение,
-приложение передаёт свои GLSL-исходники под тем же публичным ключом:
+XAML с `renderer="rendererWave"` и анимациями волны остаётся прежним.
+Ключ `"button-wave"` определён только в модуле хоста: renderer и набор
+шейдеров договариваются об этом имени. Движок не знает о волне.
 
 ```cpp
-es_renderer::OpenGlRenderer::ShaderProgramSources programs;
-programs.emplace(
-    xaml::BuiltinShaders::buttonWave,
+auto programs = mobileclock::resources::effects::CreateShaderPrograms();
+programs.insert_or_assign("button-wave",
     es_renderer::OpenGlRenderer::ShaderProgramSource{
         vertexSource,
         fragmentSource,
     });
 ```
 
-vertexSource и fragmentSource — строки GLSL, которые должны оставаться живыми
-до завершения конструктора OpenGlRenderer, принимающего programs.
-В MobileClock точка расширения — CreateShaderPrograms() в AnimationShaders.cpp.
-Сейчас она возвращает пустой набор: backend использует встроенную волну.
-
-Подмена сохраняет интерфейс: vertex attributes position (location 0) и
-localPosition (location 1), uniforms size, cornerRadius, progress, spread,
-rippleColor. Например, fragment shader может вместо мягкого пятна рисовать
-кольцо, радиус которого зависит от progress.
-
-```text
-PointerDown
-    → animationSoftPulse обновляет прогресс
-    → стандартный renderer вызывает BuiltinShaders::buttonWave
-    → выполняется переданная приложением GLSL-программа
-```
-
-Логика и длительность анимации не меняются. Подмена затрагивает все стандартные
-волны этого экземпляра backend. Атрибута shader для отдельной кнопки пока нет:
-для отдельной программы нужен собственный renderer, как в шаге 6.
+Передайте этот набор в конструктор OpenGlRenderer вместо исходного.
+`vertexSource` и `fragmentSource` — строки GLSL, живущие до завершения
+конструктора. Это могут быть встроенные строки C++ или данные из файлов.
+Сохраняйте интерфейс программы: attributes position (0), localPosition (1),
+uniforms size, cornerRadius, progress, spread, rippleColor.
+Подмена меняет изображение волны у всех использующих этот ключ renderer
+данного backend. Длительности и интерполяция остаются прежними.
 
 ### Шаг 3. Своя анимация со стандартным renderer
 
@@ -662,16 +672,14 @@ animations.Register<Dim>("animationDim", {
     <Button.Storyboards>
         <Storyboard trigger="PointerDown">
             <Animation name="animationSoftPulse"/>
-            <FloatAnimation property="waveOpacity"
-                            from="0"
-                            to="1"
-                            duration="0"/>
+            <Animation name="animationWaveOpacity"
+                       to="1"
+                       duration="0"/>
         </Storyboard>
         <Storyboard trigger="PointerUp">
-            <FloatAnimation property="waveOpacity"
-                            from="Current"
-                            to="0"
-                            duration="200"/>
+            <Animation name="animationWaveOpacity"
+                       to="0"
+                       duration="200"/>
         </Storyboard>
     </Button.Storyboards>
 </Button>
@@ -684,7 +692,7 @@ animations.Register<Dim>("animationDim", {
 ### Шаг 5. Своя анимация и свой renderer с общим состоянием
 
 Создадим новую пару animationHighlight / rendererHighlight.
-Она устроена аналогично уже встроенным animationGlow / rendererGlow.
+Она устроена аналогично зарегистрированным в хосте animationGlow / rendererGlow.
 
 Одна структура содержит текущее значение и настройки запуска:
 
@@ -773,7 +781,7 @@ PointerDown
 ```
 
 При отпускании новый трек продолжает с текущего значения до нуля.
-Встроенная пара animationGlow / rendererGlow уже работает таким способом,
+Пара animationGlow / rendererGlow из модуля хоста уже работает таким способом,
 поэтому для неё дополнительные регистрации не нужны.
 
 ### Шаг 6. Полностью заменить отрисовку, включая шейдер
@@ -834,7 +842,7 @@ programs.emplace(
 shaderHighlight — имя из этого примера, такой программы в проекте пока нет.
 Она должна соответствовать vertex interface DrawShader и использовать
 переданные uniforms. Приложение определяет её fragment shader самостоятельно.
-Добавление своего ключа не отключает встроенную волну.
+Добавляйте свой ключ к набору хоста. Программы фона, текста и изображений библиотека подключает автоматически.
 
 В XAML меняется только renderer, а анимация остаётся прежней:
 
@@ -881,7 +889,7 @@ xaml::Render(root, backend, renderers);
 |---|---|
 | Длительность готовой волны | Настройки Animation в XAML |
 | Простое изменение свойства | FloatAnimation в XAML |
-| Только изображение общей волны | Подмену программы BuiltinShaders::buttonWave |
+| Только изображение общей волны | Подмену программы "button-wave" |
 | Логику изменения стандартного свойства | Свой обработчик анимации |
 | Дополнительную графику поверх кнопки | Renderer с RenderDefault() |
 | Собственное визуальное поведение | Общую структуру, анимацию и renderer |
@@ -937,7 +945,7 @@ xaml::Render(root, backend, renderers);
 
 `animationSlideFade` сочетает прозрачность с вертикальным смещением. Его настройки по умолчанию: `duration="180"`, `distance="24"`.
 
-Отрицательный `distance` задаёт смещение вверх. У встроенных `animationFade` и `animationSlideFade` сейчас фиксированное сглаживание `CubicOut`.
+Отрицательный `distance` задаёт смещение вверх. У зарегистрированных в хосте `animationFade` и `animationSlideFade` сейчас фиксированное сглаживание `CubicOut`.
 
 ### 3. Анимация конкретного свойства
 
@@ -967,8 +975,6 @@ xaml::Render(root, backend, renderers);
 | `renderOffsetX` | Горизонтальное смещение отрисовки |
 | `pressProgress` | Прогресс визуального состояния нажатия |
 | `toggleProgress` | Прогресс переключения |
-| `waveProgress` | Прогресс волны |
-| `waveOpacity` | Прозрачность волны |
 
 Свойства состояний дают видимый результат, если renderer элемента их использует.
 
@@ -1026,22 +1032,21 @@ xaml::Render(root, backend, renderers);
 ### 6. Существующая волна и смешивание видов анимации
 
 ```xml
-<Button text="Нажми"
+<Button renderer="rendererWave"
+        text="Нажми"
         command="save">
     <Button.Storyboards>
         <Storyboard trigger="PointerDown">
             <Animation name="animationSoftPulse"
                        duration="650"/>
-            <FloatAnimation property="waveOpacity"
-                            from="0"
-                            to="1"
-                            duration="0"/>
+            <Animation name="animationWaveOpacity"
+                       to="1"
+                       duration="0"/>
         </Storyboard>
         <Storyboard trigger="PointerUp">
-            <FloatAnimation property="waveOpacity"
-                            from="Current"
-                            to="0"
-                            duration="200"/>
+            <Animation name="animationWaveOpacity"
+                       to="0"
+                       duration="200"/>
         </Storyboard>
     </Button.Storyboards>
 </Button>
@@ -1062,6 +1067,11 @@ xaml::Render(root, backend, renderers);
            fadeExponent="1.6"/>
 ```
 
+`animationWaveOpacity` принимает `from` (по умолчанию `Current`), `to`
+(по умолчанию `1`), `duration` (по умолчанию `650` мс) и `easing`
+(по умолчанию `CubicOut`). Для мгновенного появления задайте `duration="0"`.
+Она меняет только поле opacity состояния волны, не Element::Opacity.
+
 Также принимается имя `animationRippleWave`. Сейчас оба имени используют один обработчик; различие результата задаётся параметрами.
 
 Для волны поддерживается `from="Current"`. Значения по умолчанию:
@@ -1075,7 +1085,7 @@ xaml::Render(root, backend, renderers);
 | `spread` | `0.28` |
 | `fadeExponent` | `2` |
 
-Эти три настройки волны также можно задавать у `FloatAnimation property="waveProgress"`.
+Параметры волны задаются только у зарегистрированной `Animation`. Для её прозрачности используется `animationWaveOpacity`, а не `FloatAnimation`.
 
 ### 7. Несколько одновременных анимаций
 
@@ -1099,7 +1109,7 @@ xaml::Render(root, backend, renderers);
 
 Если записи управляют одним и тем же каналом, последняя заменяет предыдущую. Несколько `Storyboard` с одинаковым событием тоже обрабатываются в порядке объявления.
 
-Для `FloatAnimation` и встроенной волны доступны `Linear` и `CubicOut`; если `easing` пропущен, используется `CubicOut`.
+Для `FloatAnimation` и волны хоста доступны `Linear` и `CubicOut`; если `easing` пропущен, используется `CubicOut`.
 
 ### 8. Кастомная анимация
 
@@ -1182,10 +1192,9 @@ xaml::Render(root, backend, renderers);
     <Button.Storyboards>
         <Storyboard trigger="PointerDown">
             <Animation name="animationSoftPulse"/>
-            <FloatAnimation property="waveOpacity"
-                            from="0"
-                            to="1"
-                            duration="0"/>
+            <Animation name="animationWaveOpacity"
+                       to="1"
+                       duration="0"/>
         </Storyboard>
     </Button.Storyboards>
 </Button>
@@ -1208,7 +1217,7 @@ xaml::Render(root, backend, renderers);
 но у каждого элемента свой экземпляр. Совпадение строковых имён регистраций
 не связывает обработчики: связь задаётся типом состояния.
 
-Встроенный пример — пара `animationGlow` / `rendererGlow`:
+Пример из модуля хоста — пара `animationGlow` / `rendererGlow`:
 
 ```cpp
 struct Glow {
@@ -1218,8 +1227,8 @@ struct Glow {
 };
 ```
 
-Этот тип уже объявлен в `VisualState.h` и зарегистрирован конструктором
-`StateRegistry`. Повторно регистрировать встроенные типы не нужно.
+Этот тип объявлен в `Native/Resources/XamlHost/Effects.h` в namespace `mobileclock::resources::effects`.
+Типы готовых эффектов явно регистрирует `mobileclock::resources::effects::CreateStates()`.
 Пример разметки: [ButtonGlow.xaml](Examples/Buttons/ButtonGlow.xaml).
 
 Для собственного состояния регистрация выглядит так:
@@ -1356,9 +1365,12 @@ xaml::Render(root, backend, renderers);
 `AnimateProperty` остаётся способом менять обычные свойства элемента.
 Контекст renderer предоставляет состояние только для чтения.
 
-`ContainerAnimation` содержит объявленные каналы `opacity`, `offsetX`,
-`offsetY` и настройки контейнерных переходов. Стандартная отрисовка применяет
-эти каналы к элементу и его содержимому, не меняя базовые свойства layout.
+`xaml::VisualTransform` содержит общие каналы `opacity`, `offsetX`, `offsetY`.
+Обработчик получает их через `context.Transform()` и анимирует вызовом
+`context.AnimateTransform(&xaml::VisualTransform::opacity, to, duration)`.
+Стандартная отрисовка применяет их ко всему поддереву, не меняя layout.
+`mobileclock::resources::effects::ContainerAnimation` содержит только настройки `duration` и
+`distance`: конкретная логика Fade/Slide находится в хосте.
 Другие структуры, например `Glow`, интерпретирует соответствующий renderer.
 
 ## Штатное поведение и завершение
@@ -1421,84 +1433,36 @@ PageManager регистрирует `animationPageTransition` и `animationSett
 `animationSettingsReveal` использует отдельную логику Show/Hide и настройку
 `duration`; в примере заданы 320 и 120 мс соответственно.
 
-XamlPreviewer использует тот же runtime и проверку схем. В нём доступны встроенные
-анимации, `rendererGlow` и `rendererWaveOutline`. Обработчики приложения,
+XamlPreviewer использует тот же runtime и проверку схем. Он явно регистрирует анимации модуля хоста, `rendererGlow` и `rendererWaveOutline`. Обработчики приложения,
 не зарегистрированные в хосте предпросмотра, используют штатный fallback.
 
-## Встроенные шейдеры, подмена и эффекты приложения
+## Стандартные шейдеры библиотеки и эффекты приложения
 
-OpenGlRenderer сам содержит и компилирует шейдеры стандартной геометрии, текста,
-изображений и волны кнопки. MobileClock и XamlPreviewer не загружают Ripple.vert /
-Ripple.frag из ресурсов. Пустой ShaderProgramSources означает использование
-встроенных программ. Функция MobileClock CreateShaderPrograms() сейчас возвращает
-пустой набор и остаётся местом для подключения программ приложения.
+OpenGLESRenderer содержит стандартные GLSL-программы для фигур, текста и
+изображений. Они подключаются автоматически: хост может передать пустой
+ShaderProgramSources, и базовая отрисовка продолжит работать.
 
-Стандартный renderer волны обращается к публичному идентификатору
-`xaml::BuiltinShaders::buttonWave`. Это ключ только программы волны, а не всей
-кнопки. Приложению не нужно повторять его строковое значение.
+`OpenGlRenderer::ShaderRoles::solid`, `text`, `image` — ключи стандартных
+программ. Указывать их в хосте не обязательно. При необходимости хост может
+передать совместимую программу под таким ключом: она заменит стандартную.
+Библиотека добавляет свои исходники только для отсутствующих ролей, поэтому
+каждая программа компилируется один раз. Пустая или ошибочная явная подмена
+вызывает ошибку, а не молчаливый возврат к стандартному шейдеру.
 
-Для подмены волны передайте новую пару GLSL-исходников под этим ключом:
+Волна и Glow — эффекты приложения. Их состояния и обработчики находятся в
+Native/Resources/XamlHost/Effects.cpp. Шейдер волны находится там же в
+Shaders.cpp; ключ `"button-wave"` известен только хосту. Glow сейчас рисует
+обводку через базовые операции backend и отдельного GLSL-шейдера не имеет.
+Библиотека не регистрирует эти эффекты и не хранит их поля в Element.
 
-```cpp
-es_renderer::OpenGlRenderer::ShaderProgramSources programs;
-programs.emplace(
-    xaml::BuiltinShaders::buttonWave,
-    es_renderer::OpenGlRenderer::ShaderProgramSource{
-        vertexSource,
-        fragmentSource,
-    });
-```
+CreateShaderPrograms() хоста возвращает только программы приложения.
+Для замены существующего ключа используйте insert_or_assign, для нового —
+emplace. Хост передаёт результат в конструктор OpenGlRenderer, который
+добавляет недостающие стандартные программы и компилирует итоговый набор.
 
-Здесь vertexSource и fragmentSource — исходники GLSL, а не имена файлов.
-Их память должна оставаться действительной до завершения конструктора
-OpenGlRenderer, которому передаётся programs. Встроенные исходники имеют
-статическое время жизни. Подмена применяется при создании backend; это не API
-горячего обновления шейдера.
-
-При наличии пользовательской программы встроенная версия этого ключа не
-компилируется. Ошибочная или пустая подмена вызывает ошибку, а не молчаливый
-возврат к встроенной версии.
-
-XAML остаётся обычным: Animation с name="animationSoftPulse" изменяет прогресс,
-а FloatAnimation с property="waveOpacity" управляет прозрачностью. Подмена
-шейдера влияет на все стандартные волны данного экземпляра backend.
-Выбора шейдера отдельной кнопки атрибутом shader пока нет.
-
-Совместимая подмена волны использует vertex attributes position (location 0)
-и localPosition (location 1); uniforms size, cornerRadius, progress, spread,
-rippleColor. Backend передаёт size, стандартный renderer — остальные uniforms.
-
-Полностью собственный эффект регистрирует программу под собственным ключом:
-
-```cpp
-programs.emplace(
-    "shaderMyEffect",
-    es_renderer::OpenGlRenderer::ShaderProgramSource{
-        customVertexSource,
-        customFragmentSource,
-    });
-```
-
-Его renderer вызывает программу через обычный API:
-
-```cpp
-context.Backend().DrawShader(
-    "shaderMyEffect",
-    context.Bounds(),
-    {
-        {"intensity", {context.State().intensity}, 1},
-        {"opacity", {context.Opacity()}, 1},
-    });
-```
-
-Это фрагмент обработчика renderer со структурой состояния, содержащей intensity.
-Схема uniforms определяется самим эффектом. Renderer должен учитывать общую
-прозрачность и при необходимости рисовать стандартный элемент или его содержимое.
-
-Программы с собственными ключами добавляются к встроенным, а не отключают их.
-Движок ничего не знает об имени shaderMyEffect: его выбирает только renderer
-приложения. Таким образом, встроенная волна, её явная подмена и независимые
-эффекты приложения могут использоваться одновременно.
+GLSL может храниться во встроенных строках C++ или загружаться из файлов.
+Исходники должны жить до завершения конструктора OpenGlRenderer.
+Prepare создаёт состояния элементов и не компилирует шейдеры.
 
 ## Проверки
 
