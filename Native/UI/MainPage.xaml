@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page xmlns="urn:mobileclock:xaml"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       id="root"
       borderThickness="0"
       background="#171813"
       padding="60 60 48 32">
+    <Page.Resources>
+        <ResourceDictionary>
+            <Style x:Key="DebugSeparatorBorderStyle"
+                   TargetType="Border">
+                <Setter Property="Background"
+                        Value="red"/>
+                <Setter Property="HorizontalAlignment"
+                        Value="Stretch"/>
+                <Setter Property="VerticalAlignment"
+                        Value="Stretch"/>
+                <Setter Property="Visibility"
+                        Value="Visible"/>
+            </Style>
+        </ResourceDictionary>
+    </Page.Resources>
     <Page.Storyboards>
         <Storyboard trigger="Show">
             <Animation name="animationPageTransition"
@@ -28,14 +44,29 @@
                             easing="CubicOut"/>
         </Storyboard>
     </Page.Storyboards>
-    <StackPanel id="alarmPage"
+    <Grid id="alarmPage"
                 borderThickness="0"
-                orientation="Vertical"
                 horizontalAlignment="Stretch"
-                verticalAlignment="Top">
+                verticalAlignment="Stretch">
+        <rowDefinitions>
+            <rowDefinition height="94"/>
+            <rowDefinition height="1%"/>
+            <rowDefinition height="94"/>
+            <rowDefinition height="1%"/>
+            <rowDefinition height="Auto"/>
+            <rowDefinition height="1%"/>
+            <rowDefinition height="116"/>
+            <rowDefinition height="*"/>
+            <rowDefinition height="Auto"/>
+            <rowDefinition height="1%"/>
+            <rowDefinition height="120"/>
+            <rowDefinition height="1%"/>
+            <rowDefinition height="76"/>
+        </rowDefinitions>
         <Grid id="pageHeader"
               height="94"
-              horizontalAlignment="Stretch">
+              horizontalAlignment="Stretch"
+              gridRow="0">
             <columnDefinitions>
                 <columnDefinition width="*"/>
                 <columnDefinition width="Auto"/>
@@ -86,10 +117,13 @@
                 </Border>
             </StackPanel>
         </Grid>
+        <Border gridRow="1"
+                style="{StaticResource DebugSeparatorBorderStyle}"/>
         <StackPanel id="nextAlarmSummary"
                     height="94"
                     orientation="Vertical"
-                    horizontalAlignment="Stretch">
+                    horizontalAlignment="Stretch"
+                    gridRow="2">
             <TextBlock text="До ближайшего будильника"
                        fontSize="18"
                        foreground="#938E78"
@@ -100,8 +134,11 @@
                        foreground="#E7D8AB"
                        horizontalAlignment="Center"/>
         </StackPanel>
+        <Border gridRow="3"
+                style="{StaticResource DebugSeparatorBorderStyle}"/>
         <ListView id="alarms"
                   horizontalAlignment="Stretch"
+                  gridRow="4"
                   itemsSource="{Binding Alarms}">
             <ListView.ItemTemplate>
                 <DataTemplate>
@@ -166,12 +203,14 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <Border gridRow="5"
+                style="{StaticResource DebugSeparatorBorderStyle}"/>
         <Grid id="pageFooter"
               borderBrush="#34352D"
               borderThickness="0 1 0 0"
               height="116"
               horizontalAlignment="Stretch"
-              margin="0 10 0 0">
+              gridRow="6">
             <columnDefinitions>
                 <columnDefinition width="33%"/>
                 <columnDefinition width="34%"/>
@@ -182,11 +221,11 @@
                         verticalAlignment="Center">
                 <SvgImage source="Icons/alarm.svg"
                           tint="#E2C878"
-                          width="28"
-                          height="28"
+                          width="50"
+                          height="50"
                           horizontalAlignment="Center"/>
                 <TextBlock text="Будильники"
-                           fontSize="20"
+                           fontSize="30"
                            fontWeight="Bold"
                            foreground="#E2C878"
                            horizontalAlignment="Center"/>
@@ -197,11 +236,11 @@
                         gridColumn="1">
                 <SvgImage source="Icons/timer.svg"
                           tint="#938E78"
-                          width="28"
-                          height="28"
+                          width="50"
+                          height="50"
                           horizontalAlignment="Center"/>
                 <TextBlock text="Таймер"
-                           fontSize="20"
+                           fontSize="30"
                            foreground="#938E78"
                            horizontalAlignment="Center"/>
             </StackPanel>
@@ -211,20 +250,25 @@
                         gridColumn="2">
                 <SvgImage source="Icons/stopwatch.svg"
                           tint="#938E78"
-                          width="28"
-                          height="28"
+                          width="50"
+                          height="50"
                           horizontalAlignment="Center"/>
                 <TextBlock text="Секундомер"
-                           fontSize="20"
+                           fontSize="30"
                            foreground="#938E78"
                            horizontalAlignment="Center"/>
             </StackPanel>
         </Grid>
+        <Border gridRow="7"
+                style="{StaticResource DebugSeparatorBorderStyle}"/>
         <TextBlock text="{Binding Status}"
                    fontSize="40"
                    foreground="#D5BD7D"
-                   margin="8 0 8 12"
-                   horizontalAlignment="Center"/>
+                   margin="8 0 8 0"
+                   horizontalAlignment="Center"
+                   gridRow="8"/>
+        <Border gridRow="9"
+                style="{StaticResource DebugSeparatorBorderStyle}"/>
         <Button id="updateApplicationButton"
                 text="Обновить"
                 command="updateApplication"
@@ -233,13 +277,13 @@
                 borderBrush="#47483D"
                 borderThickness="1"
                 cornerRadius="16"
-                fontSize="24"
+                fontSize="50"
                 fontWeight="Bold"
                 foreground="#F1E8D2"
                 height="120"
-                margin="0 6 0 16"
                 contentAlignment="Center"
-                horizontalAlignment="Stretch">
+                horizontalAlignment="Stretch"
+                gridRow="10">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
                     <Animation name="animationSoftPulse"
@@ -265,6 +309,8 @@
                 </Storyboard>
             </Button.Storyboards>
         </Button>
+        <Border gridRow="11"
+                style="{StaticResource DebugSeparatorBorderStyle}"/>
         <Button renderer="rendererWave"
                 id="uploadScreenshotButton"
                 text="Скриншот в Google Drive"
@@ -273,13 +319,13 @@
                 borderBrush="#47483D"
                 borderThickness="1"
                 cornerRadius="16"
-                fontSize="24"
+                fontSize="40"
                 fontWeight="Bold"
                 foreground="#F1E8D2"
                 height="76"
-                margin="0 0 0 16"
                 contentAlignment="Center"
-                horizontalAlignment="Stretch">
+                horizontalAlignment="Stretch"
+                gridRow="12">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
                     <Animation name="animationSoftPulse"
@@ -305,5 +351,5 @@
                 </Storyboard>
             </Button.Storyboards>
         </Button>
-    </StackPanel>
+    </Grid>
 </Page>
