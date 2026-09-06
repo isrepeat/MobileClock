@@ -32,14 +32,14 @@
                 horizontalAlignment="Center">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
-                    <RendererAnimation name="SoftPulse"
-                                       from="0"
-                                       to="1"
-                                       duration="650"
-                                       easing="CubicOut"
-                                       intensity="0.75"
-                                       spread="0.36"
-                                       fadeExponent="1.6" />
+                    <Animation name="animationSoftPulse"
+                               from="0"
+                               to="1"
+                               duration="650"
+                               easing="CubicOut"
+                               intensity="0.75"
+                               spread="0.36"
+                               fadeExponent="1.6" />
                     <FloatAnimation property="waveOpacity"
                                     from="0"
                                     to="1"

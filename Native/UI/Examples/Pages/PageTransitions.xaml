@@ -1,0 +1,30 @@
+<Page xmlns="urn:mobileclock:xaml"
+      background="#171813">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <Animation name="animationSlideFade"
+                       duration="320"
+                       distance="32"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <Animation name="animationSlideFade"
+                       duration="180"
+                       distance="32"/>
+        </Storyboard>
+    </Page.Storyboards>
+    <StackPanel orientation="Vertical">
+        <StackPanel.Storyboards>
+            <Storyboard trigger="Show">
+                <Animation name="animationFade"
+                           duration="240"/>
+            </Storyboard>
+            <Storyboard trigger="Hide">
+                <Animation name="animationFade"
+                           duration="120"/>
+            </Storyboard>
+        </StackPanel.Storyboards>
+        <Button text="Save"/>
+        <Button text="Optional"
+                visibility="Collapsed"/>
+    </StackPanel>
+</Page>

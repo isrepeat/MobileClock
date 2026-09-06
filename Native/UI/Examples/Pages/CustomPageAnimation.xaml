@@ -1,0 +1,14 @@
+<Page xmlns="urn:mobileclock:xaml"
+      background="#171813">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <Animation name="animationSettingsReveal"
+                       duration="320"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <Animation name="animationSettingsReveal"
+                       duration="120"/>
+        </Storyboard>
+    </Page.Storyboards>
+    <TextBlock text="Custom navigation animation: settings-reveal"/>
+</Page>

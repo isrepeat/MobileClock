@@ -1,0 +1,24 @@
+<Page xmlns="urn:mobileclock:xaml"
+      background="#181A15"
+      padding="32">
+    <Button text="Подсветка"
+            command="glow"
+            renderer="rendererGlow"
+            foreground="#E6CA69"
+            background="#303128"
+            cornerRadius="16"
+            height="64">
+        <Button.Storyboards>
+            <Storyboard trigger="PointerDown">
+                <Animation name="animationGlow"
+                           intensity="0.8"
+                           duration="300"/>
+            </Storyboard>
+            <Storyboard trigger="PointerUp">
+                <Animation name="animationGlow"
+                           intensity="0"
+                           duration="150"/>
+            </Storyboard>
+        </Button.Storyboards>
+    </Button>
+</Page>
