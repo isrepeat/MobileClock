@@ -1,10 +1,7 @@
-#include "UI/SettingsPageViewModel.h"
-
-#include <XamlRuntime/Input.h>
-#include <XamlRuntime/Animation.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/Xaml/SettingsPage.xaml.h"
+#include "UI/SettingsPageViewModel.h"
 
 #include <utility>
 
@@ -25,47 +22,18 @@ namespace mobileclock::ui {
     }
 
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
-        this->capturedElement = nullptr;
         this->bindings.Clear();
         this->page = xaml::generated::SettingsPage::Create(*this, this->bindings);
         xaml::layout(*this->page, availableSize);
     }
 
-    void SettingsPageViewModel::HandleTouchDown(float x, float y) {
-        this->capturedElement = xaml::HitTest(*this->page, x, y);
-    }
-
-    SettingsPageViewModel::TouchAction SettingsPageViewModel::HandleTouchUp(
-        float x,
-        float y,
-        xaml::AnimationController& animations) {
-        xaml::Element* const element = this->capturedElement;
-        this->capturedElement = nullptr;
-        if (element == nullptr) {
-            return TouchAction::none;
+    SettingsPageViewModel::TapAction SettingsPageViewModel::HandleTap(xaml::Element& element) {
+        if (element.Command() == "navigateToMain") {
+            return TapAction::navigateToMain;
         }
-        // Завершаем визуальное нажатие и при отпускании за пределами кнопки.
-        animations.Start(*element, xaml::AnimationTrigger::pointerUp);
-        // Команда выполняется только на том элементе, где началось касание.
-        if (xaml::HitTest(*this->page, x, y) != element) {
-            return TouchAction::none;
-        }
-        if (!xaml::HandleTap(*element)) {
-            return TouchAction::none;
-        }
-        if (element->Type() == xaml::ElementType::toggleSwitch) {
-            animations.Start(*element, xaml::AnimationTrigger::toggled);
-        }
-        if (element->Command() == "navigateToMain") {
-            return TouchAction::navigateToMain;
-        }
-        this->bindings.UpdateSource(*element);
-        this->commands.Execute(element->Command());
-        return TouchAction::none;
-    }
-
-    void SettingsPageViewModel::CancelTouch() {
-        this->capturedElement = nullptr;
+        this->bindings.UpdateSource(element);
+        this->commands.Execute(element.Command());
+        return TapAction::none;
     }
 
     void SettingsPageViewModel::Render(

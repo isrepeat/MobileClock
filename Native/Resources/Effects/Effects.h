@@ -8,6 +8,12 @@ namespace mobileclock::resources::effects {
         float distance = 24.0f;
     };
 
+    struct PageTransitionAnimation {
+        int duration = 0;
+        float distance = 1.0f;
+        std::string easing = "CubicOut";
+    };
+
     struct WaveAnimation {
         float progress = 1.0f;
         float opacity = 0.0f;

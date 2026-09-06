@@ -5,6 +5,7 @@
 
 #include "UI/SettingsPageViewModel.h"
 #include "UI/MainPageViewModel.h"
+#include "UI/TouchHandler.h"
 
 #include <functional>
 #include <string>
@@ -43,6 +44,7 @@ namespace mobileclock::ui {
         Page outgoingPage = Page::main;
         bool isTransitioning = false;
         xaml::AnimationController animations;
+        TouchHandler touchHandler;
         MainPageViewModel mainPageViewModel;
         SettingsPageViewModel settingsPageViewModel;
         std::function<void(const std::string&)> commandHandler;

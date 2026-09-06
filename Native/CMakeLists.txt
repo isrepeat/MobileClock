@@ -111,11 +111,11 @@ source_group("UI" FILES ${mobileclock_xaml_source})
 source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
 source_group("Resources\\Shaders" FILES ${mobileclock_shader_files})
 source_group("Header Files" FILES ${mobileclock_header_files})
-source_group("Resources\\XamlHost" FILES
-    Resources/XamlHost/Effects.cpp
-    Resources/XamlHost/Effects.h
-    Resources/XamlHost/Shaders.cpp
-    Resources/XamlHost/Shaders.h
+source_group("Resources\\Effects" FILES
+    Resources/Effects/Effects.cpp
+    Resources/Effects/Effects.h
+    Resources/Effects/Shaders.cpp
+    Resources/Effects/Shaders.h
 )
 source_group("!Generated\\Xaml" FILES
     ${mobileclock_xaml_generated}
@@ -128,14 +128,15 @@ add_library(mobileclock SHARED
     NativeApplication.cpp
     Renderer/AnimationRenderers.cpp
     Renderer/AnimationShaders.cpp
-    Resources/XamlHost/Effects.cpp
-    Resources/XamlHost/Shaders.cpp
+    Resources/Effects/Effects.cpp
+    Resources/Effects/Shaders.cpp
     Renderer/AssetsManager.cpp
     Renderer/NativeRenderer.cpp
     UI/CommandBindings.cpp
     UI/MainPageViewModel.cpp
     UI/PageManager.cpp
     UI/SettingsPageViewModel.cpp
+    UI/TouchHandler.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}
     ${mobileclock_resource_files}

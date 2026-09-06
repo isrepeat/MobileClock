@@ -71,7 +71,7 @@ android {
     }
     androidResources {
         // Исходники модуля хоста компилируются в native-библиотеку и не нужны в assets.
-        ignoreAssetsPatterns += "XamlHost"
+        ignoreAssetsPatterns += "Effects"
     }
 }
 

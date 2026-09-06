@@ -1,7 +1,5 @@
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
-#include <XamlRuntime/Animation.h>
-#include <XamlRuntime/Input.h>
 
 #include "../!Generated/Build/BuildVersion.h"
 #include "../!Generated/Xaml/MainPage.xaml.h"
@@ -85,53 +83,18 @@ namespace mobileclock::ui {
 
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
         LOG_FUNCTION_SCOPE("MobileClock", "MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
-        this->capturedElement = nullptr;
         this->bindings.Clear();
         this->page = xaml::generated::MainPage::Create(*this, this->bindings);
         xaml::layout(*this->page, availableSize);
     }
 
-    void MainPageViewModel::HandleTouchDown(
-        float x,
-        float y,
-        xaml::AnimationController& animations) {
-        this->capturedElement = xaml::HitTest(*this->page, x, y);
-        if (this->capturedElement != nullptr) {
-            animations.Start(*this->capturedElement, xaml::AnimationTrigger::pointerDown);
+    MainPageViewModel::TapAction MainPageViewModel::HandleTap(xaml::Element& element) {
+        this->bindings.UpdateSource(element);
+        if (element.Command() == "navigateToSettings") {
+            return TapAction::navigateToSettings;
         }
-    }
-
-    MainPageViewModel::TouchAction MainPageViewModel::HandleTouchUp(
-        float x,
-        float y,
-        xaml::AnimationController& animations) {
-        xaml::Element* const element = this->capturedElement;
-        this->capturedElement = nullptr;
-        if (element == nullptr) {
-            return TouchAction::none;
-        }
-        // Завершаем визуальное нажатие и при отпускании за пределами кнопки.
-        animations.Start(*element, xaml::AnimationTrigger::pointerUp);
-        // Команда выполняется только на том элементе, где началось касание.
-        if (xaml::HitTest(*this->page, x, y) != element) {
-            return TouchAction::none;
-        }
-        if (!xaml::HandleTap(*element)) {
-            return TouchAction::none;
-        }
-        if (element->Type() == xaml::ElementType::toggleSwitch) {
-            animations.Start(*element, xaml::AnimationTrigger::toggled);
-        }
-        this->bindings.UpdateSource(*element);
-        if (element->Command() == "navigateToSettings") {
-            return TouchAction::navigateToSettings;
-        }
-        this->commands.Execute(element->Command());
-        return TouchAction::contentChanged;
-    }
-
-    void MainPageViewModel::CancelTouch() {
-        this->capturedElement = nullptr;
+        this->commands.Execute(element.Command());
+        return TapAction::contentChanged;
     }
 
     void MainPageViewModel::UpdateClock() {

@@ -9,6 +9,7 @@ namespace mobileclock::ui {
     // API
     //
     void PageManager::Initialize(xaml::Size availableSize) {
+        this->touchHandler.CancelTouch();
         this->animations = xaml::AnimationController{};
         this->currentPage = Page::main;
         this->isTransitioning = false;
@@ -25,8 +26,6 @@ namespace mobileclock::ui {
         };
         auto& main = this->mainPageViewModel.Root();
         auto& settings = this->settingsPageViewModel.Root();
-        main.SetDefaultAnimation("animationPageTransition");
-        settings.SetDefaultAnimation("animationPageTransition");
         main.SetAnimationParametersProvider(parameters);
         settings.SetAnimationParametersProvider(parameters);
         settings.SetVisibility(xaml::attr::Visibility::collapsed);
@@ -58,22 +57,26 @@ namespace mobileclock::ui {
             return;
         }
         if (this->currentPage == Page::main) {
-            this->mainPageViewModel.HandleTouchDown(x, y, this->animations);
+            this->touchHandler.HandleTouchDown(this->mainPageViewModel.Root(), x, y, &this->animations);
             return;
         }
-        this->settingsPageViewModel.HandleTouchDown(x, y);
+        this->touchHandler.HandleTouchDown(this->settingsPageViewModel.Root(), x, y);
     }
 
     bool PageManager::HandleTouchUp(float x, float y) {
         if (this->isTransitioning) {
             return false;
         }
+        xaml::Element& root = this->currentPage == Page::main
+            ? this->mainPageViewModel.Root()
+            : this->settingsPageViewModel.Root();
+        xaml::Element* const element = this->touchHandler.HandleTouchUp(root, x, y, this->animations);
+        if (element == nullptr) {
+            return false;
+        }
         if (this->currentPage == Page::main) {
-            const MainPageViewModel::TouchAction action = this->mainPageViewModel.HandleTouchUp(
-                x,
-                y,
-                this->animations);
-            if (action == MainPageViewModel::TouchAction::navigateToSettings) {
+            const MainPageViewModel::TapAction action = this->mainPageViewModel.HandleTap(*element);
+            if (action == MainPageViewModel::TapAction::navigateToSettings) {
                 this->outgoingPage = Page::main;
                 this->currentPage = Page::settings;
                 this->mainPageViewModel.Root().SetVisibility(xaml::attr::Visibility::collapsed);
@@ -82,11 +85,11 @@ namespace mobileclock::ui {
                     || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
                 return true;
             }
-            return action == MainPageViewModel::TouchAction::contentChanged;
+            return action == MainPageViewModel::TapAction::contentChanged;
         }
 
-        if (this->settingsPageViewModel.HandleTouchUp(x, y, this->animations)
-            == SettingsPageViewModel::TouchAction::navigateToMain) {
+        if (this->settingsPageViewModel.HandleTap(*element)
+            == SettingsPageViewModel::TapAction::navigateToMain) {
             this->outgoingPage = Page::settings;
             this->currentPage = Page::main;
             this->settingsPageViewModel.Root().SetVisibility(xaml::attr::Visibility::collapsed);
@@ -99,11 +102,7 @@ namespace mobileclock::ui {
     }
 
     void PageManager::CancelTouch() {
-        if (this->currentPage == Page::main) {
-            this->mainPageViewModel.CancelTouch();
-            return;
-        }
-        this->settingsPageViewModel.CancelTouch();
+        this->touchHandler.CancelTouch();
     }
 
     void PageManager::UpdateClock() {

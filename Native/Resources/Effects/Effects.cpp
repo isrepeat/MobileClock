@@ -154,6 +154,7 @@ namespace mobileclock::resources::effects {
     StateRegistry CreateStates() {
         StateRegistry states;
         states.Register<ContainerAnimation>();
+        states.Register<PageTransitionAnimation>();
         states.Register<WaveAnimation>();
         states.Register<Glow>();
         return states;

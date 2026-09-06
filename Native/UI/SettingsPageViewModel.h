@@ -1,8 +1,9 @@
 #pragma once
 
+#include <XamlRuntime/XamlLayout.h>
+#include <XamlRuntime/Binding.h>
+
 #include "UI/CommandBindings.h"
-#include "XamlRuntime/Binding.h"
-#include "XamlRuntime/XamlLayout.h"
 
 #include <functional>
 #include <memory>
@@ -10,7 +11,6 @@
 #include <vector>
 
 namespace xaml {
-    class AnimationController;
     class IRenderBackend;
     class RendererRegistry;
 }
@@ -23,7 +23,7 @@ namespace mobileclock::ui {
             sound,
         };
 
-        enum class TouchAction {
+        enum class TapAction {
             none,
             navigateToMain,
         };
@@ -42,9 +42,7 @@ namespace mobileclock::ui {
 
         void BindCommand(std::string name, CommandBindings::Handler handler);
         void Initialize(xaml::Size availableSize);
-        void HandleTouchDown(float x, float y);
-        TouchAction HandleTouchUp(float x, float y, xaml::AnimationController& animations);
-        void CancelTouch();
+        TapAction HandleTap(xaml::Element& element);
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
@@ -56,6 +54,5 @@ namespace mobileclock::ui {
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
         CommandBindings commands;
-        xaml::Element* capturedElement = nullptr;
     };
 }
