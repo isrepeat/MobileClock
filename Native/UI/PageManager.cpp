@@ -1,15 +1,37 @@
-#include "UI/PageManager.h"
-
 #include <XamlRuntime/RenderEngine.h>
 
-#include <chrono>
+#include "Renderer/AnimationRenderers.h"
+#include "UI/PageTransition.h"
+#include "UI/PageManager.h"
 
 namespace mobileclock::ui {
+    //
+    // API
+    //
     void PageManager::Initialize(xaml::Size availableSize) {
+        this->animations = xaml::AnimationController{};
         this->currentPage = Page::main;
         this->isTransitioning = false;
         this->mainPageViewModel.Initialize(availableSize);
         this->settingsPageViewModel.Initialize(availableSize);
+        xaml::AnimationRegistry registry;
+        renderer::RegisterAnimations(registry);
+        const auto parameters = [this]() {
+            return xaml::AnimationParameters::Create(PageTransitionData{
+                this->outgoingPage == Page::main ? "main" : "settings",
+                this->currentPage == Page::main ? "main" : "settings",
+                this->currentPage == Page::settings ? NavigationDirection::forward : NavigationDirection::backward,
+            });
+        };
+        auto& main = this->mainPageViewModel.Root();
+        auto& settings = this->settingsPageViewModel.Root();
+        main.SetDefaultAnimation("animationPageTransition");
+        settings.SetDefaultAnimation("animationPageTransition");
+        main.SetAnimationParametersProvider(parameters);
+        settings.SetAnimationParametersProvider(parameters);
+        settings.SetVisibility(xaml::attr::Visibility::collapsed);
+        this->animations.Attach(main, registry);
+        this->animations.Attach(settings, registry);
     }
 
     void PageManager::SetCommandHandler(std::function<void(const std::string&)> handler) {
@@ -32,6 +54,9 @@ namespace mobileclock::ui {
     }
 
     void PageManager::HandleTouchDown(float x, float y) {
+        if (this->isTransitioning) {
+            return;
+        }
         if (this->currentPage == Page::main) {
             this->mainPageViewModel.HandleTouchDown(x, y, this->animations);
             return;
@@ -49,36 +74,12 @@ namespace mobileclock::ui {
                 y,
                 this->animations);
             if (action == MainPageViewModel::TouchAction::navigateToSettings) {
-                const float width = this->mainPageViewModel.Root().Bounds().width;
                 this->outgoingPage = Page::main;
                 this->currentPage = Page::settings;
-                this->animations.Animate(
-                    this->mainPageViewModel.Root(),
-                    xaml::AnimatedProperty::renderOffsetX,
-                    0.0f,
-                    -width,
-                    std::chrono::milliseconds(240));
-                this->animations.Animate(
-                    this->mainPageViewModel.Root(),
-                    xaml::AnimatedProperty::opacity,
-                    1.0f,
-                    0.0f,
-                    std::chrono::milliseconds(180));
-                this->animations.Animate(
-                    this->settingsPageViewModel.Root(),
-                    xaml::AnimatedProperty::renderOffsetX,
-                    width,
-                    0.0f,
-                    std::chrono::milliseconds(240));
-                this->animations.Animate(
-                    this->settingsPageViewModel.Root(),
-                    xaml::AnimatedProperty::opacity,
-                    0.0f,
-                    1.0f,
-                    std::chrono::milliseconds(180));
-                this->isTransitioning = true;
-                this->transitionEndsAt = std::chrono::steady_clock::now()
-                    + std::chrono::milliseconds(240);
+                this->mainPageViewModel.Root().SetVisibility(xaml::attr::Visibility::collapsed);
+                this->settingsPageViewModel.Root().SetVisibility(xaml::attr::Visibility::visible);
+                this->isTransitioning = xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
+                    || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
                 return true;
             }
             return action == MainPageViewModel::TouchAction::contentChanged;
@@ -86,36 +87,12 @@ namespace mobileclock::ui {
 
         if (this->settingsPageViewModel.HandleTouchUp(x, y, this->animations)
             == SettingsPageViewModel::TouchAction::navigateToMain) {
-            const float width = this->settingsPageViewModel.Root().Bounds().width;
             this->outgoingPage = Page::settings;
             this->currentPage = Page::main;
-            this->animations.Animate(
-                this->settingsPageViewModel.Root(),
-                xaml::AnimatedProperty::renderOffsetX,
-                0.0f,
-                width,
-                std::chrono::milliseconds(240));
-            this->animations.Animate(
-                this->settingsPageViewModel.Root(),
-                xaml::AnimatedProperty::opacity,
-                1.0f,
-                0.0f,
-                std::chrono::milliseconds(180));
-            this->animations.Animate(
-                this->mainPageViewModel.Root(),
-                xaml::AnimatedProperty::renderOffsetX,
-                -width,
-                0.0f,
-                std::chrono::milliseconds(240));
-            this->animations.Animate(
-                this->mainPageViewModel.Root(),
-                xaml::AnimatedProperty::opacity,
-                0.0f,
-                1.0f,
-                std::chrono::milliseconds(180));
-            this->isTransitioning = true;
-            this->transitionEndsAt = std::chrono::steady_clock::now()
-                + std::chrono::milliseconds(240);
+            this->settingsPageViewModel.Root().SetVisibility(xaml::attr::Visibility::collapsed);
+            this->mainPageViewModel.Root().SetVisibility(xaml::attr::Visibility::visible);
+            this->isTransitioning = xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
+                || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
             return true;
         }
         return false;
@@ -131,7 +108,9 @@ namespace mobileclock::ui {
 
     void PageManager::UpdateClock() {
         this->animations.Update();
-        if (this->isTransitioning && std::chrono::steady_clock::now() >= this->transitionEndsAt) {
+        if (this->isTransitioning
+            && !xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
+            && !xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root())) {
             this->isTransitioning = false;
         }
         this->mainPageViewModel.UpdateClock();

@@ -1,12 +1,11 @@
 #pragma once
 
-#include "UI/MainPageViewModel.h"
-#include "UI/SettingsPageViewModel.h"
-
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 
-#include <chrono>
+#include "UI/SettingsPageViewModel.h"
+#include "UI/MainPageViewModel.h"
+
 #include <functional>
 #include <string>
 
@@ -43,7 +42,6 @@ namespace mobileclock::ui {
         Page currentPage = Page::main;
         Page outgoingPage = Page::main;
         bool isTransitioning = false;
-        std::chrono::steady_clock::time_point transitionEndsAt{};
         xaml::AnimationController animations;
         MainPageViewModel mainPageViewModel;
         SettingsPageViewModel settingsPageViewModel;

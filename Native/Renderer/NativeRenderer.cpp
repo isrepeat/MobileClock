@@ -235,8 +235,6 @@ namespace mobileclock::renderer {
         const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Roboto-Regular.ttf");
         const std::vector<unsigned char> boldFontData = state.assetsManager->ReadBytes("Roboto-Bold.ttf");
         const std::vector<unsigned char> blackFontData = state.assetsManager->ReadBytes("Roboto-Black.ttf");
-        const std::vector<unsigned char> rippleVertexShader = state.assetsManager->ReadBytes("Shaders/Ripple.vert");
-        const std::vector<unsigned char> rippleFragmentShader = state.assetsManager->ReadBytes("Shaders/Ripple.frag");
         state.renderer = std::make_unique<es_renderer::OpenGlRenderer>(
             width,
             height,
@@ -246,7 +244,7 @@ namespace mobileclock::renderer {
             boldFontData.size(),
             blackFontData.data(),
             blackFontData.size(),
-            CreateShaderPrograms(rippleVertexShader, rippleFragmentShader),
+            CreateShaderPrograms(),
             [&assetsManager = *state.assetsManager](std::string_view source) {
                 return assetsManager.ReadBytes(source);
             });

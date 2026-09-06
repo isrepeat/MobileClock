@@ -113,14 +113,14 @@
                 horizontalAlignment="Stretch">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
-                    <RendererAnimation name="SoftPulse"
-                                       from="0"
-                                       to="1"
-                                       duration="1000"
-                                       easing="CubicOut"
-                                       intensity="0.95"
-                                       spread="1.5"
-                                       fadeExponent="1.6" />
+                    <Animation name="animationSoftPulse"
+                               from="0"
+                               to="1"
+                               duration="1000"
+                               easing="CubicOut"
+                               intensity="0.95"
+                               spread="1.5"
+                               fadeExponent="1.6" />
                     <FloatAnimation property="waveOpacity"
                                     from="0"
                                     to="1"
@@ -152,14 +152,14 @@
                 horizontalAlignment="Stretch">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
-                    <RendererAnimation name="SoftPulse"
-                                       from="0"
-                                       to="1"
-                                       duration="1000"
-                                       easing="CubicOut"
-                                       intensity="0.95"
-                                       spread="1.5"
-                                       fadeExponent="1.6" />
+                    <Animation name="animationSoftPulse"
+                               from="0"
+                               to="1"
+                               duration="1000"
+                               easing="CubicOut"
+                               intensity="0.95"
+                               spread="1.5"
+                               fadeExponent="1.6" />
                     <FloatAnimation property="waveOpacity"
                                     from="0"
                                     to="1"
