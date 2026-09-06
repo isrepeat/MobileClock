@@ -13,7 +13,7 @@ add_custom_command(OUTPUT "${generated}" "${CMAKE_CURRENT_BINARY_DIR}/PageTransi
     VERBATIM)
 add_executable(PageTransitionsTests main.cpp "${generated}")
 target_include_directories(PageTransitionsTests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_LIST_DIR}/../..")
-target_sources(PageTransitionsTests PRIVATE "../../Renderer/AnimationRenderers.cpp")
+target_sources(PageTransitionsTests PRIVATE "../../Renderer/AnimationRenderers.cpp" "../../Resources/XamlHost/Effects.cpp")
 target_link_libraries(PageTransitionsTests PRIVATE utility_helpers::xaml_runtime)
 target_compile_features(PageTransitionsTests PRIVATE cxx_std_17)
 enable_testing()
