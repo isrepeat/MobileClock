@@ -242,6 +242,68 @@ namespace _details {
             "a toggle without animation must keep following IsOn immediately");
     }
 
+    void ControlInteractivity() {
+        using namespace xaml;
+        Element button(ElementType::button);
+        button.SetWidth(100.0f);
+        button.SetHeight(40.0f);
+        layout(button, {100.0f, 40.0f});
+        Require(IsInteractive(button), "button without command is not interactive");
+        Require(HitTest(button, 20.0f, 20.0f) == &button, "button without command is not hit-testable");
+        Require(HandleTap(button), "button without command did not handle tap");
+
+        Element iconButton(ElementType::iconButton);
+        iconButton.SetWidth(100.0f);
+        iconButton.SetHeight(40.0f);
+        layout(iconButton, {100.0f, 40.0f});
+        Require(IsInteractive(iconButton), "icon button without command is not interactive");
+        Require(HitTest(iconButton, 20.0f, 20.0f) == &iconButton,
+            "icon button without command is not hit-testable");
+
+        Element toggle(ElementType::toggleSwitch);
+        toggle.SetWidth(100.0f);
+        toggle.SetHeight(40.0f);
+        layout(toggle, {100.0f, 40.0f});
+        Require(IsInteractive(toggle), "toggle without command is not interactive");
+        Require(HitTest(toggle, 20.0f, 20.0f) == &toggle, "toggle without command is not hit-testable");
+        Require(HandleTap(toggle) && toggle.IsOn(), "toggle without command did not change state");
+        toggle.SetIsEnabled(false);
+        Require(HitTest(toggle, 20.0f, 20.0f) == nullptr, "disabled toggle is hit-testable");
+
+        Element border(ElementType::border);
+        border.SetWidth(100.0f);
+        border.SetHeight(40.0f);
+        layout(border, {100.0f, 40.0f});
+        Require(!IsInteractive(border), "border without command is interactive");
+        Require(HitTest(border, 20.0f, 20.0f) == nullptr, "border without command is hit-testable");
+        Require(!HandleTap(border), "border without command handled tap");
+        border.SetCommand([]() {});
+        Require(IsInteractive(border), "border with command is not interactive");
+        Require(HitTest(border, 20.0f, 20.0f) == &border, "border with command is not hit-testable");
+    }
+
+    void DataContextInheritance() {
+        using namespace xaml;
+        int rootContext = 0;
+        int localContext = 0;
+        Element root(ElementType::stackPanel);
+        root.SetDataContext(&rootContext);
+        auto inherited = std::make_unique<Element>(ElementType::border);
+        Element* const inheritedElement = inherited.get();
+        root.AddChild(std::move(inherited));
+        Require(inheritedElement->DataContext() == &rootContext, "child did not inherit DataContext");
+
+        inheritedElement->SetDataContext(&localContext);
+        auto nested = std::make_unique<Element>(ElementType::textBlock);
+        Element* const nestedElement = nested.get();
+        inheritedElement->AddChild(std::move(nested));
+        Require(nestedElement->DataContext() == &localContext, "nested child did not inherit local DataContext");
+
+        root.SetDataContext(nullptr);
+        Require(inheritedElement->DataContext() == &localContext, "local DataContext was overwritten");
+        Require(nestedElement->DataContext() == &localContext, "local DataContext was not preserved");
+    }
+
     void Lifecycle() {
         using namespace xaml;
         AnimationController controller;
@@ -249,7 +311,7 @@ namespace _details {
         SetAnimation(root, "animationFade", "100");
         auto child = Child(ElementType::button, "animationFade");
         auto* button = child.get();
-        button->SetCommand("click");
+        button->SetCommand([]() {});
         SetAnimation(*button, "animationFade", "500");
         root.AddChild(std::move(child));
         auto hidden = Child(ElementType::button, "animationFade");
@@ -635,6 +697,8 @@ int main() {
     _details::PageTransitions();
     _details::PageTransitionOptions();
     _details::ToggleFirstAnimation();
+    _details::ControlInteractivity();
+    _details::DataContextInheritance();
     _details::Lifecycle();
     _details::TypedRegistration();
     _details::HostEffectsAreExplicit();

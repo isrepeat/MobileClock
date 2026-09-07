@@ -20,8 +20,31 @@ namespace mobileclock::ui::_details {
 }
 
 namespace mobileclock::ui {
-    MainPageViewModel::MainPageViewModel()
-        : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION) {
+    MainPageViewModel::MainPageViewModel(
+        IPageNavigator& navigator,
+        IApplicationActions& actions)
+        : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
+        , createAlarmCommand([&actions]() {
+            actions.CreateAlarm();
+        })
+        , navigateToSettingsCommand([&navigator]() {
+            navigator.Navigate(Page::settings);
+        })
+        , toggleAlarmCommand([&actions]() {
+            actions.ToggleAlarm();
+        })
+        , updateApplicationCommand([&actions]() {
+            actions.UpdateApplication();
+        })
+        , uploadScreenshotCommand([&actions]() {
+            actions.UploadScreenshot();
+        })
+        , toggleAlarmActionsMenuCommand([this]() {
+            this->SetIsAlarmActionsMenuVisible(!this->IsAlarmActionsMenuVisible());
+        }) {
+        for (Alarm& alarm : this->alarms) {
+            alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+        }
     }
 
     MainPageViewModel::Alarm::Alarm(std::string time, std::string repeat, bool isEnabled)
@@ -40,6 +63,14 @@ namespace mobileclock::ui {
 
     bool MainPageViewModel::Alarm::IsEnabled() const {
         return this->isEnabled;
+    }
+
+    xaml::Element::Command MainPageViewModel::Alarm::ToggleAlarmCommand() const {
+        return this->toggleAlarmCommand;
+    }
+
+    void MainPageViewModel::Alarm::SetToggleAlarmCommand(xaml::Element::Command value) {
+        this->toggleAlarmCommand = std::move(value);
     }
 
     //
@@ -69,8 +100,40 @@ namespace mobileclock::ui {
         return this->alarms;
     }
 
-    void MainPageViewModel::BindCommand(std::string name, CommandBindings::Handler handler) {
-        this->commands.Bind(std::move(name), std::move(handler));
+    bool MainPageViewModel::IsAlarmActionsMenuVisible() const {
+        return this->isAlarmActionsMenuVisible;
+    }
+
+    void MainPageViewModel::SetIsAlarmActionsMenuVisible(bool value) {
+        if (this->isAlarmActionsMenuVisible == value) {
+            return;
+        }
+        this->isAlarmActionsMenuVisible = value;
+        this->NotifyPropertyChanged(Property::isAlarmActionsMenuVisible);
+    }
+
+    xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {
+        return this->createAlarmCommand;
+    }
+
+    xaml::Element::Command MainPageViewModel::NavigateToSettingsCommand() const {
+        return this->navigateToSettingsCommand;
+    }
+
+    xaml::Element::Command MainPageViewModel::ToggleAlarmCommand() const {
+        return this->toggleAlarmCommand;
+    }
+
+    xaml::Element::Command MainPageViewModel::UpdateApplicationCommand() const {
+        return this->updateApplicationCommand;
+    }
+
+    xaml::Element::Command MainPageViewModel::UploadScreenshotCommand() const {
+        return this->uploadScreenshotCommand;
+    }
+
+    xaml::Element::Command MainPageViewModel::ToggleAlarmActionsMenuCommand() const {
+        return this->toggleAlarmActionsMenuCommand;
     }
 
     void MainPageViewModel::SetStatus(std::string value) {
@@ -88,13 +151,9 @@ namespace mobileclock::ui {
         xaml::layout(*this->page, availableSize);
     }
 
-    MainPageViewModel::TapAction MainPageViewModel::HandleTap(xaml::Element& element) {
+    void MainPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
-        if (element.Command() == "navigateToSettings") {
-            return TapAction::navigateToSettings;
-        }
-        this->commands.Execute(element.Command());
-        return TapAction::contentChanged;
+        element.ExecuteCommand();
     }
 
     void MainPageViewModel::UpdateClock() {

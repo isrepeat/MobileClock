@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -24,6 +25,8 @@ internal static class Program {
         sessionType = assembly.GetType("XamlPreviewer.PreviewSession", true)!;
         rendererType = assembly.GetType("XamlPreviewer.PreviewRenderer", true)!;
         resources = Path.Combine(root, "Native/Resources");
+        CheckPreviewDirectives();
+        CheckScenarioInteractions(assembly);
         CheckConfigurableLists(assembly);
         Assembly.LoadFrom(Path.Combine(output, "ICSharpCode.AvalonEdit.dll"));
         CheckRefreshDuringSlowNavigation(assembly);
@@ -71,6 +74,12 @@ internal static class Program {
         var pixels = Pixels(translucent);
         Require(pixels[0] >= 126 && pixels[0] <= 129 && pixels[3] >= 126 && pixels[3] <= 129,
             "Expected premultiplied RGB and alpha 0.5, not alpha squared");
+
+        using var commandBinding = CreateSession(false, """
+            <Page xmlns="urn:mobileclock:xaml">
+                <Button command="{Binding CreateAlarmCommand}"/>
+            </Page>
+            """);
 
         using var conditional = CreateSession(true, """
             <Page xmlns="urn:mobileclock:xaml" background="#FFFFFF">
@@ -125,6 +134,57 @@ internal static class Program {
         using var data = JsonDocument.Parse("{}");
         var nativeRoot = rendererType.GetMethod("CreateRoot")!.Invoke(null, [markup, data.RootElement]);
         return (IDisposable)Activator.CreateInstance(sessionType, [nativeRoot, resources, 64, 16, hidden])!;
+    }
+
+    private static void CheckPreviewDirectives() {
+        var getScenarioPath = rendererType.GetMethod("GetPreviewScenarioPath")!;
+        const string markup = """
+            <?mobileclock-preview width="400" height="300"?>
+            <?mobileclock-preview-scenario path="Scenarios/MainPage.json"?>
+            <Page xmlns="urn:mobileclock:xaml"/>
+            """;
+        Require((string?)getScenarioPath.Invoke(null, [markup]) == "Scenarios/MainPage.json",
+            "Page-specific scenario directive was not parsed");
+        Require(getScenarioPath.Invoke(null, ["<Page xmlns=\"urn:mobileclock:xaml\"/>"]) is null,
+            "Missing page-specific scenario directive must use global scenarios");
+
+        bool rejected = false;
+        try {
+            getScenarioPath.Invoke(null, ["<?mobileclock-preview-scenario?><Page xmlns=\"urn:mobileclock:xaml\"/>"]);
+        }
+        catch (TargetInvocationException error) when (error.InnerException is InvalidDataException) {
+            rejected = true;
+        }
+        Require(rejected, "Page-specific scenario directive without path was accepted");
+    }
+
+    private static void CheckScenarioInteractions(Assembly assembly) {
+        var type = assembly.GetType("XamlPreviewer.ScenarioInteraction", true)!;
+        var handleTap = type.GetMethod("HandleTap")!;
+        var getTap = type.GetMethod("GetTap")!;
+        var scenario = JsonNode.Parse("""
+            {
+              "IsEnabled": false,
+              "Status": { "Text": "Idle" },
+              "$interactions": {
+                "enableButton": { "tap": { "type": "set", "path": "IsEnabled", "value": true } },
+                "toggleButton": { "tap": { "type": "toggle", "path": "IsEnabled" } },
+                "statusButton": { "tap": { "type": "set", "path": "Status.Text", "value": "Ready" } },
+                "settingsButton": { "tap": { "type": "navigate", "target": "SettingsPage" } }
+              }
+            }
+            """)!.AsObject();
+        Require((bool)handleTap.Invoke(null, [scenario, "enableButton"])!, "Scenario set interaction was not handled");
+        Require(scenario["IsEnabled"]!.GetValue<bool>(), "Scenario set interaction did not update state");
+        Require((bool)handleTap.Invoke(null, [scenario, "toggleButton"])!, "Scenario toggle interaction was not handled");
+        Require(!scenario["IsEnabled"]!.GetValue<bool>(), "Scenario toggle interaction did not update state");
+        Require((bool)handleTap.Invoke(null, [scenario, "statusButton"])!, "Nested scenario set interaction was not handled");
+        Require(scenario["Status"]!["Text"]!.GetValue<string>() == "Ready", "Nested scenario state did not update");
+        var navigation = (JsonObject)getTap.Invoke(null, [scenario, "settingsButton"])!;
+        Require(navigation["type"]!.GetValue<string>() == "navigate"
+            && navigation["target"]!.GetValue<string>() == "SettingsPage",
+            "Scenario navigation interaction was not read");
+        Require(!(bool)handleTap.Invoke(null, [scenario, "missingButton"])!, "Missing scenario interaction was handled");
     }
 
     private static void CheckConfigurableLists(Assembly assembly) {

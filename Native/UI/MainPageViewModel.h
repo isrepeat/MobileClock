@@ -3,7 +3,8 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 
-#include "UI/CommandBindings.h"
+#include "UI/ApplicationActions.h"
+#include "UI/Navigation.h"
 
 #include <functional>
 #include <memory>
@@ -25,28 +26,27 @@ namespace mobileclock::ui {
             const std::string& Time() const;
             const std::string& Repeat() const;
             bool IsEnabled() const;
+            xaml::Element::Command ToggleAlarmCommand() const;
+            void SetToggleAlarmCommand(xaml::Element::Command value);
 
         private:
             std::string time;
             std::string repeat;
             bool isEnabled = false;
+            xaml::Element::Command toggleAlarmCommand;
         };
 
         enum class Property {
             clockText,
             packageVersion,
             status,
-        };
-
-        enum class TapAction {
-            contentChanged,
-            navigateToSettings,
+            isAlarmActionsMenuVisible,
         };
 
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        MainPageViewModel();
+        MainPageViewModel(IPageNavigator& navigator, IApplicationActions& actions);
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
@@ -57,11 +57,18 @@ namespace mobileclock::ui {
         const std::string& PackageVersion() const;
         const std::string& Status() const;
         const std::vector<Alarm>& Alarms() const;
+        bool IsAlarmActionsMenuVisible() const;
+        void SetIsAlarmActionsMenuVisible(bool value);
 
-        void BindCommand(std::string name, CommandBindings::Handler handler);
+        xaml::Element::Command CreateAlarmCommand() const;
+        xaml::Element::Command NavigateToSettingsCommand() const;
+        xaml::Element::Command ToggleAlarmCommand() const;
+        xaml::Element::Command UpdateApplicationCommand() const;
+        xaml::Element::Command UploadScreenshotCommand() const;
+        xaml::Element::Command ToggleAlarmActionsMenuCommand() const;
         void SetStatus(std::string value);
         void Initialize(xaml::Size availableSize);
-        TapAction HandleTap(xaml::Element& element);
+        void HandleTap(xaml::Element& element);
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
@@ -74,7 +81,8 @@ namespace mobileclock::ui {
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
-        const std::vector<Alarm> alarms{
+        bool isAlarmActionsMenuVisible = false;
+        std::vector<Alarm> alarms{
             {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
             {"06:18", "Сб, Вс", false},
             {"06:30", "Ежедневно", true},
@@ -82,6 +90,11 @@ namespace mobileclock::ui {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
-        CommandBindings commands;
+        xaml::Element::Command createAlarmCommand;
+        xaml::Element::Command navigateToSettingsCommand;
+        xaml::Element::Command toggleAlarmCommand;
+        xaml::Element::Command updateApplicationCommand;
+        xaml::Element::Command uploadScreenshotCommand;
+        xaml::Element::Command toggleAlarmActionsMenuCommand;
     };
 }

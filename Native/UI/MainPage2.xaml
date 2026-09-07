@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?mobileclock-preview-scenario path="Scenarios/MainPage2.json"?>
+<Page id="root"
+      padding="16 30 18 18"
+      background="#10110D"
+      borderThickness="0"
+      xmlns="urn:mobileclock:xaml"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid id="alarmTimelinePage"
+          verticalAlignment="Stretch"
+          horizontalAlignment="Stretch">
+        <Border background="#171813"
+                cornerRadius="8"
+                borderBrush="#24251D"
+                borderThickness="1"
+                verticalAlignment="Stretch"
+                horizontalAlignment="Stretch"/>
+        <Grid verticalAlignment="Stretch"
+              horizontalAlignment="Stretch"
+              margin="40 40 36 70">
+            <rowDefinitions>
+                <rowDefinition height="7%"/>
+                <rowDefinition height="9%"/>
+                <rowDefinition height="*"/>
+                <rowDefinition height="20%"/>
+            </rowDefinitions>
+            <Grid id="timelineToolbar"
+                  gridRow="0"
+                  verticalAlignment="Top"
+                  horizontalAlignment="Stretch"
+                  margin="10 20 14 0">
+                <columnDefinitions>
+                    <columnDefinition width="Auto"/>
+                    <columnDefinition width="*"/>
+                    <columnDefinition width="Auto"/>
+                </columnDefinitions>
+                <StackPanel id="timelineMenuIcon"
+                            verticalAlignment="Center"
+                            horizontalAlignment="Left"
+                            orientation="Vertical">
+                    <Border width="40"
+                            height="5"
+                            margin="0 0 0 9"
+                            background="#8A8567"
+                            cornerRadius="2"/>
+                    <Border width="40"
+                            height="5"
+                            margin="0 0 0 9"
+                            background="#8A8567"
+                            cornerRadius="2"/>
+                    <Border width="40"
+                            height="5"
+                            background="#8A8567"
+                            cornerRadius="2"/>
+                </StackPanel>
+                <StackPanel id="timelineMoreIcon"
+                            gridColumn="2"
+                            verticalAlignment="Center"
+                            horizontalAlignment="Right"
+                            orientation="Vertical">
+                    <Border width="8"
+                            height="8"
+                            margin="0 0 0 8"
+                            background="#8A8567"
+                            cornerRadius="4"/>
+                    <Border width="8"
+                            height="8"
+                            margin="0 0 0 8"
+                            background="#8A8567"
+                            cornerRadius="4"/>
+                    <Border width="8"
+                            height="8"
+                            background="#8A8567"
+                            cornerRadius="4"/>
+                </StackPanel>
+            </Grid>
+            <StackPanel id="timelineTabs"
+                        verticalAlignment="Top"
+                        horizontalAlignment="Center"
+                        orientation="Horizontal"
+                        gridRow="1"
+                        margin="0 0 8 0">
+                <Border width="74"
+                        height="6"
+                        margin="0 60 0 0"
+                        background="#DDB54F"
+                        cornerRadius="3"/>
+                <Border width="74"
+                        height="6"
+                        margin="0 60 0 0"
+                        background="#494A37"
+                        cornerRadius="3"/>
+                <Border width="74"
+                        height="6"
+                        background="#494A37"
+                        cornerRadius="3"
+                        margin="0"/>
+            </StackPanel>
+            <Grid id="alarmTimeline"
+                  gridRow="2"
+                  margin="0 0 12 0"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch">
+                <Border width="4"
+                        margin="150 0 0 0"
+                        verticalAlignment="Stretch"
+                        horizontalAlignment="Left"
+                        background="#DDB54F"/>
+                <ListView id="alarms"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch"
+                          itemsSource="{Binding Alarms}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid height="200"
+                                      margin="0 0 16 0"
+                                      verticalAlignment="Stretch"
+                                      horizontalAlignment="Stretch">
+                                <columnDefinitions>
+                                    <columnDefinition width="112"/>
+                                    <columnDefinition width="80"/>
+                                    <columnDefinition width="*"/>
+                                </columnDefinitions>
+                                <TextBlock gridColumn="0"
+                                           verticalAlignment="Center"
+                                           horizontalAlignment="Right"
+                                           text="{Binding Time}"
+                                           fontSize="48"
+                                           foreground="#F1E8D2"/>
+                                <Border gridColumn="1"
+                                        width="36"
+                                        height="36"
+                                        verticalAlignment="Center"
+                                        horizontalAlignment="Center"
+                                        background="#171813"
+                                        borderBrush="#DDB54F"
+                                        borderThickness="8"
+                                        cornerRadius="18"/>
+                                <Grid gridColumn="2"
+                                      margin="0 0 18 18"
+                                      verticalAlignment="Stretch"
+                                      horizontalAlignment="Stretch">
+                                    <Border background="#22231B"
+                                            borderBrush="#292A20"
+                                            borderThickness="1"
+                                            cornerRadius="22"
+                                            verticalAlignment="Stretch"
+                                            horizontalAlignment="Stretch"/>
+                                    <Grid margin="30 28 24 24"
+                                          verticalAlignment="Stretch"
+                                          horizontalAlignment="Stretch">
+                                        <columnDefinitions>
+                                            <columnDefinition width="*"/>
+                                            <columnDefinition width="84"/>
+                                        </columnDefinitions>
+                                        <StackPanel verticalAlignment="Center"
+                                                    horizontalAlignment="Left"
+                                                    orientation="Vertical">
+                                            <Border width="134"
+                                                    height="14"
+                                                    margin="0 0 0 30"
+                                                    background="#5F5D43"
+                                                    cornerRadius="7"/>
+                                            <Border width="78"
+                                                    height="12"
+                                                    horizontalAlignment="Left"
+                                                    background="#4D4C36"
+                                                    cornerRadius="6"/>
+                                        </StackPanel>
+                                        <ToggleSwitch gridColumn="1"
+                                                      width="84"
+                                                      height="48"
+                                                      verticalAlignment="Center"
+                                                      horizontalAlignment="Right"
+                                                      background="#E5BD59"
+                                                      borderBrush="#494938"
+                                                      foreground="#F1E8D2"
+                                                      tint="#A5A38C"
+                                                      command="{Binding ToggleAlarmCommand}"
+                                                      isOn="{Binding IsEnabled}">
+                                            <ToggleSwitch.Storyboards>
+                                                <Storyboard trigger="Toggled">
+                                                    <FloatAnimation property="toggleProgress"
+                                                                    from="Current"
+                                                                    to="ToggleState"
+                                                                    duration="220"
+                                                                    easing="CubicOut"/>
+                                                </Storyboard>
+                                            </ToggleSwitch.Storyboards>
+                                        </ToggleSwitch>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+            <Grid gridRow="3"
+                  id="timelineFooter"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch">
+                <columnDefinitions>
+                    <columnDefinition width="112"/>
+                    <columnDefinition width="80"/>
+                    <columnDefinition width="*"/>
+                </columnDefinitions>
+                <StackPanel verticalAlignment="Top"
+                            horizontalAlignment="Center"
+                            id="timelineTail"
+                            gridColumn="1"
+                            orientation="Vertical">
+                    <Border background="#797047"
+                            height="8"
+                            width="4"
+                            margin="0 0 8 0"
+                            cornerRadius="2"/>
+                    <Border background="#625E3D"
+                            height="8"
+                            width="4"
+                            margin="0 0 8 0"
+                            cornerRadius="2"/>
+                    <Border background="#514F35"
+                            height="8"
+                            width="4"
+                            margin="0 0 8 0"
+                            cornerRadius="2"/>
+                    <Border background="#43452F"
+                            height="8"
+                            width="4"
+                            margin="0 0 8 0"
+                            cornerRadius="2"/>
+                    <Border cornerRadius="16"
+                            width="32"
+                            height="32"
+                            borderThickness="5"
+                            background="#171813"
+                            margin="0 0 16 0"
+                            id="timelineEnd"
+                            borderBrush="#494B33"/>
+                </StackPanel>
+                <Grid id="addAlarmContainer"
+                      width="124"
+                      height="124"
+                      margin="0 0 72 8"
+                      verticalAlignment="Bottom"
+                      horizontalAlignment="Right"
+                      gridColumn="2">
+                    <Border id="addAlarmButton"
+                            command="{Binding CreateAlarmCommand}"
+                            background="#E0B64D"
+                            cornerRadius="62"
+                            verticalAlignment="Stretch"
+                            horizontalAlignment="Stretch"/>
+                    <SvgImage id="addAlarmIcon"
+                              width="52"
+                              height="52"
+                              verticalAlignment="Center"
+                              horizontalAlignment="Center"
+                              source="Icons/add.svg"
+                              tint="#171813"/>
+                </Grid>
+            </Grid>
+            <Border id="alarmActionsMenu"
+                    command="{Binding ToggleAlarmActionsMenuCommand}"
+                    gridRow="3"
+                    height="56"
+                    verticalAlignment="Bottom"
+                    horizontalAlignment="Stretch"
+                    background="#25261E"
+                    borderBrush="#464632"
+                    borderThickness="1 1 0 1"
+                    cornerRadius="18">
+                <Border width="72"
+                        height="6"
+                        verticalAlignment="Center"
+                        horizontalAlignment="Center"
+                        background="#A6A082"
+                        cornerRadius="3"/>
+            </Border>
+            <Border id="alarmActionsPanel"
+                    command="{Binding ToggleAlarmActionsMenuCommand}"
+                    gridRow="3"
+                    height="300"
+                    visibility="{Binding IsAlarmActionsMenuVisible}"
+                    verticalAlignment="Bottom"
+                    horizontalAlignment="Stretch"
+                    background="#25261E"
+                    borderBrush="#464632"
+                    borderThickness="1 1 0 1"
+                    cornerRadius="18">
+                <Border.Storyboards>
+                    <Storyboard trigger="Show">
+                        <FloatAnimation property="height"
+                                        from="56"
+                                        to="300"
+                                        duration="180"
+                                        easing="CubicOut"/>
+                    </Storyboard>
+                    <Storyboard trigger="Hide">
+                        <FloatAnimation property="height"
+                                        from="300"
+                                        to="56"
+                                        duration="140"
+                                        easing="CubicOut"/>
+                    </Storyboard>
+                </Border.Storyboards>
+                <StackPanel orientation="Vertical">
+                    <StackPanel.Storyboards>
+                        <Storyboard trigger="ParentShow">
+                            <FloatAnimation property="opacity"
+                                            from="0"
+                                            to="1"
+                                            duration="130"
+                                            easing="CubicOut"/>
+                        </Storyboard>
+                        <Storyboard trigger="ParentHide">
+                            <FloatAnimation property="opacity"
+                                            from="1"
+                                            to="0"
+                                            duration="100"
+                                            easing="CubicOut"/>
+                        </Storyboard>
+                    </StackPanel.Storyboards>
+                    <Border height="56"
+                            verticalAlignment="Top"
+                            background="#25261E"
+                            cornerRadius="18">
+                        <Border width="72"
+                                height="6"
+                                verticalAlignment="Center"
+                                horizontalAlignment="Center"
+                                background="#A6A082"
+                                cornerRadius="3"/>
+                    </Border>
+                <StackPanel margin="28 20 28 20"
+                            orientation="Vertical">
+                    <Border height="12"
+                            width="180"
+                            horizontalAlignment="Left"
+                            background="#A6A082"
+                            cornerRadius="6"/>
+                    <Border height="12"
+                            width="120"
+                            margin="0 20 0 0"
+                            horizontalAlignment="Left"
+                            background="#626047"
+                            cornerRadius="6"/>
+                    <Border height="12"
+                            width="220"
+                            horizontalAlignment="Left"
+                            background="#626047"
+                            cornerRadius="6"/>
+                </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
