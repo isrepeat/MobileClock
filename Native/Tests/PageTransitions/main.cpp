@@ -242,8 +242,66 @@ namespace _details {
             "a toggle without animation must keep following IsOn immediately");
     }
 
+    void VisualStateTransitions() {
+        using namespace xaml;
+        Element host(ElementType::grid);
+        auto panel = std::make_unique<Element>(ElementType::border);
+        panel->SetId("actionsPanel");
+        panel->SetHeight(56.0f);
+        host.AddChild(std::move(panel));
+        host.SetVisualStateGroups({{"PanelStates", "", {
+            {"Collapsed", {{"actionsPanel", {AnimatedProperty::height, 0.0f, 56.0f,
+                true, false, std::chrono::milliseconds(180), Easing::linear}}}},
+            {"Expanded", {{"actionsPanel", {AnimatedProperty::height, 0.0f, 340.0f,
+                true, false, std::chrono::milliseconds(220), Easing::linear}}}},
+        }}});
+        AnimationController controller;
+        controller.Attach(host, mobileclock::resources::effects::CreateAnimations());
+        Require(VisualStateManager::GoToState(host, "PanelStates", "Expanded"),
+            "visual state was not found");
+        AnimationController::Update(host, std::chrono::milliseconds(110));
+        Require(Near(host.Children().front()->Height(), 198.0f), "visual state did not animate height");
+        AnimationController::Update(host, std::chrono::milliseconds(110));
+        Require(Near(host.Children().front()->Height(), 340.0f), "expanded state did not finish");
+        Require(VisualStateManager::GoToState(host, "PanelStates", "Collapsed", false),
+            "collapsed visual state was not found");
+        Require(Near(host.Children().front()->Height(), 56.0f), "disabled transitions did not apply state");
+    }
+
     void ControlInteractivity() {
         using namespace xaml;
+        Element page(ElementType::page);
+        auto adaptiveBorder = std::make_unique<Element>(ElementType::border);
+        Element* const adaptiveBorderPointer = adaptiveBorder.get();
+        page.AddChild(std::move(adaptiveBorder));
+        layout(page, {300.0f, 200.0f});
+        Require(Near(adaptiveBorderPointer->Bounds().width, 300.0f),
+            "Border without width must stretch to its parent width");
+
+        Element fixedPage(ElementType::page);
+        auto fixedBorder = std::make_unique<Element>(ElementType::border);
+        fixedBorder->SetWidth(50.0f);
+        Element* const fixedBorderPointer = fixedBorder.get();
+        fixedPage.AddChild(std::move(fixedBorder));
+        layout(fixedPage, {300.0f, 200.0f});
+        Require(Near(fixedBorderPointer->Bounds().width, 50.0f),
+            "explicit Border width must override stretching");
+
+        Element hostBorder(ElementType::border);
+        hostBorder.SetWidth(200.0f);
+        hostBorder.SetHeight(100.0f);
+        auto centeredBorder = std::make_unique<Element>(ElementType::border);
+        centeredBorder->SetWidth(80.0f);
+        centeredBorder->SetHeight(20.0f);
+        centeredBorder->SetHorizontalAlignment(attr::Alignment::center);
+        centeredBorder->SetVerticalAlignment(attr::Alignment::center);
+        Element* const centeredBorderPointer = centeredBorder.get();
+        hostBorder.AddChild(std::move(centeredBorder));
+        layout(hostBorder, {200.0f, 100.0f});
+        Require(Near(centeredBorderPointer->Bounds().x, 60.0f)
+            && Near(centeredBorderPointer->Bounds().y, 40.0f),
+            "Border must honor the alignment of its only child");
+
         Element button(ElementType::button);
         button.SetWidth(100.0f);
         button.SetHeight(40.0f);
@@ -697,6 +755,7 @@ int main() {
     _details::PageTransitions();
     _details::PageTransitionOptions();
     _details::ToggleFirstAnimation();
+    _details::VisualStateTransitions();
     _details::ControlInteractivity();
     _details::DataContextInheritance();
     _details::Lifecycle();

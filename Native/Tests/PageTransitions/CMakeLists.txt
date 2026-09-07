@@ -17,7 +17,13 @@ add_custom_command(OUTPUT "${navigation_generated}" "${CMAKE_CURRENT_BINARY_DIR}
     COMMAND XamlCompiler "${navigation_example}" "${navigation_generated}"
     DEPENDS XamlCompiler "${navigation_example}"
     VERBATIM)
-add_executable(PageTransitionsTests main.cpp "${generated}" "${navigation_generated}")
+set(panel_example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Examples/Pages/PanelHeightAnimation.xaml")
+set(panel_generated "${CMAKE_CURRENT_BINARY_DIR}/PanelHeightAnimation.xaml.cpp")
+add_custom_command(OUTPUT "${panel_generated}" "${CMAKE_CURRENT_BINARY_DIR}/PanelHeightAnimation.xaml.h"
+    COMMAND XamlCompiler "${panel_example}" "${panel_generated}"
+    DEPENDS XamlCompiler "${panel_example}"
+    VERBATIM)
+add_executable(PageTransitionsTests main.cpp "${generated}" "${navigation_generated}" "${panel_generated}")
 target_include_directories(PageTransitionsTests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_LIST_DIR}/../..")
 target_sources(PageTransitionsTests PRIVATE "../../Renderer/AnimationRenderers.cpp" "../../Resources/Effects/Effects.cpp")
 target_link_libraries(PageTransitionsTests PRIVATE utility_helpers::xaml_runtime)
