@@ -5,6 +5,28 @@
 #include "UI/PageManager.h"
 
 namespace mobileclock::ui {
+    PageManager::PageManager(IApplicationActions& actions)
+        : mainPageViewModel(*this, actions)
+        , settingsPageViewModel(*this, actions) {
+    }
+
+    //
+    // IPageNavigator
+    //
+    void PageManager::Navigate(Page page) {
+        if (this->currentPage == page || this->isTransitioning) {
+            return;
+        }
+        this->outgoingPage = this->currentPage;
+        this->currentPage = page;
+        this->mainPageViewModel.Root().SetVisibility(page == Page::main
+            ? xaml::attr::Visibility::visible : xaml::attr::Visibility::collapsed);
+        this->settingsPageViewModel.Root().SetVisibility(page == Page::settings
+            ? xaml::attr::Visibility::visible : xaml::attr::Visibility::collapsed);
+        this->isTransitioning = xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
+            || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
+    }
+
     //
     // API
     //
@@ -31,21 +53,6 @@ namespace mobileclock::ui {
         settings.SetVisibility(xaml::attr::Visibility::collapsed);
         this->animations.Attach(main, registry);
         this->animations.Attach(settings, registry);
-    }
-
-    void PageManager::SetCommandHandler(std::function<void(const std::string&)> handler) {
-        this->commandHandler = std::move(handler);
-        const auto dispatch = [this](const std::string& command) {
-            if (this->commandHandler) {
-                this->commandHandler(command);
-            }
-        };
-        this->mainPageViewModel.BindCommand("createAlarm", [dispatch]() { dispatch("createAlarm"); });
-        this->mainPageViewModel.BindCommand("toggleAlarm", [dispatch]() { dispatch("toggleAlarm"); });
-        this->mainPageViewModel.BindCommand("updateApplication", [dispatch]() { dispatch("updateApplication"); });
-        this->mainPageViewModel.BindCommand("uploadScreenshot", [dispatch]() { dispatch("uploadScreenshot"); });
-        this->settingsPageViewModel.BindCommand("shareLogs", [dispatch]() { dispatch("shareLogs"); });
-        this->settingsPageViewModel.BindCommand("exportLogs", [dispatch]() { dispatch("exportLogs"); });
     }
 
     void PageManager::SetStatus(std::string value) {
@@ -75,30 +82,12 @@ namespace mobileclock::ui {
             return false;
         }
         if (this->currentPage == Page::main) {
-            const MainPageViewModel::TapAction action = this->mainPageViewModel.HandleTap(*element);
-            if (action == MainPageViewModel::TapAction::navigateToSettings) {
-                this->outgoingPage = Page::main;
-                this->currentPage = Page::settings;
-                this->mainPageViewModel.Root().SetVisibility(xaml::attr::Visibility::collapsed);
-                this->settingsPageViewModel.Root().SetVisibility(xaml::attr::Visibility::visible);
-                this->isTransitioning = xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
-                    || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
-                return true;
-            }
-            return action == MainPageViewModel::TapAction::contentChanged;
-        }
-
-        if (this->settingsPageViewModel.HandleTap(*element)
-            == SettingsPageViewModel::TapAction::navigateToMain) {
-            this->outgoingPage = Page::settings;
-            this->currentPage = Page::main;
-            this->settingsPageViewModel.Root().SetVisibility(xaml::attr::Visibility::collapsed);
-            this->mainPageViewModel.Root().SetVisibility(xaml::attr::Visibility::visible);
-            this->isTransitioning = xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
-                || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
+            this->mainPageViewModel.HandleTap(*element);
             return true;
         }
-        return false;
+
+        this->settingsPageViewModel.HandleTap(*element);
+        return true;
     }
 
     void PageManager::CancelTouch() {

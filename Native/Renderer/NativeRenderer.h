@@ -1,12 +1,13 @@
 #pragma once
 
 #include <jni.h>
+
 #include <memory>
 
 namespace mobileclock::renderer {
     // Владелец EGL/OpenGL ES-ресурсов и нативной UI-модели одного Surface.
     // Его жизненным циклом управляет NativeApplication, а не JNI-код.
-    class NativeRenderer {
+    class NativeRenderer final {
     public:
         // Публичен только для реализации в .cpp: скрывает EGL и GL-типы из .h.
         struct State;

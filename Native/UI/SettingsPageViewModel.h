@@ -3,7 +3,8 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 
-#include "UI/CommandBindings.h"
+#include "UI/ApplicationActions.h"
+#include "UI/Navigation.h"
 
 #include <functional>
 #include <memory>
@@ -23,15 +24,10 @@ namespace mobileclock::ui {
             sound,
         };
 
-        enum class TapAction {
-            none,
-            navigateToMain,
-        };
-
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        SettingsPageViewModel() = default;
+        SettingsPageViewModel(IPageNavigator& navigator, IApplicationActions& actions);
         ~SettingsPageViewModel() = default;
 
         SettingsPageViewModel(const SettingsPageViewModel&) = delete;
@@ -40,9 +36,11 @@ namespace mobileclock::ui {
         const std::string& Theme() const;
         const std::string& Sound() const;
 
-        void BindCommand(std::string name, CommandBindings::Handler handler);
+        xaml::Element::Command NavigateToMainCommand() const;
+        xaml::Element::Command ShareLogsCommand() const;
+        xaml::Element::Command ExportLogsCommand() const;
         void Initialize(xaml::Size availableSize);
-        TapAction HandleTap(xaml::Element& element);
+        void HandleTap(xaml::Element& element);
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
@@ -53,6 +51,8 @@ namespace mobileclock::ui {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
-        CommandBindings commands;
+        xaml::Element::Command navigateToMainCommand;
+        xaml::Element::Command shareLogsCommand;
+        xaml::Element::Command exportLogsCommand;
     };
 }

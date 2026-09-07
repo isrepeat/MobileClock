@@ -6,6 +6,20 @@
 #include <utility>
 
 namespace mobileclock::ui {
+    SettingsPageViewModel::SettingsPageViewModel(
+        IPageNavigator& navigator,
+        IApplicationActions& actions)
+        : navigateToMainCommand([&navigator]() {
+            navigator.Navigate(Page::main);
+        })
+        , shareLogsCommand([&actions]() {
+            actions.ShareLogs();
+        })
+        , exportLogsCommand([&actions]() {
+            actions.ExportLogs();
+        }) {
+    }
+
     //
     // API
     //
@@ -17,8 +31,16 @@ namespace mobileclock::ui {
         return this->sound;
     }
 
-    void SettingsPageViewModel::BindCommand(std::string name, CommandBindings::Handler handler) {
-        this->commands.Bind(std::move(name), std::move(handler));
+    xaml::Element::Command SettingsPageViewModel::NavigateToMainCommand() const {
+        return this->navigateToMainCommand;
+    }
+
+    xaml::Element::Command SettingsPageViewModel::ShareLogsCommand() const {
+        return this->shareLogsCommand;
+    }
+
+    xaml::Element::Command SettingsPageViewModel::ExportLogsCommand() const {
+        return this->exportLogsCommand;
     }
 
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
@@ -27,13 +49,9 @@ namespace mobileclock::ui {
         xaml::layout(*this->page, availableSize);
     }
 
-    SettingsPageViewModel::TapAction SettingsPageViewModel::HandleTap(xaml::Element& element) {
-        if (element.Command() == "navigateToMain") {
-            return TapAction::navigateToMain;
-        }
+    void SettingsPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
-        this->commands.Execute(element.Command());
-        return TapAction::none;
+        element.ExecuteCommand();
     }
 
     void SettingsPageViewModel::Render(

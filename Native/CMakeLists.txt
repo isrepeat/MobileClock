@@ -131,8 +131,9 @@ add_library(mobileclock SHARED
     Resources/Effects/Effects.cpp
     Resources/Effects/Shaders.cpp
     Renderer/AssetsManager.cpp
+    Renderer/AndroidApplicationActions.cpp
+    Renderer/AndroidCommandDispatcher.cpp
     Renderer/NativeRenderer.cpp
-    UI/CommandBindings.cpp
     UI/MainPageViewModel.cpp
     UI/PageManager.cpp
     UI/SettingsPageViewModel.cpp
