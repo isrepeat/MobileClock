@@ -16,7 +16,7 @@
         <Button renderer="rendererWave"
                 id="holdButton"
                 text="Удерживать"
-                command="hold"
+                command="{Binding HoldCommand}"
                 background="#303128"
                 activeBackground="#E6CA69"
                 borderBrush="#47483D"
