@@ -1,4 +1,5 @@
 #include <Helpers.Logging/Logging.h>
+#include <XamlRuntime/Animation.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #include "../!Generated/Build/BuildVersion.h"
@@ -16,6 +17,18 @@ namespace mobileclock::ui::_details {
 #else
         return localtime_r(&value, &result) != nullptr;
 #endif
+    }
+
+    xaml::Element* FindElement(xaml::Element& element, std::string_view id) {
+        if (element.Id() == id) {
+            return &element;
+        }
+        for (const auto& child : element.Children()) {
+            if (xaml::Element* const found = FindElement(*child, id)) {
+                return found;
+            }
+        }
+        return nullptr;
     }
 }
 
@@ -110,6 +123,9 @@ namespace mobileclock::ui {
         }
         this->isAlarmActionsMenuVisible = value;
         this->NotifyPropertyChanged(Property::isAlarmActionsMenuVisible);
+        if (this->page) {
+            this->ApplyAlarmActionsPanelState(true);
+        }
     }
 
     xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {
@@ -148,6 +164,7 @@ namespace mobileclock::ui {
         LOG_FUNCTION_SCOPE("MobileClock", "MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
         this->bindings.Clear();
         this->page = xaml::generated::MainPage::Create(*this, this->bindings);
+        this->ApplyAlarmActionsPanelState(false);
         xaml::layout(*this->page, availableSize);
     }
 
@@ -189,6 +206,17 @@ namespace mobileclock::ui {
     //
     // Internal
     //
+    void MainPageViewModel::ApplyAlarmActionsPanelState(bool useTransitions) {
+        xaml::Element* const host = _details::FindElement(*this->page, "alarmActionsHost");
+        if (host == nullptr) {
+            throw std::runtime_error("Alarm actions visual-state host was not found");
+        }
+        const char* const stateName = this->isAlarmActionsMenuVisible ? "Expanded" : "Collapsed";
+        if (!xaml::VisualStateManager::GoToState(*host, "AlarmActionsPanelStates", stateName, useTransitions)) {
+            throw std::runtime_error("Alarm actions visual state was not found");
+        }
+    }
+
     MainPageViewModel::Unsubscribe MainPageViewModel::Subscribe(PropertyChangedHandler handler) {
         this->propertyChangedHandlers.push_back(std::move(handler));
         const size_t index = this->propertyChangedHandlers.size() - 1;

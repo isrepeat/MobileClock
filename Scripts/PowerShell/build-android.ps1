@@ -53,6 +53,11 @@ if (-not (Test-Path $xamlCompiler)) {
 }
 
 Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File | ForEach-Object {
+    $pageName = [IO.Path]::GetFileNameWithoutExtension($_.Name)
+    if ($pageName -notmatch '^[A-Za-z][A-Za-z0-9]*$') {
+        Write-Host "==> Skipping $($_.Name): filename is not a valid C++ type name"
+        return
+    }
     $generatedPath = Join-Path $xamlGeneratedRoot ($_.Name + '.cpp')
     Write-Host "==> Compiling $($_.Name) into native UI classes"
     Invoke-Checked $xamlCompiler @($_.FullName, $generatedPath)

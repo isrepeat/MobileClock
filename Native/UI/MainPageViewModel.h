@@ -75,6 +75,7 @@ namespace mobileclock::ui {
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
     private:
+        void ApplyAlarmActionsPanelState(bool useTransitions);
         void NotifyPropertyChanged(Property property);
 
     private:
