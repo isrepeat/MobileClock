@@ -35,10 +35,12 @@ namespace mobileclock::ui::_details {
 namespace mobileclock::ui {
     MainPageViewModel::MainPageViewModel(
         IPageNavigator& navigator,
-        IApplicationActions& actions)
+        IApplicationActions& actions,
+        std::function<void()> refreshPage)
         : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
-        , createAlarmCommand([&actions]() {
-            actions.CreateAlarm();
+        , createAlarmCommand([this]() {
+            this->alarms.emplace_back("", "", false);
+            this->refreshPage();
         })
         , navigateToSettingsCommand([&navigator]() {
             navigator.Navigate(Page::settings);
@@ -54,7 +56,8 @@ namespace mobileclock::ui {
         })
         , toggleAlarmActionsMenuCommand([this]() {
             this->SetIsAlarmActionsMenuVisible(!this->IsAlarmActionsMenuVisible());
-        }) {
+        })
+        , refreshPage(std::move(refreshPage)) {
         for (Alarm& alarm : this->alarms) {
             alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
         }
@@ -76,6 +79,10 @@ namespace mobileclock::ui {
 
     bool MainPageViewModel::Alarm::IsEnabled() const {
         return this->isEnabled;
+    }
+
+    xaml::Element::Command MainPageViewModel::Alarm::AlarmBlockCommand() const {
+        return this->alarmBlockCommand;
     }
 
     xaml::Element::Command MainPageViewModel::Alarm::ToggleAlarmCommand() const {
@@ -171,6 +178,21 @@ namespace mobileclock::ui {
     void MainPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
         element.ExecuteCommand();
+    }
+
+    bool MainPageViewModel::HandleSwipe(const void* dataContext) {
+        const auto iterator = std::find_if(
+            this->alarms.begin(),
+            this->alarms.end(),
+            [dataContext](const Alarm& alarm) {
+                return &alarm == dataContext;
+            });
+        if (iterator == this->alarms.end()) {
+            return false;
+        }
+        this->alarms.erase(iterator);
+        this->refreshPage();
+        return true;
     }
 
     void MainPageViewModel::UpdateClock() {

@@ -1,5 +1,5 @@
 {
-  "\u0428\u043A\u0430\u043B\u0430 \u0431\u0443\u0434\u0438\u043B\u044C\u043D\u0438\u043A\u043E\u0432": {
+  "Шкала будильников": {
     "IsAlarmActionsMenuVisible": false,
     "$visualStates": [
       {
@@ -8,26 +8,26 @@
         "state": "Collapsed"
       }
     ],
-    "Status": "\u0421\u043A\u0440\u0438\u043D\u0448\u043E\u0442 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 Google Drive",
+    "Status": "Скриншот отправлен в Google Drive",
     "Alarms": [
       {
-        "Time": "06:30",
-        "Repeat": "\u041F\u043D, \u0421\u0440, \u041F\u0442",
-        "IsEnabled": true
-      },
-      {
-        "Time": "07:15",
-        "Repeat": "\u0411\u0443\u0434\u043D\u0438",
+        "Time": "",
+        "Repeat": "",
         "IsEnabled": false
       },
       {
-        "Time": "08:00",
-        "Repeat": "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E",
+        "Time": "",
+        "Repeat": "",
         "IsEnabled": false
       },
       {
-        "Time": "09:30",
-        "Repeat": "\u0421\u0431, \u0412\u0441",
+        "Time": "",
+        "Repeat": "",
+        "IsEnabled": false
+      },
+      {
+        "Time": "",
+        "Repeat": "",
         "IsEnabled": false
       }
     ],
@@ -53,19 +53,19 @@
         "tap": {
           "type": "set",
           "path": "Status",
-          "value": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u043E"
+          "value": "Обновление запущено"
         }
       },
       "uploadScreenshotButton": {
         "tap": {
           "type": "set",
           "path": "Status",
-          "value": "\u0421\u043A\u0440\u0438\u043D\u0448\u043E\u0442 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 Google Drive"
+          "value": "Скриншот отправлен в Google Drive"
         }
       }
     }
   },
-  "\u0420\u0430\u043D\u043D\u0435\u0435 \u0443\u0442\u0440\u043E": {
+  "Раннее утро": {
     "IsAlarmActionsMenuVisible": false,
     "$visualStates": [
       {
@@ -74,21 +74,21 @@
         "state": "Collapsed"
       }
     ],
-    "Status": "\u0413\u043E\u0442\u043E\u0432\u043E \u043A \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044E",
+    "Status": "Готово к обновлению",
     "Alarms": [
       {
         "Time": "05:10",
-        "Repeat": "\u041F\u043D, \u0412\u0442, \u0421\u0440, \u0427\u0442, \u041F\u0442",
+        "Repeat": "Пн, Вт, Ср, Чт, Пт",
         "IsEnabled": true
       },
       {
         "Time": "05:40",
-        "Repeat": "\u041F\u043D, \u0412\u0442, \u0421\u0440, \u0427\u0442, \u041F\u0442",
+        "Repeat": "Пн, Вт, Ср, Чт, Пт",
         "IsEnabled": true
       },
       {
         "Time": "06:05",
-        "Repeat": "\u0411\u0443\u0434\u043D\u0438",
+        "Repeat": "Будни",
         "IsEnabled": false
       }
     ],
@@ -114,19 +114,19 @@
         "tap": {
           "type": "set",
           "path": "Status",
-          "value": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u043E"
+          "value": "Обновление запущено"
         }
       },
       "uploadScreenshotButton": {
         "tap": {
           "type": "set",
           "path": "Status",
-          "value": "\u0421\u043A\u0440\u0438\u043D\u0448\u043E\u0442 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 Google Drive"
+          "value": "Скриншот отправлен в Google Drive"
         }
       }
     }
   },
-  "\u0412\u044B\u0445\u043E\u0434\u043D\u044B\u0435": {
+  "Выходные": {
     "IsAlarmActionsMenuVisible": false,
     "$visualStates": [
       {
@@ -135,16 +135,16 @@
         "state": "Collapsed"
       }
     ],
-    "Status": "\u0413\u043E\u0442\u043E\u0432\u043E \u043A \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044E",
+    "Status": "Готово к обновлению",
     "Alarms": [
       {
         "Time": "08:30",
-        "Repeat": "\u0421\u0431",
+        "Repeat": "Сб",
         "IsEnabled": true
       },
       {
         "Time": "09:15",
-        "Repeat": "\u0412\u0441",
+        "Repeat": "Вс",
         "IsEnabled": true
       }
     ],
@@ -170,14 +170,14 @@
         "tap": {
           "type": "set",
           "path": "Status",
-          "value": "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u043E"
+          "value": "Обновление запущено"
         }
       },
       "uploadScreenshotButton": {
         "tap": {
           "type": "set",
           "path": "Status",
-          "value": "\u0421\u043A\u0440\u0438\u043D\u0448\u043E\u0442 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 Google Drive"
+          "value": "Скриншот отправлен в Google Drive"
         }
       }
     }

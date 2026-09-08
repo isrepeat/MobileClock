@@ -234,6 +234,12 @@ namespace mobileclock::renderer {
             this->state->pageManager.CancelTouch();
             return;
         }
+        if (action == AMOTION_EVENT_ACTION_MOVE) {
+            if (this->state->pageManager.HandleTouchMove(x, y)) {
+                _details::DrawPage(*this->state);
+            }
+            return;
+        }
         if (action != AMOTION_EVENT_ACTION_UP) {
             return;
         }

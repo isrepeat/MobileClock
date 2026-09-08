@@ -26,6 +26,7 @@ namespace mobileclock::ui {
             const std::string& Time() const;
             const std::string& Repeat() const;
             bool IsEnabled() const;
+            xaml::Element::Command AlarmBlockCommand() const;
             xaml::Element::Command ToggleAlarmCommand() const;
             void SetToggleAlarmCommand(xaml::Element::Command value);
 
@@ -33,6 +34,7 @@ namespace mobileclock::ui {
             std::string time;
             std::string repeat;
             bool isEnabled = false;
+            xaml::Element::Command alarmBlockCommand = []() {};
             xaml::Element::Command toggleAlarmCommand;
         };
 
@@ -46,7 +48,10 @@ namespace mobileclock::ui {
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        MainPageViewModel(IPageNavigator& navigator, IApplicationActions& actions);
+        MainPageViewModel(
+            IPageNavigator& navigator,
+            IApplicationActions& actions,
+            std::function<void()> refreshPage);
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
@@ -69,6 +74,7 @@ namespace mobileclock::ui {
         void SetStatus(std::string value);
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
+        bool HandleSwipe(const void* dataContext);
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
@@ -97,5 +103,6 @@ namespace mobileclock::ui {
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
         xaml::Element::Command toggleAlarmActionsMenuCommand;
+        std::function<void()> refreshPage;
     };
 }

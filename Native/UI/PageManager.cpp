@@ -6,7 +6,9 @@
 
 namespace mobileclock::ui {
     PageManager::PageManager(IApplicationActions& actions)
-        : mainPageViewModel(*this, actions)
+        : mainPageViewModel(*this, actions, [this]() {
+            this->RefreshMainPage();
+        })
         , settingsPageViewModel(*this, actions) {
     }
 
@@ -35,7 +37,8 @@ namespace mobileclock::ui {
         this->animations = xaml::AnimationController{};
         this->currentPage = Page::main;
         this->isTransitioning = false;
-        this->mainPageViewModel.Initialize(availableSize);
+        this->availableSize = availableSize;
+        this->mainPageViewModel.Initialize(this->availableSize);
         this->settingsPageViewModel.Initialize(availableSize);
         xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
         renderer::RegisterAnimations(registry);
@@ -60,7 +63,7 @@ namespace mobileclock::ui {
     }
 
     void PageManager::HandleTouchDown(float x, float y) {
-        if (this->isTransitioning) {
+        if (this->isTransitioning || this->pendingAlarmDeletion != nullptr) {
             return;
         }
         if (this->currentPage == Page::main) {
@@ -70,14 +73,35 @@ namespace mobileclock::ui {
         this->touchHandler.HandleTouchDown(this->settingsPageViewModel.Root(), x, y);
     }
 
+    bool PageManager::HandleTouchMove(float x, float y) {
+        if (this->isTransitioning
+            || this->pendingAlarmDeletion != nullptr
+            || this->currentPage != Page::main) {
+            return false;
+        }
+        return this->touchHandler.HandleTouchMove(x, y);
+    }
+
     bool PageManager::HandleTouchUp(float x, float y) {
-        if (this->isTransitioning) {
+        if (this->isTransitioning || this->pendingAlarmDeletion != nullptr) {
             return false;
         }
         xaml::Element& root = this->currentPage == Page::main
             ? this->mainPageViewModel.Root()
             : this->settingsPageViewModel.Root();
-        xaml::Element* const element = this->touchHandler.HandleTouchUp(root, x, y, this->animations);
+        const void* swipedDataContext = nullptr;
+        xaml::Element* const element = this->touchHandler.HandleTouchUp(
+            root,
+            x,
+            y,
+            this->animations,
+            swipedDataContext);
+        if (this->currentPage == Page::main && swipedDataContext != nullptr) {
+            this->pendingAlarmDeletion = swipedDataContext;
+            this->pendingAlarmDeletionAt = std::chrono::steady_clock::now()
+                + std::chrono::milliseconds(220);
+            return true;
+        }
         if (element == nullptr) {
             return false;
         }
@@ -94,8 +118,28 @@ namespace mobileclock::ui {
         this->touchHandler.CancelTouch();
     }
 
+    void PageManager::RefreshMainPage() {
+        this->touchHandler.CancelTouch();
+        this->mainPageViewModel.Initialize(this->availableSize);
+        xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
+        this->animations.Attach(this->mainPageViewModel.Root(), registry);
+        this->mainPageViewModel.Root().SetAnimationParametersProvider([this]() {
+            return xaml::AnimationParameters::Create(PageTransitionData{
+                this->outgoingPage == Page::main ? "main" : "settings",
+                this->currentPage == Page::main ? "main" : "settings",
+                this->currentPage == Page::settings ? NavigationDirection::forward : NavigationDirection::backward,
+            });
+        });
+    }
+
     void PageManager::UpdateClock() {
         this->animations.Update();
+        if (this->pendingAlarmDeletion != nullptr
+            && std::chrono::steady_clock::now() >= this->pendingAlarmDeletionAt) {
+            const void* const alarm = this->pendingAlarmDeletion;
+            this->pendingAlarmDeletion = nullptr;
+            this->mainPageViewModel.HandleSwipe(alarm);
+        }
         if (this->isTransitioning
             && !xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
             && !xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root())) {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?mobileclock-preview-scenario path="Scenarios/MainPage2.json"?>
+<?mobileclock-preview-scenario path="Scenarios/MainPage.json"?>
 <Page id="root"
-      padding="16 30 18 18"
-      background="#10110D"
+      padding="0 0 0 0"
+      background="#171813"
       borderThickness="0"
       xmlns="urn:mobileclock:xaml"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -116,9 +116,15 @@
                           itemsSource="{Binding Alarms}">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Grid height="200"
-                                      margin="0 0 16 0"
-                                      verticalAlignment="Stretch"
+                            <Border height="200"
+                                    margin="0 0 16 0"
+                                    verticalAlignment="Stretch"
+                                    horizontalAlignment="Stretch">
+                                <Border id="alarmBlock"
+                                        command="{Binding AlarmBlockCommand}"
+                                        verticalAlignment="Stretch"
+                                        horizontalAlignment="Stretch">
+                                <Grid verticalAlignment="Stretch"
                                       horizontalAlignment="Stretch">
                                 <columnDefinitions>
                                     <columnDefinition width="112"/>
@@ -194,7 +200,9 @@
                                         </ToggleSwitch>
                                     </Grid>
                                 </Grid>
-                            </Grid>
+                                </Grid>
+                                </Border>
+                            </Border>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
@@ -275,8 +283,8 @@
                     horizontalAlignment="Stretch"
                     background="#20211A"
                     cornerRadius="30">
-                <Grid horizontalAlignment="Stretch"
-                      verticalAlignment="Stretch">
+                <Grid verticalAlignment="Stretch"
+                      horizontalAlignment="Stretch">
                     <rowDefinitions>
                         <rowDefinition height="Auto"/>
                         <rowDefinition height="*"/>
@@ -297,23 +305,24 @@
                     </Border>
                     <Grid id="alarmActionsContent"
                           gridRow="1"
-                          margin="40 40 0 30"
-                          horizontalAlignment="Stretch"
-                          verticalAlignment="Stretch">
+                          margin="20 20 0 0"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch">
                         <rowDefinitions>
                             <rowDefinition height="25"/>
                             <rowDefinition height="20"/>
                             <rowDefinition height="108"/>
-                            <rowDefinition height="30"/>
+                            <rowDefinition height="20"/>
                             <rowDefinition height="35"/>
                             <rowDefinition height="78"/>
+                            <rowDefinition height="Auto"/>
                             <rowDefinition height="*"/>
                         </rowDefinitions>
                         <Border gridRow="0"
-                                horizontalAlignment="Stretch"
-                                verticalAlignment="Stretch">
-                            <Grid horizontalAlignment="Stretch"
-                                  verticalAlignment="Stretch">
+                                verticalAlignment="Stretch"
+                                horizontalAlignment="Stretch">
+                            <Grid verticalAlignment="Stretch"
+                                  horizontalAlignment="Stretch">
                                 <columnDefinitions>
                                     <columnDefinition width="38"/>
                                     <columnDefinition width="*"/>
@@ -321,30 +330,30 @@
                                 </columnDefinitions>
                                 <Border width="20"
                                         height="20"
-                                        horizontalAlignment="Left"
                                         verticalAlignment="Center"
+                                        horizontalAlignment="Left"
                                         background="#DDB54F"
                                         cornerRadius="10"/>
                                 <TextBlock gridColumn="1"
                                            text="Служебные действия"
                                            fontSize="32"
                                            margin="0 0 4 0"
-                                           horizontalAlignment="Left"
                                            verticalAlignment="Center"
+                                           horizontalAlignment="Left"
                                            foreground="#DDB54F"/>
                                 <SvgImage gridColumn="2"
                                           width="28"
                                           height="28"
-                                          horizontalAlignment="Center"
                                           verticalAlignment="Center"
+                                          horizontalAlignment="Center"
                                           source="Icons/chevron-down.svg"
                                           tint="#DDB54F"/>
                             </Grid>
                         </Border>
                         <Border id="updateApplicationButton"
                                 gridRow="2"
-                                horizontalAlignment="Stretch"
                                 verticalAlignment="Stretch"
+                                horizontalAlignment="Stretch"
                                 command="{Binding UpdateApplicationCommand}"
                                 renderer="rendererWave"
                                 background="#24251C"
@@ -376,8 +385,8 @@
                                 </Storyboard>
                             </Border.Storyboards>
                             <Grid height="105"
-                                  horizontalAlignment="Stretch"
-                                  verticalAlignment="Stretch">
+                                  verticalAlignment="Stretch"
+                                  horizontalAlignment="Stretch">
                                 <columnDefinitions>
                                     <columnDefinition width="8"/>
                                     <columnDefinition width="108"/>
@@ -385,21 +394,21 @@
                                     <columnDefinition width="65"/>
                                 </columnDefinitions>
                                 <Border width="8"
-                                        horizontalAlignment="Left"
                                         verticalAlignment="Stretch"
+                                        horizontalAlignment="Left"
                                         background="#DDB54F"
                                         cornerRadius="4"/>
                                 <SvgImage gridColumn="1"
                                           width="48"
                                           height="48"
-                                          horizontalAlignment="Center"
                                           verticalAlignment="Center"
+                                          horizontalAlignment="Center"
                                           source="Icons/refresh.svg"
                                           tint="#DDB54F"/>
                                 <Grid gridColumn="2"
                                       height="70"
-                                      horizontalAlignment="Stretch"
-                                      verticalAlignment="Center">
+                                      verticalAlignment="Center"
+                                      horizontalAlignment="Stretch">
                                     <rowDefinitions>
                                         <rowDefinition height="35"/>
                                         <rowDefinition height="35"/>
@@ -407,21 +416,21 @@
                                     <TextBlock gridRow="0"
                                                text="Обновить"
                                                fontSize="35"
-                                               horizontalAlignment="Left"
                                                verticalAlignment="Center"
+                                               horizontalAlignment="Left"
                                                foreground="#F1E8D2"/>
                                     <TextBlock gridRow="1"
                                                text="Проверить данные и виджеты"
                                                fontSize="29"
-                                               horizontalAlignment="Left"
                                                verticalAlignment="Center"
+                                               horizontalAlignment="Left"
                                                foreground="#96947C"/>
                                 </Grid>
                                 <SvgImage gridColumn="3"
                                           width="34"
                                           height="34"
-                                          horizontalAlignment="Center"
                                           verticalAlignment="Center"
+                                          horizontalAlignment="Center"
                                           source="Icons/chevron-right.svg"
                                           tint="#DDB54F"/>
                             </Grid>
@@ -429,13 +438,13 @@
                         <TextBlock gridRow="4"
                                    text="Резервное"
                                    fontSize="28"
-                                   horizontalAlignment="Left"
                                    verticalAlignment="Center"
+                                   horizontalAlignment="Left"
                                    foreground="#96947C"/>
                         <Border id="uploadScreenshotButton"
                                 gridRow="5"
-                                horizontalAlignment="Stretch"
                                 verticalAlignment="Stretch"
+                                horizontalAlignment="Stretch"
                                 command="{Binding UploadScreenshotCommand}"
                                 renderer="rendererWave"
                                 background="#22231B"
@@ -467,8 +476,8 @@
                                 </Storyboard>
                             </Border.Storyboards>
                             <Grid height="75"
-                                  horizontalAlignment="Stretch"
-                                  verticalAlignment="Stretch">
+                                  verticalAlignment="Stretch"
+                                  horizontalAlignment="Stretch">
                                 <columnDefinitions>
                                     <columnDefinition width="115"/>
                                     <columnDefinition width="*"/>
@@ -476,25 +485,41 @@
                                 </columnDefinitions>
                                 <SvgImage width="46"
                                           height="46"
-                                          horizontalAlignment="Center"
                                           verticalAlignment="Center"
+                                          horizontalAlignment="Center"
                                           source="Icons/google-drive.svg"
                                           tint="#83816A"/>
                                 <TextBlock gridColumn="1"
                                            text="Сохранить скриншот"
                                            fontSize="31"
-                                           horizontalAlignment="Left"
                                            verticalAlignment="Center"
+                                           horizontalAlignment="Left"
                                            foreground="#D7D0B8"/>
                                 <SvgImage gridColumn="2"
                                           width="34"
                                           height="34"
-                                          horizontalAlignment="Center"
                                           verticalAlignment="Center"
+                                          horizontalAlignment="Center"
                                           source="Icons/chevron-right.svg"
                                           tint="#77745A"/>
                             </Grid>
                         </Border>
+                        <Grid id="alarmActionsStatus"
+                              gridRow="6"
+                              margin="0 0 20 0"
+                              verticalAlignment="Stretch"
+                              horizontalAlignment="Stretch">
+                            <columnDefinitions>
+                                <columnDefinition width="18"/>
+                                <columnDefinition width="*"/>
+                            </columnDefinitions>
+                            <TextBlock gridColumn="1"
+                                       text="{Binding Status}"
+                                       fontSize="32"
+                                       verticalAlignment="Center"
+                                       horizontalAlignment="Left"
+                                       foreground="#AAA78B"/>
+                        </Grid>
                     </Grid>
                 </Grid>
             </Border>

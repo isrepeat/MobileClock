@@ -9,6 +9,7 @@
 #include "UI/TouchHandler.h"
 #include "UI/Navigation.h"
 
+#include <chrono>
 #include <string>
 
 namespace xaml {
@@ -33,15 +34,22 @@ namespace mobileclock::ui {
         void Initialize(xaml::Size availableSize);
         void SetStatus(std::string value);
         void HandleTouchDown(float x, float y);
+        bool HandleTouchMove(float x, float y);
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
 
     private:
+        void RefreshMainPage();
+
+    private:
+        xaml::Size availableSize;
         Page currentPage = Page::main;
         Page outgoingPage = Page::main;
         bool isTransitioning = false;
+        const void* pendingAlarmDeletion = nullptr;
+        std::chrono::steady_clock::time_point pendingAlarmDeletionAt;
         xaml::AnimationController animations;
         TouchHandler touchHandler;
         MainPageViewModel mainPageViewModel;
