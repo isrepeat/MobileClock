@@ -110,7 +110,8 @@
                         verticalAlignment="Stretch"
                         horizontalAlignment="Left"
                         background="#DDB54F"/>
-                <ScrollViewer verticalAlignment="Stretch"
+                <ScrollViewer id="alarmsScrollViewer"
+                              verticalAlignment="Stretch"
                               horizontalAlignment="Stretch"
                               verticalScrollBarVisibility="Auto">
                 <ListView id="alarms"
@@ -119,7 +120,8 @@
                           itemsSource="{Binding Alarms}">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Border height="200"
+                            <Border id="alarmItem"
+                                    height="200"
                                     margin="0 0 16 0"
                                     verticalAlignment="Stretch"
                                     horizontalAlignment="Stretch">

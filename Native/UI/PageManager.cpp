@@ -1,3 +1,4 @@
+#include <XamlRuntime/ListTransition.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #include "Renderer/AnimationRenderers.h"
@@ -139,7 +140,20 @@ namespace mobileclock::ui {
             && std::chrono::steady_clock::now() >= this->pendingAlarmDeletionAt) {
             const void* const alarm = this->pendingAlarmDeletion;
             this->pendingAlarmDeletion = nullptr;
-            this->mainPageViewModel.HandleSwipe(alarm);
+            xaml::Element& rootBeforeDeletion = this->mainPageViewModel.Root();
+            xaml::Element* const item = xaml::FindListItem(rootBeforeDeletion, alarm);
+            const xaml::ListRemovalTransition transition = item == nullptr
+                ? xaml::ListRemovalTransition{}
+                : xaml::CaptureListRemovalTransition(*item);
+            const bool wasDeleted = this->mainPageViewModel.HandleSwipe(alarm);
+            if (wasDeleted && transition.isPresent) {
+                xaml::RestoreListRemovalTransitionOffsets(this->mainPageViewModel.Root(), transition);
+                xaml::AnimateListRemovalTransition(
+                    this->mainPageViewModel.Root(),
+                    transition,
+                    this->animations,
+                    std::chrono::milliseconds(840));
+            }
         }
         if (this->isTransitioning
             && !xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())

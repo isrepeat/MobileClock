@@ -225,28 +225,25 @@ namespace mobileclock::renderer {
     }
 
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
-        LOG_FUNCTION_SCOPE("MobileClock", "NativeRenderer::Touch: action={}, x={}, y={}", action, x, y);
         if (action == AMOTION_EVENT_ACTION_DOWN) {
+            LOG_DEBUG("MobileClock.Touch", "Touch down received: point=({}, {})", x, y);
             this->state->pageManager.HandleTouchDown(x, y);
             return;
         }
         if (action == AMOTION_EVENT_ACTION_CANCEL) {
+            LOG_DEBUG("MobileClock.Touch", "Touch cancelled");
             this->state->pageManager.CancelTouch();
             return;
         }
         if (action == AMOTION_EVENT_ACTION_MOVE) {
-            if (this->state->pageManager.HandleTouchMove(x, y)) {
-                _details::DrawPage(*this->state);
-            }
+            this->state->pageManager.HandleTouchMove(x, y);
             return;
         }
         if (action != AMOTION_EVENT_ACTION_UP) {
             return;
         }
-        if (!this->state->pageManager.HandleTouchUp(x, y)) {
-            return;
-        }
-        _details::DrawPage(*this->state);
+        LOG_DEBUG("MobileClock.Touch", "Touch up received: point=({}, {})", x, y);
+        this->state->pageManager.HandleTouchUp(x, y);
     }
 
     void NativeRenderer::Render() {

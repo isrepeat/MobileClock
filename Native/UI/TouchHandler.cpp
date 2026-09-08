@@ -58,11 +58,6 @@ namespace mobileclock::ui {
 
     bool TouchHandler::HandleTouchMove(float x, float y) {
         if (this->capturedElement == nullptr) {
-            LOG_DEBUG(
-                "MobileClock.Touch",
-                "Touch move ignored: point=({}, {}), reason=no captured element",
-                x,
-                y);
             return false;
         }
         const float horizontalDistance = x - this->touchDownX;
@@ -107,12 +102,6 @@ namespace mobileclock::ui {
                     this->scrollViewer->VerticalOffset());
                 return false;
             }
-            LOG_DEBUG(
-                "MobileClock.Touch",
-                "Scroll drag: element='{}', verticalDelta={}, verticalOffset={}",
-                this->capturedElement->Id(),
-                -verticalDelta,
-                this->scrollViewer->VerticalOffset());
             return true;
         }
         this->capturedElement->SetRenderOffsetX(horizontalDistance);
