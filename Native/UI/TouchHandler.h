@@ -1,6 +1,6 @@
 #pragma once
 
-#include <XamlRuntime/ScrollController.h>
+#include <XamlRuntime/InteractionController.h>
 
 namespace xaml {
     class AnimationController;
@@ -22,19 +22,6 @@ namespace mobileclock::ui {
         bool Update();
 
     private:
-        enum class GestureAxis {
-            none,
-            horizontal,
-            vertical,
-        };
-
-    private:
-        xaml::Element* capturedElement = nullptr;
-        float touchDownX = 0.0f;
-        float touchDownY = 0.0f;
-        float lastTouchY = 0.0f;
-        xaml::Element* scrollViewer = nullptr;
-        xaml::ScrollController scrollController;
-        GestureAxis gestureAxis = GestureAxis::none;
+        xaml::InteractionController interactionController;
     };
 }

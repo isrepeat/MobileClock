@@ -27,25 +27,6 @@ namespace mobileclock::ui::controls {
         return this->itemsSource;
     }
 
-    bool AlarmList::RequestRemove(
-        const void* dataContext,
-        const std::function<bool()>& remove,
-        const std::function<AlarmList&()>& restoredList,
-        xaml::AnimationController& animations,
-        std::chrono::milliseconds duration) {
-        const RemovalState state = this->CaptureRemovalState(dataContext);
-        if (!state.isPresent || !remove()) {
-            return false;
-        }
-        AlarmList& current = restoredList();
-        current.RestoreViewport(state);
-        current.AnimateRemainingItems(state, animations, duration);
-        return true;
-    }
-
-    //
-    // Internal
-    //
     AlarmList::RemovalState AlarmList::CaptureRemovalState(const void* dataContext) const {
         xaml::Element* const list = this->FindElement("alarms");
         xaml::Element* const scrollViewer = this->FindElement("alarmsScrollViewer");
@@ -67,7 +48,22 @@ namespace mobileclock::ui::controls {
         return state;
     }
 
-    void AlarmList::RestoreViewport(const RemovalState& state) {
+    void AlarmList::RestoreViewportAndAnimate(
+        const RemovalState& state,
+        xaml::Element& pageRoot,
+        xaml::AnimationController& animations,
+        std::chrono::milliseconds duration) {
+        if (!state.isPresent) {
+            return;
+        }
+        this->RestoreViewport(state, pageRoot);
+        this->AnimateRemainingItems(state, animations, duration);
+    }
+
+    //
+    // Internal
+    //
+    void AlarmList::RestoreViewport(const RemovalState& state, xaml::Element& pageRoot) {
         xaml::Element* const scrollViewer = this->FindElement("alarmsScrollViewer");
         if (scrollViewer == nullptr) {
             return;
@@ -75,9 +71,9 @@ namespace mobileclock::ui::controls {
         scrollViewer->HoldScrollExtent(state.scrollExtent);
         scrollViewer->SetHorizontalOffset(state.horizontalOffset);
         scrollViewer->SetVerticalOffset(state.verticalOffset);
-        const xaml::Rect bounds = this->Bounds();
+        const xaml::Rect bounds = pageRoot.Bounds();
         if (bounds.width > 0.0f && bounds.height > 0.0f) {
-            xaml::layout(*this, {bounds.width, bounds.height});
+            xaml::layout(pageRoot, {bounds.width, bounds.height});
         }
     }
 

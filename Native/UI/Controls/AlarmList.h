@@ -39,10 +39,10 @@ namespace mobileclock::ui::controls {
 
         const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
-        bool RequestRemove(
-            const void* dataContext,
-            const std::function<bool()>& remove,
-            const std::function<AlarmList&()>& restoredList,
+        RemovalState CaptureRemovalState(const void* dataContext) const;
+        void RestoreViewportAndAnimate(
+            const RemovalState& state,
+            xaml::Element& pageRoot,
             xaml::AnimationController& animations,
             std::chrono::milliseconds duration);
 
@@ -52,8 +52,7 @@ namespace mobileclock::ui::controls {
             this->itemsSource.Set(static_cast<const void*>(&value));
         }
 
-        RemovalState CaptureRemovalState(const void* dataContext) const;
-        void RestoreViewport(const RemovalState& state);
+        void RestoreViewport(const RemovalState& state, xaml::Element& pageRoot);
         void AnimateRemainingItems(
             const RemovalState& state,
             xaml::AnimationController& animations,

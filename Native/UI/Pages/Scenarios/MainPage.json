@@ -29,19 +29,26 @@
         "Time": "",
         "Repeat": "",
         "IsEnabled": false
-      },
-      {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
-      },
-      {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
       }
     ],
     "$interactions": {
+      "addAlarmButton": {
+        "tap": {
+          "type": "append",
+          "path": "Alarms",
+          "value": {
+            "Time": "",
+            "Repeat": "",
+            "IsEnabled": false
+          }
+        }
+      },
+      "alarmBlock": {
+        "pan": {
+          "type": "removeAt",
+          "path": "Alarms"
+        }
+      },
       "alarmActionsMenu": {
         "tap": {
           "type": "toggle",
@@ -103,6 +110,23 @@
       }
     ],
     "$interactions": {
+      "addAlarmButton": {
+        "tap": {
+          "type": "append",
+          "path": "Alarms",
+          "value": {
+            "Time": "",
+            "Repeat": "",
+            "IsEnabled": false
+          }
+        }
+      },
+      "alarmBlock": {
+        "pan": {
+          "type": "removeAt",
+          "path": "Alarms"
+        }
+      },
       "alarmActionsMenu": {
         "tap": {
           "type": "toggle",
@@ -159,6 +183,23 @@
       }
     ],
     "$interactions": {
+      "addAlarmButton": {
+        "tap": {
+          "type": "append",
+          "path": "Alarms",
+          "value": {
+            "Time": "",
+            "Repeat": "",
+            "IsEnabled": false
+          }
+        }
+      },
+      "alarmBlock": {
+        "pan": {
+          "type": "removeAt",
+          "path": "Alarms"
+        }
+      },
       "alarmActionsMenu": {
         "tap": {
           "type": "toggle",

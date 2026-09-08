@@ -140,16 +140,15 @@ namespace mobileclock::ui {
             && std::chrono::steady_clock::now() >= this->pendingAlarmDeletionAt) {
             const void* const alarm = this->pendingAlarmDeletion;
             this->pendingAlarmDeletion = nullptr;
-            this->mainPageViewModel.AlarmList().RequestRemove(
-                alarm,
-                [this, alarm]() {
-                    return this->mainPageViewModel.HandleSwipe(alarm);
-                },
-                [this]() -> controls::AlarmList& {
-                    return this->mainPageViewModel.AlarmList();
-                },
-                this->animations,
-                std::chrono::milliseconds(840));
+            const controls::AlarmList::RemovalState state = this->mainPageViewModel.AlarmList()
+                .CaptureRemovalState(alarm);
+            if (state.isPresent && this->mainPageViewModel.HandleSwipe(alarm)) {
+                this->mainPageViewModel.AlarmList().RestoreViewportAndAnimate(
+                    state,
+                    this->mainPageViewModel.Root(),
+                    this->animations,
+                    std::chrono::milliseconds(840));
+            }
         }
         if (this->isTransitioning
             && !xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
