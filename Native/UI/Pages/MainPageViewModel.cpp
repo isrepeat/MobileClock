@@ -4,6 +4,7 @@
 
 #include "!Generated/Build/BuildVersion.h"
 #include "!Generated/Xaml/Pages/MainPage.xaml.h"
+#include "UI/Controls/AlarmList.h"
 #include "UI/Pages/MainPageViewModel.h"
 
 #include <stdexcept>
@@ -26,6 +27,18 @@ namespace mobileclock::ui::_details {
         for (const auto& child : element.Children()) {
             if (xaml::Element* const found = FindElement(*child, id)) {
                 return found;
+            }
+        }
+        return nullptr;
+    }
+
+    controls::AlarmList* FindAlarmList(xaml::Element& element) {
+        if (auto* const alarmList = dynamic_cast<controls::AlarmList*>(&element)) {
+            return alarmList;
+        }
+        for (const std::unique_ptr<xaml::Element>& child : element.Children()) {
+            if (controls::AlarmList* const alarmList = FindAlarmList(*child)) {
+                return alarmList;
             }
         }
         return nullptr;
@@ -193,6 +206,14 @@ namespace mobileclock::ui {
         this->alarms.erase(iterator);
         this->refreshPage();
         return true;
+    }
+
+    controls::AlarmList& MainPageViewModel::AlarmList() {
+        controls::AlarmList* const alarmList = _details::FindAlarmList(*this->page);
+        if (alarmList == nullptr) {
+            throw std::runtime_error("Alarm list control was not found");
+        }
+        return *alarmList;
     }
 
     void MainPageViewModel::UpdateClock() {

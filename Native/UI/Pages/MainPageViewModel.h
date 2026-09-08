@@ -16,6 +16,10 @@ namespace xaml {
     class RendererRegistry;
 }
 
+namespace mobileclock::ui::controls {
+    class AlarmList;
+}
+
 namespace mobileclock::ui {
     class MainPageViewModel final {
     public:
@@ -75,6 +79,7 @@ namespace mobileclock::ui {
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         bool HandleSwipe(const void* dataContext);
+        controls::AlarmList& AlarmList();
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();

@@ -175,6 +175,8 @@ add_library(mobileclock SHARED
     Renderer/AndroidApplicationActions.cpp
     Renderer/AndroidCommandDispatcher.cpp
     Renderer/NativeRenderer.cpp
+    UI/Controls/AlarmList.cpp
+    UI/Controls/TimelineTabs.cpp
     UI/Pages/MainPageViewModel.cpp
     UI/PageManager.cpp
     UI/Pages/SettingsPageViewModel.cpp
