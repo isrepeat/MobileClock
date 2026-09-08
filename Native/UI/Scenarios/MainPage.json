@@ -8,8 +8,23 @@
         "state": "Collapsed"
       }
     ],
-    "Status": "Скриншот отправлен в Google Drive",
+    "Status": "Обновление запущено",
     "Alarms": [
+      {
+        "Time": "",
+        "Repeat": "",
+        "IsEnabled": false
+      },
+      {
+        "Time": "",
+        "Repeat": "",
+        "IsEnabled": false
+      },
+      {
+        "Time": "",
+        "Repeat": "",
+        "IsEnabled": false
+      },
       {
         "Time": "",
         "Repeat": "",

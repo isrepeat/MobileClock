@@ -110,6 +110,9 @@
                         verticalAlignment="Stretch"
                         horizontalAlignment="Left"
                         background="#DDB54F"/>
+                <ScrollViewer verticalAlignment="Stretch"
+                              horizontalAlignment="Stretch"
+                              verticalScrollBarVisibility="Auto">
                 <ListView id="alarms"
                           verticalAlignment="Stretch"
                           horizontalAlignment="Stretch"
@@ -206,6 +209,7 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
+                </ScrollViewer>
             </Grid>
             <Grid gridRow="3"
                   id="timelineFooter"

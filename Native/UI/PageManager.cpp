@@ -134,6 +134,7 @@ namespace mobileclock::ui {
 
     void PageManager::UpdateClock() {
         this->animations.Update();
+        this->touchHandler.Update();
         if (this->pendingAlarmDeletion != nullptr
             && std::chrono::steady_clock::now() >= this->pendingAlarmDeletionAt) {
             const void* const alarm = this->pendingAlarmDeletion;
