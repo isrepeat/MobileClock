@@ -5,19 +5,19 @@ add_subdirectory("${helpers}/3rdParty/Spdlog/Spdlog.Shared" spdlog)
 add_subdirectory("${helpers}/Helpers/Helpers.Logging" logging)
 add_subdirectory("${helpers}/NugetProjects/XamlRuntime/Nuget/XamlRuntime" runtime)
 add_subdirectory("${helpers}/NugetProjects/XamlRuntime/Nuget/XamlCompiler" compiler)
-set(example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Examples/Pages/PageTransitions.xaml")
+set(example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Pages/Examples/Pages/PageTransitions.xaml")
 set(generated "${CMAKE_CURRENT_BINARY_DIR}/PageTransitions.xaml.cpp")
 add_custom_command(OUTPUT "${generated}" "${CMAKE_CURRENT_BINARY_DIR}/PageTransitions.xaml.h"
     COMMAND XamlCompiler "${example}" "${generated}"
     DEPENDS XamlCompiler "${example}"
     VERBATIM)
-set(navigation_example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Examples/Pages/NavigationTransition.xaml")
+set(navigation_example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Pages/Examples/Pages/NavigationTransition.xaml")
 set(navigation_generated "${CMAKE_CURRENT_BINARY_DIR}/NavigationTransition.xaml.cpp")
 add_custom_command(OUTPUT "${navigation_generated}" "${CMAKE_CURRENT_BINARY_DIR}/NavigationTransition.xaml.h"
     COMMAND XamlCompiler "${navigation_example}" "${navigation_generated}"
     DEPENDS XamlCompiler "${navigation_example}"
     VERBATIM)
-set(panel_example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Examples/Pages/PanelHeightAnimation.xaml")
+set(panel_example "${CMAKE_CURRENT_LIST_DIR}/../../UI/Pages/Examples/Pages/PanelHeightAnimation.xaml")
 set(panel_generated "${CMAKE_CURRENT_BINARY_DIR}/PanelHeightAnimation.xaml.cpp")
 add_custom_command(OUTPUT "${panel_generated}" "${CMAKE_CURRENT_BINARY_DIR}/PanelHeightAnimation.xaml.h"
     COMMAND XamlCompiler "${panel_example}" "${panel_generated}"

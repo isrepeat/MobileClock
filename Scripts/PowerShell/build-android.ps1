@@ -20,6 +20,10 @@ $xamlCompilerBuild = Join-Path $projectRoot 'out\xaml-compiler'
 $xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
 $xamlSourceRoot = Join-Path $nativeRoot 'UI'
 $xamlGeneratedRoot = Join-Path $nativeRoot '!Generated\Xaml'
+$xamlIgnoreConfigurationPath = Join-Path $xamlSourceRoot 'XamlCompilerIgnore.json'
+$xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath -Raw | ConvertFrom-Json
+$xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
+$xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
 $gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'
 $updaterApkPath = Join-Path $projectRoot 'updater\build\outputs\apk\debug\updater-debug.apk'
@@ -52,15 +56,21 @@ if (-not (Test-Path $xamlCompiler)) {
     throw "XamlCompiler build completed but did not produce $xamlCompiler"
 }
 
-Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File | ForEach-Object {
-    $pageName = [IO.Path]::GetFileNameWithoutExtension($_.Name)
-    if ($pageName -notmatch '^[A-Za-z][A-Za-z0-9]*$') {
-        Write-Host "==> Skipping $($_.Name): filename is not a valid C++ type name"
-        return
+Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File -Recurse | ForEach-Object {
+    # Windows PowerShell 5.1 работает на .NET Framework, где ещё нет
+    # System.IO.Path.GetRelativePath. Все найденные файлы гарантированно
+    # находятся внутри $xamlSourceRoot, поэтому достаточно убрать этот префикс.
+    $relativePath = $_.FullName.Substring($xamlSourceRoot.Length).TrimStart('\', '/')
+    $generatedPath = Join-Path $xamlGeneratedRoot ($relativePath + '.cpp')
+    $compilerArguments = @($_.FullName, $generatedPath)
+    foreach ($directory in $xamlIgnoredDirectories) {
+        $compilerArguments += '--ignore-directory', $directory
     }
-    $generatedPath = Join-Path $xamlGeneratedRoot ($_.Name + '.cpp')
+    foreach ($suffix in $xamlIgnoredFileSuffixes) {
+        $compilerArguments += '--ignore-file-suffix', $suffix
+    }
     Write-Host "==> Compiling $($_.Name) into native UI classes"
-    Invoke-Checked $xamlCompiler @($_.FullName, $generatedPath)
+    Invoke-Checked $xamlCompiler $compilerArguments
 }
 
 Push-Location $nativeRoot

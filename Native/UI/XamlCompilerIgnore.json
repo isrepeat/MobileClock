@@ -1,0 +1,9 @@
+{
+    "directories": [
+        "backup",
+        "Examples"
+    ],
+    "fileSuffixes": [
+        "_old"
+    ]
+}

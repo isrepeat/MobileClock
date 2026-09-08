@@ -3,9 +3,9 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 
-#include "UI/SettingsPageViewModel.h"
+#include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/ApplicationActions.h"
-#include "UI/MainPageViewModel.h"
+#include "UI/Pages/MainPageViewModel.h"
 #include "UI/TouchHandler.h"
 #include "UI/Navigation.h"
 

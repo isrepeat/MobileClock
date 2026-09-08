@@ -2,9 +2,9 @@
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/RenderEngine.h>
 
-#include "../!Generated/Build/BuildVersion.h"
-#include "../!Generated/Xaml/MainPage.xaml.h"
-#include "MainPageViewModel.h"
+#include "!Generated/Build/BuildVersion.h"
+#include "!Generated/Xaml/Pages/MainPage.xaml.h"
+#include "UI/Pages/MainPageViewModel.h"
 
 #include <stdexcept>
 #include <algorithm>

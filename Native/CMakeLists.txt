@@ -70,15 +70,51 @@ add_subdirectory(UtilityHelpersLib)
 
 # Единственная нативная библиотека приложения. Gradle лишь упаковывает готовый
 # .so, а компиляция и линковка выполняются этим CMake-проектом.
-file(GLOB mobileclock_xaml_source CONFIGURE_DEPENDS
+file(GLOB_RECURSE mobileclock_xaml_source CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/UI/*.xaml"
 )
-file(GLOB mobileclock_xaml_generated CONFIGURE_DEPENDS
+file(GLOB_RECURSE mobileclock_xaml_generated CONFIGURE_DEPENDS
     "${mobileclock_generated_root}/Xaml/*.xaml.cpp"
 )
-file(GLOB mobileclock_xaml_generated_headers CONFIGURE_DEPENDS
+file(GLOB_RECURSE mobileclock_xaml_generated_headers CONFIGURE_DEPENDS
     "${mobileclock_generated_root}/Xaml/*.xaml.h"
 )
+# XamlCompilerIgnore.json является единым источником правил для генератора и
+# app-target. Генератор оставляет старые артефакты на диске, поэтому CMake
+# дополнительно защищает библиотеку от их случайного подключения.
+set(mobileclock_xaml_ignore_configuration
+    "${CMAKE_CURRENT_SOURCE_DIR}/UI/XamlCompilerIgnore.json")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${mobileclock_xaml_ignore_configuration}")
+file(READ "${mobileclock_xaml_ignore_configuration}"
+    mobileclock_xaml_ignore_configuration_json)
+
+function(mobileclock_read_xaml_ignore_list property output)
+    string(JSON count LENGTH "${mobileclock_xaml_ignore_configuration_json}" ${property})
+    set(values)
+    if (count GREATER 0)
+        math(EXPR last_index "${count} - 1")
+        foreach (index RANGE ${last_index})
+            string(JSON value GET "${mobileclock_xaml_ignore_configuration_json}"
+                ${property} ${index})
+            list(APPEND values "${value}")
+        endforeach()
+    endif()
+    set(${output} "${values}" PARENT_SCOPE)
+endfunction()
+
+mobileclock_read_xaml_ignore_list(directories mobileclock_xaml_ignored_directories)
+mobileclock_read_xaml_ignore_list(fileSuffixes mobileclock_xaml_ignored_file_suffixes)
+foreach (directory IN LISTS mobileclock_xaml_ignored_directories)
+    list(FILTER mobileclock_xaml_source EXCLUDE REGEX "/${directory}/")
+    list(FILTER mobileclock_xaml_generated EXCLUDE REGEX "/${directory}/")
+    list(FILTER mobileclock_xaml_generated_headers EXCLUDE REGEX "/${directory}/")
+endforeach()
+foreach (suffix IN LISTS mobileclock_xaml_ignored_file_suffixes)
+    list(FILTER mobileclock_xaml_source EXCLUDE REGEX "${suffix}\\.xaml$")
+    list(FILTER mobileclock_xaml_generated EXCLUDE REGEX "${suffix}\\.xaml\\.cpp$")
+    list(FILTER mobileclock_xaml_generated_headers EXCLUDE REGEX "${suffix}\\.xaml\\.h$")
+endforeach()
 file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
@@ -107,17 +143,22 @@ if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated
 endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties(${mobileclock_resource_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-source_group("UI" FILES ${mobileclock_xaml_source})
+set(mobileclock_ui_header_files ${mobileclock_header_files})
+list(FILTER mobileclock_ui_header_files INCLUDE REGEX "/UI/")
 source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
 source_group("Resources\\Shaders" FILES ${mobileclock_shader_files})
 source_group("Header Files" FILES ${mobileclock_header_files})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/UI" PREFIX "UI" FILES
+    ${mobileclock_ui_header_files}
+    ${mobileclock_xaml_source}
+)
 source_group("Resources\\Effects" FILES
     Resources/Effects/Effects.cpp
     Resources/Effects/Effects.h
     Resources/Effects/Shaders.cpp
     Resources/Effects/Shaders.h
 )
-source_group("!Generated\\Xaml" FILES
+source_group(TREE "${mobileclock_generated_root}/Xaml" PREFIX "!Generated\\Xaml" FILES
     ${mobileclock_xaml_generated}
     ${mobileclock_xaml_generated_headers}
 )
@@ -134,9 +175,9 @@ add_library(mobileclock SHARED
     Renderer/AndroidApplicationActions.cpp
     Renderer/AndroidCommandDispatcher.cpp
     Renderer/NativeRenderer.cpp
-    UI/MainPageViewModel.cpp
+    UI/Pages/MainPageViewModel.cpp
     UI/PageManager.cpp
-    UI/SettingsPageViewModel.cpp
+    UI/Pages/SettingsPageViewModel.cpp
     UI/TouchHandler.cpp
     ${mobileclock_header_files}
     ${mobileclock_xaml_source}

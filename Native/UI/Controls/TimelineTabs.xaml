@@ -1,0 +1,24 @@
+<UserControl x:Class="mobileclock::ui::controls::TimelineTabs"
+             xmlns="urn:mobileclock:xaml"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel id="timelineTabs"
+                verticalAlignment="Top"
+                horizontalAlignment="Center"
+                orientation="Horizontal">
+        <Border width="74"
+                height="6"
+                margin="0 60 0 0"
+                background="#DDB54F"
+                cornerRadius="3"/>
+        <Border width="74"
+                height="6"
+                margin="0 60 0 0"
+                background="#494A37"
+                cornerRadius="3"/>
+        <Border width="74"
+                height="6"
+                background="#494A37"
+                cornerRadius="3"
+                margin="0"/>
+    </StackPanel>
+</UserControl>
