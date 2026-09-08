@@ -17,11 +17,14 @@
                 horizontalAlignment="Stretch"/>
         <Grid id="alarmActionsHost"
               verticalAlignment="Stretch"
-              horizontalAlignment="Stretch"
-              margin="40 40 36 70">
+              horizontalAlignment="Stretch">
+            <Grid id="timelineContent"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch"
+                  margin="40 40 70 70">
             <rowDefinitions>
                 <rowDefinition height="7%"/>
-                <rowDefinition height="9%"/>
+                <rowDefinition height="3%"/>
                 <rowDefinition height="*"/>
                 <rowDefinition height="20%"/>
             </rowDefinitions>
@@ -265,28 +268,28 @@
                               tint="#171813"/>
                 </Grid>
             </Grid>
+            </Grid>
             <Border id="alarmActionsPanel"
-                    gridRow="3"
-                    height="56"
+                    height="70"
                     verticalAlignment="Bottom"
                     horizontalAlignment="Stretch"
                     background="#20211A"
-                    cornerRadius="24">
-                <Grid
-                      horizontalAlignment="Stretch"
+                    cornerRadius="30">
+                <Grid horizontalAlignment="Stretch"
                       verticalAlignment="Stretch">
                     <rowDefinitions>
-                        <rowDefinition height="50"/>
+                        <rowDefinition height="Auto"/>
                         <rowDefinition height="*"/>
                     </rowDefinitions>
                     <Border id="alarmActionsMenu"
                             gridRow="0"
+                            height="62"
                             verticalAlignment="Stretch"
                             horizontalAlignment="Stretch"
                             background="#00FF0000"
                             command="{Binding ToggleAlarmActionsMenuCommand}">
-                        <Border width="64"
-	                            height="10"
+                        <Border width="80"
+	                            height="12"
 	                            verticalAlignment="Center"
 	                            horizontalAlignment="Center"
 	                            background="#DDB54F"
@@ -294,44 +297,44 @@
                     </Border>
                     <Grid id="alarmActionsContent"
                           gridRow="1"
-                          margin="32 32 8 24"
+                          margin="40 40 0 30"
                           horizontalAlignment="Stretch"
                           verticalAlignment="Stretch">
                         <rowDefinitions>
-                            <rowDefinition height="44"/>
-                            <rowDefinition height="16"/>
-                            <rowDefinition height="86"/>
-                            <rowDefinition height="24"/>
-                            <rowDefinition height="28"/>
-                            <rowDefinition height="62"/>
+                            <rowDefinition height="25"/>
+                            <rowDefinition height="20"/>
+                            <rowDefinition height="108"/>
+                            <rowDefinition height="30"/>
+                            <rowDefinition height="35"/>
+                            <rowDefinition height="78"/>
                             <rowDefinition height="*"/>
                         </rowDefinitions>
                         <Border gridRow="0"
                                 horizontalAlignment="Stretch"
                                 verticalAlignment="Stretch">
-                            <Grid height="44"
-                                  horizontalAlignment="Stretch"
+                            <Grid horizontalAlignment="Stretch"
                                   verticalAlignment="Stretch">
                                 <columnDefinitions>
-                                    <columnDefinition width="30"/>
+                                    <columnDefinition width="38"/>
                                     <columnDefinition width="*"/>
-                                    <columnDefinition width="28"/>
+                                    <columnDefinition width="35"/>
                                 </columnDefinitions>
-                                <Border width="16"
-                                        height="16"
+                                <Border width="20"
+                                        height="20"
                                         horizontalAlignment="Left"
                                         verticalAlignment="Center"
                                         background="#DDB54F"
-                                        cornerRadius="8"/>
+                                        cornerRadius="10"/>
                                 <TextBlock gridColumn="1"
                                            text="Служебные действия"
-                                           fontSize="22"
+                                           fontSize="32"
+                                           margin="0 0 4 0"
                                            horizontalAlignment="Left"
                                            verticalAlignment="Center"
                                            foreground="#DDB54F"/>
                                 <SvgImage gridColumn="2"
-                                          width="22"
-                                          height="22"
+                                          width="28"
+                                          height="28"
                                           horizontalAlignment="Center"
                                           verticalAlignment="Center"
                                           source="Icons/chevron-down.svg"
@@ -347,7 +350,7 @@
                                 background="#24251C"
                                 borderBrush="#323327"
                                 borderThickness="1"
-                                cornerRadius="10">
+                                cornerRadius="13">
                             <Border.Storyboards>
                                 <Storyboard trigger="PointerDown">
                                     <Animation name="animationSoftPulse"
@@ -372,51 +375,51 @@
                                                easing="CubicOut"/>
                                 </Storyboard>
                             </Border.Storyboards>
-                            <Grid height="84"
+                            <Grid height="105"
                                   horizontalAlignment="Stretch"
                                   verticalAlignment="Stretch">
                                 <columnDefinitions>
-                                    <columnDefinition width="6"/>
-                                    <columnDefinition width="86"/>
+                                    <columnDefinition width="8"/>
+                                    <columnDefinition width="108"/>
                                     <columnDefinition width="*"/>
-                                    <columnDefinition width="52"/>
+                                    <columnDefinition width="65"/>
                                 </columnDefinitions>
-                                <Border width="6"
+                                <Border width="8"
                                         horizontalAlignment="Left"
                                         verticalAlignment="Stretch"
                                         background="#DDB54F"
-                                        cornerRadius="3"/>
+                                        cornerRadius="4"/>
                                 <SvgImage gridColumn="1"
-                                          width="32"
-                                          height="32"
+                                          width="48"
+                                          height="48"
                                           horizontalAlignment="Center"
                                           verticalAlignment="Center"
                                           source="Icons/refresh.svg"
                                           tint="#DDB54F"/>
                                 <Grid gridColumn="2"
-                                      height="56"
+                                      height="70"
                                       horizontalAlignment="Stretch"
                                       verticalAlignment="Center">
                                     <rowDefinitions>
-                                        <rowDefinition height="28"/>
-                                        <rowDefinition height="28"/>
+                                        <rowDefinition height="35"/>
+                                        <rowDefinition height="35"/>
                                     </rowDefinitions>
                                     <TextBlock gridRow="0"
                                                text="Обновить"
-                                               fontSize="23"
+                                               fontSize="35"
                                                horizontalAlignment="Left"
                                                verticalAlignment="Center"
                                                foreground="#F1E8D2"/>
                                     <TextBlock gridRow="1"
                                                text="Проверить данные и виджеты"
-                                               fontSize="19"
+                                               fontSize="29"
                                                horizontalAlignment="Left"
                                                verticalAlignment="Center"
                                                foreground="#96947C"/>
                                 </Grid>
                                 <SvgImage gridColumn="3"
-                                          width="22"
-                                          height="22"
+                                          width="34"
+                                          height="34"
                                           horizontalAlignment="Center"
                                           verticalAlignment="Center"
                                           source="Icons/chevron-right.svg"
@@ -425,7 +428,7 @@
                         </Border>
                         <TextBlock gridRow="4"
                                    text="Резервное"
-                                   fontSize="18"
+                                   fontSize="28"
                                    horizontalAlignment="Left"
                                    verticalAlignment="Center"
                                    foreground="#96947C"/>
@@ -438,7 +441,7 @@
                                 background="#22231B"
                                 borderBrush="#38392C"
                                 borderThickness="1"
-                                cornerRadius="10">
+                                cornerRadius="13">
                             <Border.Storyboards>
                                 <Storyboard trigger="PointerDown">
                                     <Animation name="animationSoftPulse"
@@ -463,29 +466,29 @@
                                                easing="CubicOut"/>
                                 </Storyboard>
                             </Border.Storyboards>
-                            <Grid height="60"
+                            <Grid height="75"
                                   horizontalAlignment="Stretch"
                                   verticalAlignment="Stretch">
                                 <columnDefinitions>
-                                    <columnDefinition width="92"/>
+                                    <columnDefinition width="115"/>
                                     <columnDefinition width="*"/>
-                                    <columnDefinition width="52"/>
+                                    <columnDefinition width="65"/>
                                 </columnDefinitions>
-                                <SvgImage width="30"
-                                          height="30"
+                                <SvgImage width="46"
+                                          height="46"
                                           horizontalAlignment="Center"
                                           verticalAlignment="Center"
                                           source="Icons/google-drive.svg"
                                           tint="#83816A"/>
                                 <TextBlock gridColumn="1"
                                            text="Сохранить скриншот"
-                                           fontSize="21"
+                                           fontSize="31"
                                            horizontalAlignment="Left"
                                            verticalAlignment="Center"
                                            foreground="#D7D0B8"/>
                                 <SvgImage gridColumn="2"
-                                          width="22"
-                                          height="22"
+                                          width="34"
+                                          height="34"
                                           horizontalAlignment="Center"
                                           verticalAlignment="Center"
                                           source="Icons/chevron-right.svg"
@@ -499,10 +502,16 @@
                 <VisualStateGroup name="AlarmActionsPanelStates">
                     <VisualState name="Collapsed">
                         <Storyboard>
+                            <FloatAnimation targetName="alarmActionsMenu"
+                                            property="height"
+                                            from="Current"
+                                            to="100"
+                                            duration="500"
+                                            easing="CubicOut"/>
                             <FloatAnimation targetName="alarmActionsPanel"
                                             property="height"
                                             from="Current"
-                                            to="56"
+                                            to="100"
                                             duration="500"
                                             easing="CubicOut"/>
                             <FloatAnimation targetName="alarmActionsContent"
@@ -515,10 +524,16 @@
                     </VisualState>
                     <VisualState name="Expanded">
                         <Storyboard>
+                            <FloatAnimation targetName="alarmActionsMenu"
+                                            property="height"
+                                            from="Current"
+                                            to="65"
+                                            duration="500"
+                                            easing="CubicOut"/>
                             <FloatAnimation targetName="alarmActionsPanel"
                                             property="height"
                                             from="Current"
-                                            to="340"
+                                            to="425"
                                             duration="500"
                                             easing="CubicOut"/>
                             <FloatAnimation targetName="alarmActionsContent"
