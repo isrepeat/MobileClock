@@ -3,8 +3,8 @@
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
 
-#include "Renderer/AnimationRenderers.h"
-#include "UI/PageTransition.h"
+#include "MobileClock.Presentation/AnimationRenderers.h"
+#include "MobileClock.Presentation/PageTransition.h"
 #include "NavigationTransition.xaml.h"
 #include "PageTransitions.xaml.h"
 
@@ -103,7 +103,7 @@ namespace _details {
     void PageTransitions() {
         using namespace xaml;
         AnimationController controller;
-        using namespace mobileclock::ui;
+        using namespace mobileclock::presentation;
         AnimationRegistry animations = mobileclock::resources::effects::CreateAnimations();
         mobileclock::renderer::RegisterAnimations(animations);
         int viewModel = 0;

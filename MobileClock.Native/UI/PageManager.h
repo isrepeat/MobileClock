@@ -4,9 +4,9 @@
 
 #include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/ApplicationActions.h"
-#include "UI/Pages/MainPageViewModel.h"
 #include "UI/TouchHandler.h"
 #include "UI/Navigation.h"
+#include "UI/Pages/MainPageViewModel.h"
 
 #include <chrono>
 #include <string>

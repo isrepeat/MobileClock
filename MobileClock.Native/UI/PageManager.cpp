@@ -2,8 +2,8 @@
 
 #include <XamlRuntime/RenderEngine.h>
 
-#include "Renderer/AnimationRenderers.h"
-#include "UI/PageTransition.h"
+#include "MobileClock.Presentation/AnimationRenderers.h"
+#include "MobileClock.Presentation/PageTransition.h"
 
 namespace mobileclock::ui {
     PageManager::PageManager(IApplicationActions& actions)
@@ -44,10 +44,10 @@ namespace mobileclock::ui {
         xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
         renderer::RegisterAnimations(registry);
         const auto parameters = [this]() {
-            return xaml::AnimationParameters::Create(PageTransitionData{
+            return xaml::AnimationParameters::Create(presentation::PageTransitionData{
                 this->outgoingPage == Page::main ? "main" : "settings",
                 this->currentPage == Page::main ? "main" : "settings",
-                this->currentPage == Page::settings ? NavigationDirection::forward : NavigationDirection::backward,
+                this->currentPage == Page::settings ? presentation::NavigationDirection::forward : presentation::NavigationDirection::backward,
             });
         };
         auto& main = this->mainPageViewModel.Root();
@@ -125,10 +125,10 @@ namespace mobileclock::ui {
         xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
         this->animations.Attach(this->mainPageViewModel.Root(), registry);
         this->mainPageViewModel.Root().SetAnimationParametersProvider([this]() {
-            return xaml::AnimationParameters::Create(PageTransitionData{
+            return xaml::AnimationParameters::Create(presentation::PageTransitionData{
                 this->outgoingPage == Page::main ? "main" : "settings",
                 this->currentPage == Page::main ? "main" : "settings",
-                this->currentPage == Page::settings ? NavigationDirection::forward : NavigationDirection::backward,
+                this->currentPage == Page::settings ? presentation::NavigationDirection::forward : presentation::NavigationDirection::backward,
             });
         });
     }

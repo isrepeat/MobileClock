@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace mobileclock::ui {
+namespace mobileclock::presentation {
     enum class NavigationDirection { forward, backward };
 
     struct PageTransitionData {

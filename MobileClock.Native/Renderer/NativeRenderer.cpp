@@ -8,7 +8,7 @@
 #include "Renderer/AndroidApplicationActions.h"
 #include "Renderer/AndroidCommandDispatcher.h"
 #include "UI/PageManager.h"
-#include "AnimationRenderers.h"
+#include "MobileClock.Presentation/AnimationRenderers.h"
 #include "AnimationShaders.h"
 #include "AssetsManager.h"
 #include "NativeRenderer.h"

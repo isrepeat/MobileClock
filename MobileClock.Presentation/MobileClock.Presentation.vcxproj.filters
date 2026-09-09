@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <ClCompile Include="AnimationRenderers.cpp"><Filter>Sources</Filter></ClCompile>
+        <ClCompile Include="PreviewSession.cpp"><Filter>Sources</Filter></ClCompile>
+        <ClCompile Include="Effects\Effects.cpp"><Filter>Effects</Filter></ClCompile>
+        <ClCompile Include="Effects\Shaders.cpp"><Filter>Effects</Filter></ClCompile>
+        <ClInclude Include="AnimationRenderers.h"><Filter>Sources</Filter></ClInclude>
+        <ClInclude Include="PreviewSession.h"><Filter>Sources</Filter></ClInclude>
+        <ClInclude Include="PageTransition.h"><Filter>Sources</Filter></ClInclude>
+        <ClInclude Include="Effects\Effects.h"><Filter>Effects</Filter></ClInclude>
+        <ClInclude Include="Effects\Shaders.h"><Filter>Effects</Filter></ClInclude>
+    </ItemGroup>
+    <ItemGroup>
+        <Filter Include="Sources"><UniqueIdentifier>{B92DF65C-EF85-4B7B-8639-49627E550CB0}</UniqueIdentifier></Filter>
+        <Filter Include="Effects"><UniqueIdentifier>{1444AC61-8F42-4E5A-9264-AF1FEB31B013}</UniqueIdentifier></Filter>
+    </ItemGroup>
+</Project>

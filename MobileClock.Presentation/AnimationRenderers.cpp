@@ -1,7 +1,7 @@
-#include <XamlRuntime/RenderEngine.h>
-
-#include "UI/PageTransition.h"
 #include "AnimationRenderers.h"
+#include "PageTransition.h"
+
+#include <XamlRuntime/RenderEngine.h>
 
 #include <algorithm>
 #include <cmath>
@@ -51,8 +51,9 @@ namespace mobileclock::renderer::_details {
         if (context.Trigger() != xaml::AnimationTrigger::show && context.Trigger() != xaml::AnimationTrigger::hide) {
             return false;
         }
-        const auto* data = context.Parameters().TryGet<ui::PageTransitionData>();
-        const bool forward = data == nullptr || data->direction == ui::NavigationDirection::forward;
+        const auto* data = context.Parameters().TryGet<mobileclock::presentation::PageTransitionData>();
+        const bool forward = data == nullptr
+            || data->direction == mobileclock::presentation::NavigationDirection::forward;
         const bool show = context.Trigger() == xaml::AnimationTrigger::show;
         const float direction = forward ? 1.0f : -1.0f;
         const auto& settings = context.State();
@@ -71,7 +72,7 @@ namespace mobileclock::renderer::_details {
         if (context.Trigger() != xaml::AnimationTrigger::show && context.Trigger() != xaml::AnimationTrigger::hide) {
             return false;
         }
-        const auto* data = context.Parameters().TryGet<ui::PageTransitionData>();
+        const auto* data = context.Parameters().TryGet<mobileclock::presentation::PageTransitionData>();
         if (data == nullptr || data->to != "settings") {
             return false;
         }

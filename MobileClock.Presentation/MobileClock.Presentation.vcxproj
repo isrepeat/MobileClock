@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup Label="ProjectConfigurations">
+        <ProjectConfiguration Include="Debug|x64">
+            <Configuration>Debug</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|x64">
+            <Configuration>Release</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+    </ItemGroup>
+    <PropertyGroup Label="Globals">
+        <VCProjectVersion>18.0</VCProjectVersion>
+        <ProjectGuid>{F6F5D206-65C9-42D4-8890-8B6EE8B31C3F}</ProjectGuid>
+        <RootNamespace>MobileClockPresentation</RootNamespace>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+        <ConfigurationType>StaticLibrary</ConfigurationType>
+        <UseDebugLibraries>true</UseDebugLibraries>
+        <PlatformToolset>v145</PlatformToolset>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+        <ConfigurationType>StaticLibrary</ConfigurationType>
+        <UseDebugLibraries>false</UseDebugLibraries>
+        <PlatformToolset>v145</PlatformToolset>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <PropertyGroup>
+        <OutDir>$(ProjectDir)..\MobileClock.Native\!VS_TMP\Build\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</OutDir>
+        <IntDir>$(ProjectDir)..\MobileClock.Native\!VS_TMP\Intermediate\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</IntDir>
+        <TargetName>MobileClock.Presentation</TargetName>
+    </PropertyGroup>
+    <ItemDefinitionGroup>
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(ProjectDir)..\MobileClock.Native;$(ProjectDir)..;$(ProjectDir)..\UtilityHelpersLib\HelpersNew\HelpersNew.Shared;$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\OpenGLESRenderer\OpenGLESRenderer.Shared;$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <LanguageStandard>stdcpp17</LanguageStandard>
+            <WarningLevel>Level4</WarningLevel>
+            <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+        </ClCompile>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <ClCompile Include="AnimationRenderers.cpp" />
+        <ClCompile Include="PreviewSession.cpp" />
+        <ClCompile Include="Effects\Effects.cpp" />
+        <ClCompile Include="Effects\Shaders.cpp" />
+    </ItemGroup>
+    <ItemGroup>
+        <ClInclude Include="AnimationRenderers.h" />
+        <ClInclude Include="PreviewSession.h" />
+        <ClInclude Include="PageTransition.h" />
+        <ClInclude Include="Effects\Effects.h" />
+        <ClInclude Include="Effects\Shaders.h" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\OpenGLESRenderer\OpenGLESRenderer.vcxproj">
+            <Project>{A91C166B-24A1-4E60-8EF7-E2D89673515C}</Project>
+            <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
+            <SetPlatform>Platform=x64</SetPlatform>
+            <AdditionalProperties>Configuration=$(Configuration);Platform=x64</AdditionalProperties>
+        </ProjectReference>
+        <ProjectReference Include="$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.vcxproj">
+            <Project>{D5B97C3C-3A64-4A72-A71C-1186767DB3B1}</Project>
+            <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
+            <SetPlatform>Platform=x64</SetPlatform>
+            <AdditionalProperties>Configuration=$(Configuration);Platform=x64</AdditionalProperties>
+        </ProjectReference>
+    </ItemGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

@@ -1,5 +1,5 @@
 #pragma once
-#include "Resources/Effects/Effects.h"
+#include "Effects/Effects.h"
 
 namespace xaml {
     class RendererRegistry;

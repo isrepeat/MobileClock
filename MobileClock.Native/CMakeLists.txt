@@ -121,6 +121,9 @@ endforeach()
 file(GLOB_RECURSE mobileclock_header_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
+file(GLOB_RECURSE mobileclock_application_source_files CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+)
 file(GLOB_RECURSE mobileclock_icon_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icons/*"
 )
@@ -139,6 +142,11 @@ list(FILTER mobileclock_header_files EXCLUDE REGEX "/Build/")
 # Visual Studio может создавать локальный intellisense-probe; он не является
 # частью приложения и не должен попадать в CMake source groups или reconfigure.
 list(FILTER mobileclock_header_files EXCLUDE REGEX "/intellisense-probe/")
+# Тесты являются отдельными CMake-целями, а не частью Android-библиотеки.
+# Остальные .cpp/.h автоматически входят в основной target и дерево IDE.
+list(FILTER mobileclock_application_source_files EXCLUDE REGEX "/Tests/")
+list(FILTER mobileclock_application_source_files EXCLUDE REGEX "/Build/")
+list(FILTER mobileclock_application_source_files EXCLUDE REGEX "/intellisense-probe/")
 if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated
     OR NOT mobileclock_xaml_generated_headers)
     message(FATAL_ERROR
@@ -170,37 +178,62 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/UI" PREFIX "UI" FILES
     ${mobileclock_ui_header_files}
     ${mobileclock_page_xaml_source}
 )
-source_group("Resources\\Effects" FILES
-    Resources/Effects/Effects.cpp
-    Resources/Effects/Effects.h
-    Resources/Effects/Shaders.cpp
-    Resources/Effects/Shaders.h
-)
 source_group(TREE "${mobileclock_generated_root}/Xaml" PREFIX "!Generated\\Xaml" FILES
     ${mobileclock_xaml_generated}
     ${mobileclock_xaml_generated_headers}
 )
 source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES
+    ${mobileclock_application_source_files}
+    ${mobileclock_application_header_files}
+)
 
-set(mobileclock_ui_project_files
+set(mobileclock_presentation_source_files
+    ../MobileClock.Presentation/AnimationRenderers.cpp
+    ../MobileClock.Presentation/AnimationRenderers.h
+    ../MobileClock.Presentation/PreviewSession.cpp
+    ../MobileClock.Presentation/PreviewSession.h
+    ../MobileClock.Presentation/PageTransition.h
+    ../MobileClock.Presentation/Effects/Effects.cpp
+    ../MobileClock.Presentation/Effects/Effects.h
+    ../MobileClock.Presentation/Effects/Shaders.cpp
+    ../MobileClock.Presentation/Effects/Shaders.h
+)
+source_group(TREE "${mobileclock_project_root}/MobileClock.Presentation" PREFIX "MobileClock.Presentation" FILES
+    ${mobileclock_presentation_source_files}
+)
+add_library(mobileclock_presentation STATIC ${mobileclock_presentation_source_files})
+target_include_directories(mobileclock_presentation PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${mobileclock_project_root}"
+)
+set_target_properties(mobileclock_presentation PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    POSITION_INDEPENDENT_CODE ON
+)
+target_link_libraries(mobileclock_presentation PUBLIC
+    utility_helpers::open_gles_renderer
+    utility_helpers::xaml_runtime
+)
+
+set(mobileclock_ui_control_files
+    ../MobileClock.UI/Controls/AlarmList.cpp
     ../MobileClock.UI/Controls/AlarmList.h
     ../MobileClock.UI/Controls/AlarmList.xaml
+    ../MobileClock.UI/Controls/TimelineTabs.cpp
     ../MobileClock.UI/Controls/TimelineTabs.h
     ../MobileClock.UI/Controls/TimelineTabs.xaml
-    ../MobileClock.UI/MobileClock.UI.vcxproj
 )
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.UI" PREFIX "MobileClock.UI" FILES
-    ${mobileclock_ui_project_files}
+source_group("Controls" FILES
+    ${mobileclock_ui_control_files}
     ${mobileclock_ui_control_xaml_source}
 )
 add_library(mobileclock_ui STATIC
-    ../MobileClock.UI/Controls/AlarmList.cpp
-    ../MobileClock.UI/Controls/TimelineTabs.cpp
+    ${mobileclock_ui_control_files}
     ${mobileclock_ui_control_xaml_generated}
     ${mobileclock_ui_control_xaml_generated_headers}
-)
-target_sources(mobileclock_ui PRIVATE
-    ${mobileclock_ui_project_files}
 )
 target_include_directories(mobileclock_ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -219,22 +252,9 @@ target_link_libraries(mobileclock_ui PUBLIC
 )
 
 add_library(mobileclock SHARED
-    main.cpp
-    NativeApplication.cpp
-    Renderer/AnimationRenderers.cpp
-    Renderer/AnimationShaders.cpp
-    Resources/Effects/Effects.cpp
-    Resources/Effects/Shaders.cpp
-    Renderer/AssetsManager.cpp
-    Renderer/AndroidApplicationActions.cpp
-    Renderer/AndroidCommandDispatcher.cpp
-    Renderer/NativeRenderer.cpp
-    UI/Pages/MainPageViewModel.cpp
-    UI/PageManager.cpp
-    UI/Pages/SettingsPageViewModel.cpp
-    UI/TouchHandler.cpp
+    ${mobileclock_application_source_files}
     ${mobileclock_application_header_files}
-    ${mobileclock_xaml_source}
+    ${mobileclock_page_xaml_source}
     ${mobileclock_resource_files}
     ${mobileclock_page_xaml_generated}
     ${mobileclock_page_xaml_generated_headers}
@@ -275,6 +295,7 @@ find_library(log-lib log)
 # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
     mobileclock_ui
+    mobileclock_presentation
     utility_helpers::open_gles_renderer
     utility_helpers::new
     utility_helpers::xaml_runtime

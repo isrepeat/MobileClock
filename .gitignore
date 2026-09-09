@@ -2,6 +2,7 @@
 .gradle/
 .kotlin/
 Build/
+MobileClock.Native/!VS_TMP/
 
 # Local configuration file (SDK path, etc.)
 local.properties
