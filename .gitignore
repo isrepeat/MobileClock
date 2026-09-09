@@ -1,8 +1,7 @@
 # Gradle files
 .gradle/
 .kotlin/
-build/
-out/
+Build/
 
 # Local configuration file (SDK path, etc.)
 local.properties
@@ -18,14 +17,6 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
-Native/out/
-Native/!VS_TMP/
-Native/!Generated/
-
-Native/cmake/vs-android-drivers/**/clang.exe
-Native/cmake/vs-android-drivers/**/clang++.exe
-Native/cmake/vs-android-drivers/**/libwinpthread-1.dll
-
 # Generated app packages and metadata
 *.aab
 *.apk

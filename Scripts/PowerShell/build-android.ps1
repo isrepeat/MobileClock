@@ -14,22 +14,24 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$nativeRoot = Join-Path $projectRoot 'Native'
-$xamlCompilerRoot = Join-Path $nativeRoot 'UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
-$xamlCompilerBuild = Join-Path $projectRoot 'out\xaml-compiler'
+$nativeRoot = Join-Path $projectRoot 'MobileClock.Native'
+$uiRoot = Join-Path $projectRoot 'MobileClock.UI'
+$xamlCompilerRoot = Join-Path $projectRoot 'UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
+$xamlCompilerBuild = Join-Path $projectRoot 'Build\MobileClock.Native\xaml-compiler'
 $xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
 $xamlSourceRoots = @(
     (Join-Path $nativeRoot 'UI'),
-    (Join-Path $nativeRoot 'MobileClock.UI')
+    $uiRoot
 )
-$xamlGeneratedRoot = Join-Path $nativeRoot '!Generated\Xaml'
+$xamlGeneratedRoot = Join-Path $projectRoot 'Build\MobileClock.Native\!Generated\Xaml'
 $xamlIgnoreConfigurationPath = Join-Path $nativeRoot 'UI\XamlCompilerIgnore.json'
 $xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath -Raw | ConvertFrom-Json
 $xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
 $xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
-$gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
-$apkPath = Join-Path $projectRoot 'out\gradle\app\outputs\apk\debug\app-debug.apk'
-$updaterApkPath = Join-Path $projectRoot 'out\gradle\updater\outputs\apk\debug\updater-debug.apk'
+$gradleRoot = Join-Path $projectRoot 'Build\Gradle'
+$gradleWrapper = Join-Path $gradleRoot 'gradlew.bat'
+$apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\app-debug.apk'
+$updaterApkPath = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\updater-debug.apk'
 
 function Invoke-Checked {
     param(
@@ -97,7 +99,7 @@ try {
     Pop-Location
 }
 
-$nativeLibrary = Join-Path $projectRoot "out\android\jniLibs\$Architecture\libmobileclock.so"
+$nativeLibrary = Join-Path $projectRoot "Build\MobileClock.Native\android\jniLibs\$Architecture\libmobileclock.so"
 if (-not (Test-Path $nativeLibrary)) {
     throw "CMake completed but did not produce $nativeLibrary"
 }
@@ -107,16 +109,15 @@ if ($NativeOnly) {
     exit 0
 }
 
-# Gradle deliberately does not invoke CMake here. app/build.gradle.kts no
+# Gradle deliberately does not invoke CMake here. MobileClock.Android/build.gradle.kts no
 # longer has externalNativeBuild, so it only packages the .so emitted above.
-$gradleTask = 'assembleDebug'
-Write-Host "==> Running Gradle task: $gradleTask"
+$gradleTasks = @(':MobileClock.Android:assembleDebug', ':MobileClock.AndroidUpdater:assembleDebug')
+Write-Host "==> Running Gradle tasks: $($gradleTasks -join ', ')"
 # gradlew determines the Android project from the current directory. The .bat
-# launchers live in Scripts, therefore explicitly return to the project root
-# before calling it; otherwise Gradle treats Scripts as a separate project.
-Push-Location $projectRoot
+# launchers and settings live in Build/Gradle, therefore invoke Gradle there.
+Push-Location $gradleRoot
 try {
-    Invoke-Checked $gradleWrapper @('--no-daemon', $gradleTask)
+    Invoke-Checked $gradleWrapper (@('--no-daemon') + $gradleTasks)
 } finally {
     Pop-Location
 }

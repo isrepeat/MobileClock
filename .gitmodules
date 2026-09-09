@@ -1,4 +1,4 @@
-[submodule "Native/UtilityHelpersLib"]
-	path = Native/UtilityHelpersLib
+[submodule "UtilityHelpersLib"]
+	path = UtilityHelpersLib
 	url = https://github.com/isrepeat/UtilityHelpersLib.git
 	branch = Last
