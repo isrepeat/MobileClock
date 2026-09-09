@@ -18,51 +18,15 @@ internal sealed class DevicePreset {
 internal sealed class PreviewerSettings {
     private const string DefaultResourcesDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\Resources";
     private const string DefaultXamlDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\UI";
-    private const string DefaultScenariosPath = @"C:\WORK\Android\Projects\MobileClock\MobileClock.AndroidHost\Tests\XamlPreviewer\scenarios.json";
-    private const string DefaultScenarios = """
-        {
-          "MainPage": {
-            "Будильники": {
-              "PackageVersion": "1.4.0",
-              "ClockText": "через 6 ч 35 мин",
-              "Alarms": [
-                { "Time": "05:55", "IsEnabled": true },
-                { "Time": "06:18", "IsEnabled": false },
-                { "Time": "06:30", "IsEnabled": true },
-                { "Time": "06:36", "IsEnabled": false }
-              ],
-              "$interactions": {
-                "settingsButton": {
-                  "tap": { "type": "navigate", "target": "SettingsPage", "direction": "forward" }
-                }
-              }
-            }
-          },
-          "SettingsPage": {
-            "Основной": {
-              "PackageVersion": "1.4.0",
-              "Theme": "Тёмная",
-              "Sound": "Мелодия по умолчанию",
-              "$interactions": {
-                "backNavigation": {
-                  "tap": { "type": "navigate", "target": "MainPage", "direction": "backward" }
-                }
-              }
-            }
-          }
-        }
-        """;
     private static readonly JsonSerializerOptions JsonOptions = new() {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = true
     };
 
     public required string XamlDirectory { get; set; }
-    public required string ScenariosPath { get; init; }
     public required string ResourcesDirectory { get; init; }
     public string? LastMarkupPath { get; set; }
     public Dictionary<string, int[]> CollapsedMarkupFoldingOffsets { get; set; } = [];
-    public string? LastScenarioName { get; set; }
     public double WindowWidth { get; set; }
     public double WindowHeight { get; set; }
     public bool IsMaximized { get; set; }
@@ -101,7 +65,6 @@ internal sealed class PreviewerSettings {
             settings.Save();
         }
         settings.CollapsedMarkupFoldingOffsets ??= [];
-        settings.CreateDefaultScenariosIfMissing();
         settings.ValidateAnimationSpeeds();
         settings.ValidateResolutions();
         return settings;
@@ -148,20 +111,8 @@ internal sealed class PreviewerSettings {
         return new PreviewerSettings {
             FilePath = settingsPath,
             XamlDirectory = DefaultXamlDirectory,
-            ScenariosPath = DefaultScenariosPath,
             ResourcesDirectory = DefaultResourcesDirectory,
         };
-    }
-
-    private void CreateDefaultScenariosIfMissing() {
-        if (File.Exists(this.ScenariosPath)) {
-            return;
-        }
-        var directory = Path.GetDirectoryName(this.ScenariosPath);
-        if (!string.IsNullOrEmpty(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-        File.WriteAllText(this.ScenariosPath, DefaultScenarios.TrimEnd());
     }
 
 }

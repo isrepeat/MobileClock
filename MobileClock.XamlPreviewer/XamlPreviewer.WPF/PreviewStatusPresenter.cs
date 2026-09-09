@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using PreviewRenderer = XamlPreviewer.PreviewBrushes;
 
 namespace XamlPreviewer;
 

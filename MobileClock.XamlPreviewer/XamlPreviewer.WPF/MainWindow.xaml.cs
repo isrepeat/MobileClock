@@ -1,39 +1,30 @@
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Search;
-using System.Text.Encodings.Web;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using PreviewRenderer = XamlPreviewer.PreviewBrushes;
 
 namespace XamlPreviewer;
-
-#pragma warning disable CS0162
 
 /// <summary>
 /// Координирует UI превьювера: режимы AvalonEdit, сохранённое состояние сессии,
 /// наблюдение за внешними файлами и жизненный цикл нативной сессии рендеринга.
-/// Разбор разметки и отрисовка остаются в специализированных классах PreviewRenderer и PreviewSession.
+/// WPF редактирует файлы и показывает кадры; дерево, ввод и отрисовка принадлежат native ApplicationSession.
 /// </summary>
 public partial class MainWindow : Window {
     private const string NativeBridgeLibraryName = "XamlPreviewer.NativeBridge.dll";
     private const double SearchPanelOverlayHeight = 84.0;
-    private static readonly JsonSerializerOptions ScenarioJsonOptions = new() {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        WriteIndented = true
-    };
     private readonly DispatcherTimer renderTimer;
     private readonly DispatcherTimer animationTimer;
-    private readonly DispatcherTimer previewZoomTimer;
     private readonly PreviewFileWatchController fileWatchController;
     private readonly EditorScrollController editorScrollController;
     private readonly PreviewStatusPresenter statusPresenter;
@@ -42,47 +33,21 @@ public partial class MainWindow : Window {
     private readonly XamlCompletionController xamlCompletionController;
     private readonly FolderPickerController folderPickerController;
     private readonly PreviewViewportController previewViewportController;
-    private readonly PreviewGestureController previewGestureController;
-    private readonly PreviewCursorSet previewCursors;
     private readonly Grid previewLayer = new();
     private bool updatingPreviewControls;
     private bool settingsPersistenceReady;
-    private PreviewSession? previewSession;
+    private MobileClockSession? nativeApplicationSession;
     private bool isClosing;
-    private PreviewSession? outgoingSession;
     private PreviewerSettings settings = null!;
     private string? markupPath;
-    private string scenariosPath = string.Empty;
-    private bool usesPageSpecificScenarios;
-    private (string From, string To, bool Backward)? pendingPageTransition;
-    private (int Width, int Height)? markupPreviewResolution;
-    private bool shouldRestorePreviewPosition = true;
     private bool isMarkupDirty;
-    private bool isScenariosDirty;
     private bool isSettingsDirty;
     private bool updatingEditors;
     private bool suppressFoldingStatePersistence;
     private EditorMode editorMode;
-    private EditorMode previousEditorMode = EditorMode.Xaml;
-    private bool isPreviewPanning;
-    private Point previewPanStart;
-    private double previewPanHorizontalOffset;
-    private double previewPanVerticalOffset;
-    private DateTime previewZoomStartedAt;
-    private double previewZoomStartScale;
-    private double previewZoomTargetScale;
-    private double previewZoomAnchorX;
-    private double previewZoomAnchorY;
-    private Point previewZoomViewportPoint;
-
-    private sealed class ScenarioSource {
-        public required string Path { get; init; }
-        public required bool IsPageSpecific { get; init; }
-    }
 
     private enum EditorMode {
         Xaml,
-        Scenarios,
         Settings,
     }
 
@@ -101,7 +66,6 @@ public partial class MainWindow : Window {
         this.DeviceSurface.Child = this.previewLayer;
         WindowTheme.EnableDarkTitleBar(this);
         this.markupSearchPanel = MainWindow.ConfigureEditor(this.MarkupEditor, MarkupSyntaxHighlighter.Create());
-        MainWindow.ConfigureEditor(this.ScenarioEditor, MarkupSyntaxHighlighter.CreateJson());
         MainWindow.ConfigureEditor(this.SettingsEditor, MarkupSyntaxHighlighter.CreateJson());
         this.markupSearchPanel.IsVisibleChanged += this.MarkupSearchPanelLayoutChanged;
         this.markupEditorController = new MarkupEditorController(this.MarkupEditor);
@@ -123,11 +87,6 @@ public partial class MainWindow : Window {
             this.GetPreviewScale,
             this.SetPreviewScale,
             () => { this.SyncSettingsEditor(); this.PersistSettings(); });
-        this.previewGestureController = new PreviewGestureController(
-            this.GetPreviewScenarioRoot,
-            this.GetSelectedScenario,
-            this.SavePreviewScenarioChanges);
-        this.previewCursors = new PreviewCursorSet();
         this.renderTimer = new DispatcherTimer {
             Interval = TimeSpan.FromMilliseconds(250)
         };
@@ -136,10 +95,6 @@ public partial class MainWindow : Window {
             Interval = TimeSpan.FromMilliseconds(16)
         };
         this.animationTimer.Tick += this.AnimationTimerTick;
-        this.previewZoomTimer = new DispatcherTimer {
-            Interval = TimeSpan.FromMilliseconds(16)
-        };
-        this.previewZoomTimer.Tick += this.PreviewZoomTimerTick;
         this.fileWatchController = new PreviewFileWatchController(this.Dispatcher, this.ExternalRefresh);
         this.editorScrollController = new EditorScrollController(
             () => this.settings,
@@ -150,8 +105,6 @@ public partial class MainWindow : Window {
         this.StateChanged += this.WindowStateChanged;
         this.PreviewKeyDown += this.WindowPreviewKeyDown;
         this.PreviewKeyUp += this.WindowPreviewKeyUp;
-        this.Deactivated += (_, _) => this.previewSession?.SetElementInspectionEnabled(false);
-        this.Activated += (_, _) => this.UpdateElementInspection();
     }
 
     private void WindowLoaded(object sender, RoutedEventArgs eventArgs) {
@@ -182,16 +135,8 @@ public partial class MainWindow : Window {
         this.updatingEditors = true;
         this.SettingsEditor.Text = this.settings.ToJson();
         this.updatingEditors = false;
-        if (this.markupPath is null) {
-            this.LoadScenarioForCurrentMarkup();
-        }
         this.isMarkupDirty = false;
-        this.isScenariosDirty = false;
         this.isSettingsDirty = false;
-        this.RefreshScenarioNames();
-        if (this.settings.LastScenarioName is not null) {
-            this.ScenarioPicker.SelectedItem = this.settings.LastScenarioName;
-        }
         this.UpdateEditorMode();
         this.settingsPersistenceReady = true;
         this.PersistSettings();
@@ -245,7 +190,6 @@ public partial class MainWindow : Window {
     private void OpenButtonClick(object sender, RoutedEventArgs eventArgs) {
         this.folderPickerController.Open(this.settings.XamlDirectory);
         this.MarkupEditor.Visibility = Visibility.Collapsed;
-        this.ScenarioPanel.Visibility = Visibility.Collapsed;
         this.SettingsPanel.Visibility = Visibility.Collapsed;
         this.OpenButton.IsEnabled = false;
         this.statusPresenter.Information("Выберите папку, содержащую XAML-файлы.");
@@ -304,70 +248,25 @@ public partial class MainWindow : Window {
     }
 
     private void ShowFolderPickerPreview(string path) {
-        try {
-            var markup = File.ReadAllText(path);
-            var source = this.GetScenarioSource(markup, path);
-            using var document = JsonDocument.Parse(File.Exists(source.Path)
-                ? File.ReadAllText(source.Path)
-                : "{}");
-            var pageName = Path.GetFileName(path);
-            var scenarios = MainWindow.GetScenarios(document.RootElement, source.IsPageSpecific, pageName);
-            var scenarioName = this.ScenarioPicker.SelectedItem as string;
-            var data = scenarioName is not null && scenarios.TryGetProperty(scenarioName, out var selected)
-                ? selected
-                : scenarios;
-            var root = PreviewRenderer.CreateRoot(markup, data);
-            this.animationTimer.Stop();
-            this.CompletePageTransition();
-            this.previewSession?.Dispose();
-            this.previewSession = null;
-            this.previewLayer.Children.Clear();
-            var previewSize = this.GetPreviewSize();
-            PreviewSession session;
-            try {
-                session = new PreviewSession(
-                    root,
-                    this.settings.ResourcesDirectory,
-                    previewSize.Width,
-                    previewSize.Height,
-                    this.previewCursors);
-            }
-            catch {
-                NativeRuntime.xr_destroy_element(root);
-                throw;
-            }
-            session.SetAnimationSpeed(this.GetAnimationPlaybackRate());
-            session.AnimationStarted += this.PreviewSessionAnimationStarted;
-            this.animationTimer.Start();
-            session.Tapped += this.PreviewSessionTapped;
-            session.Panned += this.PreviewSessionPanned;
-            this.previewSession = session;
-            this.previewLayer.Children.Add(session.Surface);
-            this.statusPresenter.Success($"Предпросмотр: {path}");
-        }
-        catch (Exception exception) {
-            this.ShowPreviewError(exception);
-        }
+        this.ShowNativeApplicationPreview();
     }
 
     private void ClearFolderPickerPreview() {
         this.animationTimer.Stop();
-        this.pendingPageTransition = null;
-        this.CompletePageTransition();
-        this.previewSession?.Dispose();
-        this.previewSession = null;
+        this.nativeApplicationSession?.Dispose();
+        this.nativeApplicationSession = null;
         this.previewLayer.Children.Clear();
     }
 
     private void ShowPreviewError(Exception exception) {
         this.ClearFolderPickerPreview();
         this.previewLayer.Children.Add(new Border {
-            Background = PreviewRenderer.ParseBrush("#1F1717"),
-            BorderBrush = PreviewRenderer.ParseBrush("#A75B5B"),
+            Background = PreviewBrushes.Parse("#1F1717"),
+            BorderBrush = PreviewBrushes.Parse("#A75B5B"),
             BorderThickness = new Thickness(1),
             Child = new TextBlock {
                 Margin = new Thickness(32),
-                Foreground = PreviewRenderer.ParseBrush("#FFB4AB"),
+                Foreground = PreviewBrushes.Parse("#FFB4AB"),
                 FontSize = 18,
                 Text = $"Ошибка предпросмотра\n\n{exception.Message}",
                 TextWrapping = TextWrapping.Wrap,
@@ -394,10 +293,6 @@ public partial class MainWindow : Window {
     }
 
     private void SaveButtonClick(object sender, RoutedEventArgs eventArgs) {
-        if (this.editorMode == EditorMode.Scenarios) {
-            this.SaveScenarios("Сценарии сохранены");
-            return;
-        }
         if (this.editorMode == EditorMode.Settings) {
             this.settings = PreviewerSettings.Parse(this.SettingsEditor.Text, this.settings.FilePath);
             this.ConfigureMouseWheelScrolling();
@@ -405,7 +300,6 @@ public partial class MainWindow : Window {
             this.ApplySettingsToPreviewControls();
             this.SaveSettings();
             this.RefreshPageNames();
-            this.LoadScenarioForCurrentMarkup();
             this.updatingEditors = true;
             this.SettingsEditor.Text = this.settings.ToJson();
             this.updatingEditors = false;
@@ -422,11 +316,6 @@ public partial class MainWindow : Window {
         this.isMarkupDirty = false;
         this.UpdateDocumentState();
         this.statusPresenter.Success($"Сохранено: {this.markupPath}");
-    }
-
-    private void ScenarioPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
-        this.PersistSettings();
-        this.ScheduleRender();
     }
 
     private void DevicePresetPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
@@ -448,8 +337,6 @@ public partial class MainWindow : Window {
         }
 
         this.settings.AnimationPlaybackRate = speed.Rate;
-        this.previewSession?.SetAnimationSpeed(speed.Rate);
-        this.outgoingSession?.SetAnimationSpeed(speed.Rate);
         this.SyncSettingsEditor();
         this.PersistSettings();
     }
@@ -477,147 +364,29 @@ public partial class MainWindow : Window {
 
     private void PreviewViewportPreviewMouseWheel(object sender, MouseWheelEventArgs eventArgs) {
         this.previewViewportController.HandleMouseWheel(eventArgs);
-        return;
-        if (!Keyboard.IsKeyDown(Key.LeftCtrl) && !Keyboard.IsKeyDown(Key.RightCtrl)) {
-            return;
-        }
-        var point = eventArgs.GetPosition(this.PreviewViewport);
-        this.previewZoomStartScale = this.GetPreviewScale();
-        var wheelSteps = Math.Max(1, Math.Abs(eventArgs.Delta) / Mouse.MouseWheelDeltaForOneLine);
-        var zoomFactor = Math.Pow(1.25, wheelSteps);
-        this.previewZoomTargetScale = Math.Clamp(
-            this.previewZoomStartScale * (eventArgs.Delta > 0 ? zoomFactor : 1.0 / zoomFactor),
-            0.1,
-            3.0);
-        this.previewZoomAnchorX = (this.PreviewViewport.HorizontalOffset + point.X) / this.previewZoomStartScale;
-        this.previewZoomAnchorY = (this.PreviewViewport.VerticalOffset + point.Y) / this.previewZoomStartScale;
-        this.previewZoomViewportPoint = point;
-        this.previewZoomStartedAt = DateTime.UtcNow;
-        this.previewZoomTimer.Start();
-        eventArgs.Handled = true;
-    }
-
-    private void PreviewZoomTimerTick(object? sender, EventArgs eventArgs) {
-        const double durationMilliseconds = 120.0;
-        var progress = Math.Clamp((DateTime.UtcNow - this.previewZoomStartedAt).TotalMilliseconds / durationMilliseconds, 0.0, 1.0);
-        var easedProgress = progress;
-        // var inverseProgress = 1.0 - progress;
-        // var easedProgress = 1.0 - inverseProgress * inverseProgress * inverseProgress;
-        var scale = this.previewZoomStartScale
-            + (this.previewZoomTargetScale - this.previewZoomStartScale) * easedProgress;
-        this.settings.PreviewScale = scale;
-        this.ApplyPreviewLayout();
-        this.PreviewViewport.ScrollToHorizontalOffset(
-            this.previewZoomAnchorX * scale - this.previewZoomViewportPoint.X);
-        this.PreviewViewport.ScrollToVerticalOffset(
-            this.previewZoomAnchorY * scale - this.previewZoomViewportPoint.Y);
-        if (progress < 1.0) {
-            return;
-        }
-        this.previewZoomTimer.Stop();
-        this.SyncSettingsEditor();
-        this.PersistSettings();
     }
 
     private void PreviewViewportPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs eventArgs) {
         this.previewViewportController.HandleMouseDown(eventArgs);
-        return;
-        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) {
-            return;
-        }
-        this.isPreviewPanning = true;
-        this.previewPanStart = eventArgs.GetPosition(this.PreviewViewport);
-        this.previewPanHorizontalOffset = this.PreviewViewport.HorizontalOffset;
-        this.previewPanVerticalOffset = this.PreviewViewport.VerticalOffset;
-        this.PreviewViewport.Cursor = Cursors.Cross;
-        this.PreviewViewport.CaptureMouse();
-        eventArgs.Handled = true;
     }
 
     private void PreviewViewportPreviewMouseMove(object sender, MouseEventArgs eventArgs) {
         this.previewViewportController.HandleMouseMove(eventArgs);
-        return;
-        if (!this.isPreviewPanning) {
-            return;
-        }
-        var point = eventArgs.GetPosition(this.PreviewViewport);
-        this.PreviewViewport.ScrollToHorizontalOffset(this.previewPanHorizontalOffset - point.X + this.previewPanStart.X);
-        this.PreviewViewport.ScrollToVerticalOffset(this.previewPanVerticalOffset - point.Y + this.previewPanStart.Y);
-        eventArgs.Handled = true;
     }
 
     private void PreviewViewportPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs eventArgs) {
         this.previewViewportController.HandleMouseUp(eventArgs);
-        return;
-        if (!this.isPreviewPanning) {
-            return;
-        }
-        this.StopPreviewPanning();
-        eventArgs.Handled = true;
     }
 
     private void PreviewViewportLostMouseCapture(object sender, MouseEventArgs eventArgs) {
         this.previewViewportController.HandleLostMouseCapture();
-        return;
-        this.StopPreviewPanning();
     }
 
     private void WindowPreviewKeyDown(object sender, KeyEventArgs eventArgs) {
-        var key = eventArgs.Key == Key.System ? eventArgs.SystemKey : eventArgs.Key;
-        if ((key is Key.LeftAlt or Key.RightAlt) && this.ElementInspectionButton.IsChecked != true) {
-            this.UpdateElementInspection();
-        }
     }
 
     private void WindowPreviewKeyUp(object sender, KeyEventArgs eventArgs) {
-        var key = eventArgs.Key == Key.System ? eventArgs.SystemKey : eventArgs.Key;
-        if ((key is Key.LeftAlt or Key.RightAlt) && this.ElementInspectionButton.IsChecked != true) {
-            this.UpdateElementInspection();
-        }
         this.previewViewportController.HandleKeyUp(eventArgs);
-        return;
-        if (eventArgs.Key == Key.LeftCtrl || eventArgs.Key == Key.RightCtrl) {
-            this.StopPreviewPanning();
-        }
-    }
-
-    private void StopPreviewPanning() {
-        if (!this.isPreviewPanning) {
-            return;
-        }
-        this.isPreviewPanning = false;
-        this.PreviewViewport.Cursor = null;
-        this.PreviewViewport.ReleaseMouseCapture();
-    }
-
-    private void UpdateElementInspection() {
-        if (this.isClosing) {
-            return;
-        }
-        this.previewSession?.SetElementInspectionEnabled(
-            this.IsActive && this.editorMode == EditorMode.Xaml
-            && (this.ElementInspectionButton.IsChecked == true
-                || Keyboard.IsKeyDown(Key.LeftAlt)
-                || Keyboard.IsKeyDown(Key.RightAlt)));
-    }
-
-    private void ElementInspectionButtonClick(object sender, RoutedEventArgs eventArgs) {
-        this.UpdateElementInspection();
-    }
-
-    private void PreviewElementSelected(object? sender, (int Line, int Column) location) {
-        if (this.editorMode != EditorMode.Xaml || !ReferenceEquals(sender, this.previewSession)) {
-            return;
-        }
-        var document = this.MarkupEditor.Document;
-        if (location.Line < 1 || location.Line > document.LineCount) {
-            return;
-        }
-        var line = document.GetLineByNumber(location.Line);
-        this.MarkupEditor.CaretOffset = line.Offset + Math.Min(location.Column - 1, line.Length);
-        this.MarkupEditor.Select(this.MarkupEditor.CaretOffset, 0);
-        this.MarkupEditor.ScrollTo(location.Line, location.Column);
-        this.MarkupEditor.Focus();
     }
 
     private void ExpandAllFoldingsButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -660,27 +429,14 @@ public partial class MainWindow : Window {
         this.SetEditorScale(this.GetEditorScale() + 0.1);
     }
 
-    private void EditorModeToggleClick(object sender, RoutedEventArgs eventArgs) {
-        this.SettingsButton.IsChecked = false;
-        this.editorMode = this.EditorModeToggle.IsChecked == true
-            ? EditorMode.Scenarios
-            : EditorMode.Xaml;
-        this.UpdateEditorMode();
-    }
-
     private void SettingsButtonClick(object sender, RoutedEventArgs eventArgs) {
         if (this.SettingsButton.IsChecked == true) {
-            this.previousEditorMode = this.editorMode == EditorMode.Settings
-                ? this.previousEditorMode
-                : this.editorMode;
-            this.EditorModeToggle.IsChecked = false;
             this.editorMode = EditorMode.Settings;
             if (!this.isSettingsDirty) {
                 this.SyncSettingsEditor();
             }
         } else {
-            this.editorMode = this.previousEditorMode;
-            this.EditorModeToggle.IsChecked = this.editorMode == EditorMode.Scenarios;
+            this.editorMode = EditorMode.Xaml;
         }
         this.UpdateEditorMode();
     }
@@ -690,48 +446,25 @@ public partial class MainWindow : Window {
             this.LoadMarkup(Path.Combine(this.settings.XamlDirectory, pageName));
         }
 
-        this.RefreshScenarioNames();
-        // Редактирование XAML намеренно debounce'ится, но navigation уже имеет
-        // готовую цель. Иначе пользователь ждёт 250 мс до начала transition.
-        if (this.pendingPageTransition is not null) {
-            this.RenderTimerTick(this, EventArgs.Empty);
-        }
+        this.ShowNativeApplicationPreview();
     }
 
     private void EditorTextChanged(object sender, EventArgs eventArgs) {
         if (ReferenceEquals(sender, this.MarkupEditor)) {
             if (this.markupEditorController.HandleTextChanged()) {
                 this.isMarkupDirty = true;
-                try {
-                    var source = this.GetScenarioSource(
-                        this.markupEditorController.Text,
-                        this.markupPath ?? Path.Combine(this.settings.XamlDirectory, "Preview.xaml"));
-                    if (!string.Equals(source.Path, this.scenariosPath, StringComparison.OrdinalIgnoreCase)
-                        || source.IsPageSpecific != this.usesPageSpecificScenarios) {
-                        this.LoadScenarioForCurrentMarkup();
-                    }
-                }
-                catch (InvalidDataException) {
-                }
-                catch (System.Xml.XmlException) {
-                }
                 this.UpdateDocumentState();
-                this.ScheduleRender();
             }
 
             return;
         }
 
         if (!this.updatingEditors) {
-            if (ReferenceEquals(sender, this.ScenarioEditor)) {
-                this.isScenariosDirty = true;
-                this.RefreshScenarioNames();
-            } else if (ReferenceEquals(sender, this.SettingsEditor)) {
+            if (ReferenceEquals(sender, this.SettingsEditor)) {
                 this.isSettingsDirty = true;
             }
 
             this.UpdateDocumentState();
-            this.ScheduleRender();
         }
     }
 
@@ -807,357 +540,19 @@ public partial class MainWindow : Window {
         if (this.isClosing) {
             return;
         }
-        try {
-            this.markupPreviewResolution = PreviewRenderer.GetPreviewResolution(this.markupEditorController.Text);
-            this.ApplyPreviewLayout();
-            using var document = JsonDocument.Parse(this.ScenarioEditor.Text);
-            var scenarioName = this.ScenarioPicker.SelectedItem as string;
-            var scenarios = this.GetScenarios(document.RootElement);
-            var data = scenarioName is not null && scenarios.TryGetProperty(scenarioName, out var selected)
-                ? selected
-                : scenarios;
-            string sourceMarkup = this.markupEditorController.Text;
-            var locations = new Dictionary<IntPtr, (int Line, int Column)>();
-            var root = PreviewRenderer.CreateRootWithLocations(
-                sourceMarkup,
-                data,
-                locations,
-                this.settings.XamlDirectory);
-            var previewSize = this.GetPreviewSize();
-            this.animationTimer.Stop();
-            var previousSession = this.previewSession;
-            var transition = this.pendingPageTransition;
-            this.pendingPageTransition = null;
-            this.CompletePageTransition();
-            PreviewSession session;
-            try {
-                session = new PreviewSession(
-                    root,
-                    this.settings.ResourcesDirectory,
-                    previewSize.Width,
-                    previewSize.Height,
-                    this.previewCursors,
-                    previousSession is not null && transition is not null);
-            }
-            catch {
-                NativeRuntime.xr_destroy_element(root);
-                throw;
-            }
-            this.previewLayer.Children.Clear();
-            session.SetAnimationSpeed(this.GetAnimationPlaybackRate());
-            session.AnimationStarted += this.PreviewSessionAnimationStarted;
-            this.animationTimer.Start();
-            session.Tapped += this.PreviewSessionTapped;
-            session.Panned += this.PreviewSessionPanned;
-            this.previewSession = session;
-            if (previousSession is not null && transition is not null) {
-                this.StartPageTransition(previousSession, session, transition.Value);
-            } else {
-                previousSession?.Dispose();
-                this.previewLayer.Children.Add(session.Surface);
-            }
-            session.SetSourceLocations(locations);
-            session.ElementSelected += (sender, location) => {
-                if (this.markupEditorController.Text == sourceMarkup) {
-                    this.PreviewElementSelected(sender, location);
-                }
-            };
-            this.UpdateElementInspection();
-            this.statusPresenter.Success($"Предпросмотр обновлён · {DateTime.Now:HH:mm:ss}");
-            if (this.shouldRestorePreviewPosition) {
-                this.shouldRestorePreviewPosition = false;
-                this.Dispatcher.BeginInvoke(new Action(this.RestorePreviewPosition));
-            }
-        }
-        catch (Exception exception) {
-            this.ShowPreviewError(exception);
-        }
+        this.ShowNativeApplicationPreview();
     }
 
     private void AnimationTimerTick(object? sender, EventArgs eventArgs) {
         if (this.isClosing) {
             return;
         }
-        var currentSession = this.previewSession;
-        var previousOutgoingSession = this.outgoingSession;
-        bool currentAnimating = currentSession?.Update() ?? false;
-        // Update can synchronously replace the session through the Panned event.
-        // Its return value then describes the old session, not the new animation.
-        if (!ReferenceEquals(currentSession, this.previewSession)
-            || !ReferenceEquals(previousOutgoingSession, this.outgoingSession)) {
-            NativeRuntime.xr_log_info("Animation tick: session replaced during Update; keeping timer active for the new session.");
-            return;
-        }
-        bool outgoingAnimating = previousOutgoingSession?.Update() ?? false;
-        if (!currentAnimating && !outgoingAnimating) {
-            this.CompletePageTransition();
-            this.animationTimer.Stop();
-        }
-    }
-
-    private void PreviewSessionAnimationStarted(object? sender, EventArgs eventArgs) {
-        if (this.isClosing) {
-            return;
-        }
-        this.animationTimer.Start();
-    }
-
-    private void PreviewSessionTapped(object? sender, string elementId) {
-        if (this.outgoingSession is not null || string.IsNullOrEmpty(elementId)) {
-            return;
-        }
         try {
-            if (this.previewGestureController.HandleTap(elementId)) {
-                return;
-            }
-            this.ApplyScenarioTap(elementId);
+            this.nativeApplicationSession?.UpdateAndRender();
         }
         catch (Exception exception) {
             this.ShowPreviewError(exception);
         }
-    }
-
-    private void PreviewSessionPanned(object? sender, (IntPtr Element, string ElementId, int ItemIndex) pan) {
-        if (this.outgoingSession is not null || sender is not PreviewSession session) {
-            return;
-        }
-        try {
-            if (this.previewGestureController.HandlePan(pan.ElementId, pan.ItemIndex)) {
-                session.RemoveItem(pan.Element);
-            }
-        }
-        catch (Exception exception) {
-            this.ShowPreviewError(exception);
-        }
-    }
-
-    private JsonObject GetPreviewScenarioRoot() {
-        return JsonNode.Parse(this.ScenarioEditor.Text) as JsonObject
-            ?? throw new InvalidDataException("Сценарии должны содержать JSON-объект.");
-    }
-
-    private void SavePreviewScenarioChanges(JsonObject root, bool renderPreview) {
-        this.updatingEditors = true;
-        try {
-            this.ScenarioEditor.Text = root.ToJsonString(ScenarioJsonOptions);
-        }
-        finally {
-            this.updatingEditors = false;
-        }
-        this.isScenariosDirty = true;
-        this.UpdateDocumentState();
-        this.SaveScenarios("Сценарии автоматически сохранены после изменения будильников");
-        if (renderPreview) {
-            this.RenderTimerTick(this, EventArgs.Empty);
-        }
-    }
-
-    private void ApplyScenarioTap(string elementId) {
-        var root = JsonNode.Parse(this.ScenarioEditor.Text) as JsonObject
-            ?? throw new InvalidDataException("Сценарии должны содержать JSON-объект.");
-        var scenario = this.GetSelectedScenario(root);
-        var tap = ScenarioInteraction.GetTap(scenario, elementId);
-        if (tap is null) {
-            return;
-        }
-        var type = tap["type"]?.GetValue<string>();
-        if (type == "navigate") {
-            this.NavigateScenarioTap(tap);
-            return;
-        }
-        ScenarioInteraction.HandleTap(scenario, elementId);
-        var visualStateHost = tap["visualStateHost"]?.GetValue<string>();
-        var visualStateGroup = tap["visualStateGroup"]?.GetValue<string>();
-        var visualStatePath = tap["path"]?.GetValue<string>();
-        string? visualState = null;
-        if (visualStateHost is not null
-            && visualStateGroup is not null
-            && visualStatePath is not null
-            && scenario[visualStatePath]?.GetValue<bool>() is bool visualStateValue) {
-            visualState = tap[visualStateValue ? "visualStateTrue" : "visualStateFalse"]?.GetValue<string>();
-            if (visualState is not null) {
-                this.SetScenarioVisualState(scenario, visualStateHost, visualStateGroup, visualState);
-            }
-        }
-        this.updatingEditors = true;
-        try {
-            this.ScenarioEditor.Text = root.ToJsonString(ScenarioJsonOptions);
-        }
-        finally {
-            this.updatingEditors = false;
-        }
-        this.isScenariosDirty = true;
-        this.UpdateDocumentState();
-        this.SaveScenarios("Сценарии автоматически сохранены после интерактивного действия");
-        if (visualStateHost is not null
-            && visualStateGroup is not null
-            && visualState is not null
-            && this.previewSession?.GoToVisualState(visualStateHost, visualStateGroup, visualState) == true) {
-            return;
-        }
-        if (tap["previewElement"]?.GetValue<string>() is string previewElementId
-            && tap["path"]?.GetValue<string>() is string path
-            && scenario[path]?.GetValue<bool>() is bool state) {
-            if (tap["previewAttribute"]?.GetValue<string>() is string previewAttribute
-                && tap[state ? "previewTrueValue" : "previewFalseValue"]?.GetValue<string>() is string previewValue
-                && this.previewSession?.SetElementAttribute(previewElementId, previewAttribute, previewValue) == true) {
-                return;
-            }
-            if (this.previewSession?.SetElementVisibility(previewElementId, state) == true) {
-                return;
-            }
-        }
-        this.RenderTimerTick(this, EventArgs.Empty);
-    }
-
-    private void SetScenarioVisualState(
-        JsonObject scenario,
-        string host,
-        string group,
-        string state) {
-        if (scenario["$visualStates"] is not JsonArray states) {
-            states = new JsonArray();
-            scenario["$visualStates"] = states;
-        }
-        foreach (var item in states) {
-            if (item is JsonObject visualState
-                && visualState["host"]?.GetValue<string>() == host
-                && visualState["group"]?.GetValue<string>() == group) {
-                visualState["state"] = state;
-                return;
-            }
-        }
-        states.Add(new JsonObject {
-            ["host"] = host,
-            ["group"] = group,
-            ["state"] = state
-        });
-    }
-
-    private void SaveScenarios(string status) {
-        File.WriteAllText(this.scenariosPath, this.ScenarioEditor.Text.TrimEnd());
-        this.isScenariosDirty = false;
-        this.UpdateDocumentState();
-        this.statusPresenter.Success($"{status}: {this.scenariosPath}");
-    }
-
-    private void NavigateScenarioTap(JsonObject tap) {
-        if (this.PagePicker.SelectedItem is not string pageName
-            || tap["target"]?.GetValue<string>() is not string target) {
-            throw new InvalidDataException("Обработчик navigate требует target.");
-        }
-        bool backward = string.Equals(tap["direction"]?.GetValue<string>(), "backward",
-            StringComparison.OrdinalIgnoreCase);
-        var targetPage = target + ".xaml";
-        if (targetPage != pageName && this.PagePicker.Items.Contains(targetPage)) {
-            this.pendingPageTransition = (PageId(pageName), PageId(targetPage), backward);
-            this.PagePicker.SelectedItem = targetPage;
-        }
-    }
-
-    private JsonObject GetSelectedScenario(JsonObject root) {
-        JsonNode? scenarios = this.usesPageSpecificScenarios
-            ? root
-            : this.PagePicker.SelectedItem is string pageName
-                ? root[Path.GetFileNameWithoutExtension(pageName)] ?? root
-                : root;
-        if (this.ScenarioPicker.SelectedItem is string scenarioName) {
-            scenarios = scenarios?[scenarioName] ?? scenarios;
-        }
-        return scenarios as JsonObject
-            ?? throw new InvalidDataException("Выбранный сценарий должен быть JSON-объектом.");
-    }
-
-    private static string PageId(string fileName) {
-        var name = Path.GetFileNameWithoutExtension(fileName);
-        if (name.EndsWith("Page", StringComparison.Ordinal)) {
-            name = name[..^4];
-        }
-        return name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
-    }
-
-    private void StartPageTransition(
-        PreviewSession previousSession,
-        PreviewSession nextSession,
-        (string From, string To, bool Backward) transition) {
-        this.outgoingSession = previousSession;
-        previousSession.Surface.IsHitTestVisible = false;
-        nextSession.Surface.IsHitTestVisible = false;
-        this.previewLayer.Children.Add(previousSession.Surface);
-        this.previewLayer.Children.Add(nextSession.Surface);
-        previousSession.Transition(transition.From, transition.To, transition.Backward, false);
-        nextSession.Transition(transition.From, transition.To, transition.Backward, true);
-        this.animationTimer.Start();
-    }
-
-    private void CompletePageTransition() {
-        if (this.outgoingSession is not null) {
-            this.previewLayer.Children.Remove(this.outgoingSession.Surface);
-            this.outgoingSession.Dispose();
-            this.outgoingSession = null;
-        }
-        if (this.previewSession is not null) {
-            this.previewSession.Surface.IsHitTestVisible = true;
-        }
-    }
-
-    private ScenarioSource GetScenarioSource(string markup, string markupFilePath) {
-        var scenarioReference = PreviewRenderer.GetPreviewScenarioPath(markup);
-        if (scenarioReference is null) {
-            return new ScenarioSource {
-                Path = this.settings.ScenariosPath,
-                IsPageSpecific = false,
-            };
-        }
-        if (Path.IsPathRooted(scenarioReference)) {
-            throw new InvalidDataException("Путь mobileclock-preview-scenario должен быть относительным.");
-        }
-        var markupDirectory = Path.GetDirectoryName(markupFilePath)
-            ?? throw new InvalidDataException("Не удалось определить каталог XAML.");
-        return new ScenarioSource {
-            Path = Path.GetFullPath(Path.Combine(markupDirectory, scenarioReference)),
-            IsPageSpecific = true,
-        };
-    }
-
-    private void LoadScenarioForCurrentMarkup() {
-        var markupFilePath = this.markupPath ?? Path.Combine(this.settings.XamlDirectory, "Preview.xaml");
-        var source = this.GetScenarioSource(this.markupEditorController.Text, markupFilePath);
-        this.scenariosPath = source.Path;
-        this.usesPageSpecificScenarios = source.IsPageSpecific;
-        this.ConfigureWatchers();
-        this.updatingEditors = true;
-        try {
-            this.ScenarioEditor.Text = File.Exists(this.scenariosPath)
-                ? File.ReadAllText(this.scenariosPath)
-                : "{}";
-        }
-        finally {
-            this.updatingEditors = false;
-        }
-        this.isScenariosDirty = false;
-        this.RefreshScenarioNames();
-    }
-
-    private JsonElement GetScenarios(JsonElement document) {
-        return MainWindow.GetScenarios(
-            document,
-            this.usesPageSpecificScenarios,
-            this.PagePicker.SelectedItem as string);
-    }
-
-    private static JsonElement GetScenarios(
-        JsonElement document,
-        bool isPageSpecific,
-        string? pageName) {
-        if (isPageSpecific) {
-            return document;
-        }
-        return document.ValueKind == JsonValueKind.Object
-            && pageName is not null
-            && document.TryGetProperty(Path.GetFileNameWithoutExtension(pageName), out var selectedPage)
-            ? selectedPage
-            : document;
     }
 
     private void LoadMarkup(string path) {
@@ -1176,33 +571,12 @@ public partial class MainWindow : Window {
             this.suppressFoldingStatePersistence = false;
         }
         this.isMarkupDirty = false;
-        this.LoadScenarioForCurrentMarkup();
         this.UpdateDocumentState();
         // PersistSettings записывает previewer.settings.json. Его изменение
         // асинхронно придёт обратно через settingsWatcher, поэтому refresh ниже
         // не должен самовольно выбирать MainPage вместо текущей страницы.
         this.PersistSettings();
         this.ScheduleRender();
-    }
-
-    private void RefreshScenarioNames() {
-        var previous = this.ScenarioPicker.SelectedItem as string;
-        try {
-            using var document = JsonDocument.Parse(this.ScenarioEditor.Text);
-            var scenarios = this.GetScenarios(document.RootElement);
-            if (scenarios.ValueKind != JsonValueKind.Object) {
-                return;
-            }
-
-            var names = scenarios.EnumerateObject().Select(property => property.Name).ToArray();
-            if (this.ScenarioPicker.Items.Cast<string>().SequenceEqual(names)) {
-                return;
-            }
-            this.ScenarioPicker.ItemsSource = names;
-            this.ScenarioPicker.SelectedItem = names.Contains(previous) ? previous : names.FirstOrDefault();
-        }
-        catch (JsonException) {
-        }
     }
 
     private void RefreshPageNames() {
@@ -1233,12 +607,8 @@ public partial class MainWindow : Window {
     }
 
     private void ConfigureWatchers() {
-        var scenariosPath = string.IsNullOrEmpty(this.scenariosPath)
-            ? this.settings.ScenariosPath
-            : this.scenariosPath;
         this.fileWatchController.Configure(
             this.markupPath,
-            scenariosPath,
             this.settings.FilePath,
             this.settings.XamlDirectory);
     }
@@ -1262,19 +632,6 @@ public partial class MainWindow : Window {
                     previewChanged = true;
                 }
             }
-            if (File.Exists(this.scenariosPath)) {
-                var scenarios = File.ReadAllText(this.scenariosPath);
-                if (!this.isScenariosDirty
-                    && !string.Equals(scenarios, this.ScenarioEditor.Text, StringComparison.Ordinal)) {
-                    this.updatingEditors = true;
-                    this.ScenarioEditor.Text = scenarios;
-                    this.updatingEditors = false;
-                    this.isScenariosDirty = false;
-                    this.UpdateDocumentState();
-                    this.RefreshScenarioNames();
-                    previewChanged = true;
-                }
-            }
             if (File.Exists(this.settings.FilePath)) {
                 var settingsJson = File.ReadAllText(this.settings.FilePath);
                 if (!this.isSettingsDirty
@@ -1289,7 +646,6 @@ public partial class MainWindow : Window {
                     // Не сбрасывает PagePicker на MainPage: RefreshPageNames
                     // восстанавливает страницу, выбранную обработчиком navigation.
                     this.RefreshPageNames();
-                    this.LoadScenarioForCurrentMarkup();
                     this.ConfigureMouseWheelScrolling();
                     this.ApplyEditorScale();
                     this.ApplySettingsToPreviewControls();
@@ -1308,7 +664,6 @@ public partial class MainWindow : Window {
     private void SaveSettings() {
         this.StoreCollapsedMarkupFoldings();
         this.settings.LastMarkupPath = this.markupPath;
-        this.settings.LastScenarioName = this.ScenarioPicker.SelectedItem as string;
         if (this.WindowState == WindowState.Normal) {
             this.settings.WindowWidth = this.Width;
             this.settings.WindowHeight = this.Height;
@@ -1318,7 +673,7 @@ public partial class MainWindow : Window {
         this.settings.Save();
         // Синхронизируем отображаемый JSON после собственного сохранения.
         // Тогда settingsWatcher не принимает нашу же запись за внешнее
-        // изменение и не запускает лишний тяжёлый render PreviewSession.
+        // изменение и не запускает повторный рендер native-сессии.
         if (!this.isSettingsDirty) {
             this.updatingEditors = true;
             this.SettingsEditor.Text = this.settings.ToJson();
@@ -1381,16 +736,11 @@ public partial class MainWindow : Window {
         this.settingsPersistenceReady = false;
         this.renderTimer.Stop();
         this.animationTimer.Stop();
-        this.previewZoomTimer.Stop();
         this.fileWatchController.Dispose();
         this.editorScrollController.Dispose();
-        this.pendingPageTransition = null;
         this.markupEditorController.Dispose();
-        var session = this.previewSession;
-        this.previewSession = null;
-        this.CompletePageTransition();
-        session?.Dispose();
-        this.previewCursors.Dispose();
+        this.nativeApplicationSession?.Dispose();
+        this.nativeApplicationSession = null;
         this.previewLayer.Children.Clear();
     }
 
@@ -1407,25 +757,16 @@ public partial class MainWindow : Window {
     }
 
     private void UpdateEditorMode() {
-        this.UpdateElementInspection();
         this.MarkupEditor.Visibility = this.editorMode == EditorMode.Xaml ? Visibility.Visible : Visibility.Collapsed;
-        this.ScenarioPanel.Visibility = this.editorMode == EditorMode.Scenarios ? Visibility.Visible : Visibility.Collapsed;
         this.SettingsPanel.Visibility = this.editorMode == EditorMode.Settings ? Visibility.Visible : Visibility.Collapsed;
         this.OpenButton.IsEnabled = this.editorMode == EditorMode.Xaml;
-        this.XamlModeText.Foreground = PreviewRenderer.ParseBrush(
-            this.editorMode == EditorMode.Xaml ? "#D5BD7D" : "#E6E6E6");
-        this.ScenariosModeText.Foreground = PreviewRenderer.ParseBrush(
-            this.editorMode == EditorMode.Scenarios ? "#D5BD7D" : "#E6E6E6");
         this.UpdateDocumentState();
     }
 
     private void UpdateDocumentState() {
-        this.XamlModeText.Text = this.isMarkupDirty ? "XAML *" : "XAML";
-        this.ScenariosModeText.Text = this.isScenariosDirty ? "Сценарии *" : "Сценарии";
         this.SettingsButton.Content = this.isSettingsDirty ? "Настройки *" : "Настройки";
         this.SaveButton.IsEnabled = this.editorMode switch {
             EditorMode.Xaml => this.isMarkupDirty,
-            EditorMode.Scenarios => this.isScenariosDirty,
             EditorMode.Settings => this.isSettingsDirty,
             _ => false,
         };
@@ -1457,14 +798,12 @@ public partial class MainWindow : Window {
         }
         this.UpdatePreviewOrientationToggle();
         this.ApplyPreviewLayout();
-        this.previewSession?.SetAnimationSpeed(this.GetAnimationPlaybackRate());
-        this.outgoingSession?.SetAnimationSpeed(this.GetAnimationPlaybackRate());
     }
 
     private void UpdatePreviewOrientationToggle() {
-        this.PortraitOrientationText.Foreground = PreviewRenderer.ParseBrush(
+        this.PortraitOrientationText.Foreground = PreviewBrushes.Parse(
             this.settings.IsPreviewLandscape ? "#E6E6E6" : "#D5BD7D");
-        this.LandscapeOrientationText.Foreground = PreviewRenderer.ParseBrush(
+        this.LandscapeOrientationText.Foreground = PreviewBrushes.Parse(
             this.settings.IsPreviewLandscape ? "#D5BD7D" : "#E6E6E6");
     }
 
@@ -1495,9 +834,6 @@ public partial class MainWindow : Window {
     }
 
     private (int Width, int Height) GetPreviewSize() {
-        if (this.markupPreviewResolution is { } resolution) {
-            return resolution;
-        }
         var width = Math.Max(1, this.settings.PreviewWidth);
         var height = Math.Max(1, this.settings.PreviewHeight);
         return this.settings.IsPreviewLandscape
@@ -1519,6 +855,39 @@ public partial class MainWindow : Window {
         this.PersistSettings();
     }
 
+    private string GetNativeApplicationPageName() {
+        var pagePath = this.PagePicker.SelectedItem as string ?? this.markupPath ?? "MainPage.xaml";
+        return Path.GetFileNameWithoutExtension(pagePath);
+    }
+
+    private void ShowNativeApplicationPreview() {
+        if (this.isClosing) {
+            return;
+        }
+        try {
+            var previewSize = this.GetPreviewSize();
+            if (this.nativeApplicationSession is null
+                || this.nativeApplicationSession.Width != previewSize.Width
+                || this.nativeApplicationSession.Height != previewSize.Height) {
+                this.animationTimer.Stop();
+                this.nativeApplicationSession?.Dispose();
+                this.nativeApplicationSession = new MobileClockSession(
+                    this.settings.ResourcesDirectory,
+                    previewSize.Width,
+                    previewSize.Height);
+                this.previewLayer.Children.Clear();
+                this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);
+            }
+            this.nativeApplicationSession.LoadPage(this.GetNativeApplicationPageName());
+            this.nativeApplicationSession.UpdateAndRender();
+            this.animationTimer.Start();
+            this.statusPresenter.Success($"Native app: {this.GetNativeApplicationPageName()}");
+        }
+        catch (Exception exception) {
+            this.ShowPreviewError(exception);
+        }
+    }
+
     private void PreviewViewportScrollChanged(object sender, ScrollChangedEventArgs eventArgs) {
         if (eventArgs.HorizontalChange == 0.0 && eventArgs.VerticalChange == 0.0) {
             return;
@@ -1538,7 +907,6 @@ public partial class MainWindow : Window {
         var scale = this.GetEditorScale();
         foreach (var editor in new[] {
             this.MarkupEditor,
-            this.ScenarioEditor,
             this.SettingsEditor,
         }) {
             editor.FontSize = defaultFontSize * scale;
@@ -1577,15 +945,15 @@ public partial class MainWindow : Window {
         editor.SyntaxHighlighting = highlighting;
         editor.Options.EnableHyperlinks = false;
         editor.Options.EnableEmailHyperlinks = false;
-        editor.TextArea.Caret.CaretBrush = PreviewRenderer.ParseBrush("#F0D78C");
-        editor.TextArea.SelectionBrush = PreviewRenderer.ParseBrush("#5A4D26");
-        editor.TextArea.SelectionForeground = PreviewRenderer.ParseBrush("#FFFFFF");
+        editor.TextArea.Caret.CaretBrush = PreviewBrushes.Parse("#F0D78C");
+        editor.TextArea.SelectionBrush = PreviewBrushes.Parse("#5A4D26");
+        editor.TextArea.SelectionForeground = PreviewBrushes.Parse("#FFFFFF");
         var searchPanel = SearchPanel.Install(editor);
-        searchPanel.Background = PreviewRenderer.ParseBrush("#252525");
-        searchPanel.BorderBrush = PreviewRenderer.ParseBrush("#4A4A4A");
-        searchPanel.Foreground = PreviewRenderer.ParseBrush("#E6E6E6");
-        searchPanel.MarkerBrush = PreviewRenderer.ParseBrush("#665A4D26");
-        searchPanel.MarkerPen = new Pen(PreviewRenderer.ParseBrush("#D5BD7D"), 1.0);
+        searchPanel.Background = PreviewBrushes.Parse("#252525");
+        searchPanel.BorderBrush = PreviewBrushes.Parse("#4A4A4A");
+        searchPanel.Foreground = PreviewBrushes.Parse("#E6E6E6");
+        searchPanel.MarkerBrush = PreviewBrushes.Parse("#665A4D26");
+        searchPanel.MarkerPen = new Pen(PreviewBrushes.Parse("#D5BD7D"), 1.0);
         var messageField = typeof(SearchPanel).GetField("messageView", BindingFlags.Instance | BindingFlags.NonPublic);
         if (messageField?.GetValue(searchPanel) is ToolTip message) {
             message.Visibility = Visibility.Collapsed;
@@ -1596,7 +964,6 @@ public partial class MainWindow : Window {
     private void ConfigureMouseWheelScrolling() {
         this.editorScrollController.Configure(
             this.MarkupEditor,
-            this.ScenarioEditor,
             this.SettingsEditor);
     }
 

@@ -14,8 +14,8 @@ $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $bumpVersion = Join-Path $PSScriptRoot 'bump-version.ps1'
 $buildAndroid = Join-Path $PSScriptRoot 'build-android.ps1'
 $uploadToDrive = Join-Path $PSScriptRoot 'upload-apk-to-drive.ps1'
-$sourceApk = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\app-debug.apk'
-$sourceUpdaterApk = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\updater-debug.apk'
+$sourceApk = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
+$sourceUpdaterApk = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\MobileClock.AndroidUpdater-debug.apk'
 $versionProperties = Join-Path $projectRoot 'version.properties'
 $distributionOutput = Join-Path $projectRoot 'Build\distribution'
 

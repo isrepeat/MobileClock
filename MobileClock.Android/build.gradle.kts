@@ -1,15 +1,12 @@
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
-import java.io.StringReader
 import java.util.Properties
 
 val repositoryRoot = rootProject.projectDir.parentFile.parentFile
-val versionPropertiesText = providers.fileContents(repositoryRoot.resolve("version.properties")).asText
-val appVersionCode = versionPropertiesText.map { text ->
-    Properties().apply { load(StringReader(text)) }.getProperty("VERSION_CODE").toInt()
+val versionProperties = Properties().apply {
+    repositoryRoot.resolve("version.properties").inputStream().use(this::load)
 }
-val appVersionName = versionPropertiesText.map { text ->
-    Properties().apply { load(StringReader(text)) }.getProperty("VERSION_NAME")
-}
+val appVersionCode = versionProperties.getProperty("VERSION_CODE").toInt()
+val appVersionName = versionProperties.getProperty("VERSION_NAME")
 
 plugins {
     alias(libs.plugins.android.application)
@@ -27,8 +24,8 @@ android {
         applicationId = "com.example.mobileclock"
         minSdk = 24
         targetSdk = 37
-        versionCode = appVersionCode.get()
-        versionName = appVersionName.get()
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         ndk {
             // В APK для физических устройств включаем только ARM64-библиотеки.
@@ -45,7 +42,7 @@ android {
                 serviceCredentialsFile = "C:/WORK/Secrets/mobileclock-cca50210cd68.json"
                 artifactType = "APK"
                 artifactPath = repositoryRoot.resolve(
-                    "Build/distribution/MobileClock-${defaultConfig.versionCode}-${defaultConfig.versionName}.apk"
+                    "Build/MobileClock.Android/outputs/apk/debug/MobileClock.Android-debug.apk"
                 ).absolutePath
                 testers = "newiskeep@gmail.com"
                 releaseNotes = "MobileClock ${defaultConfig.versionName}"

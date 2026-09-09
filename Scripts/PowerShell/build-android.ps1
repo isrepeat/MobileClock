@@ -31,8 +31,8 @@ $xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
 $xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
 $gradleRoot = Join-Path $projectRoot 'Build\Gradle'
 $gradleWrapper = Join-Path $gradleRoot 'gradlew.bat'
-$apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\app-debug.apk'
-$updaterApkPath = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\updater-debug.apk'
+$apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
+$updaterApkPath = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\MobileClock.AndroidUpdater-debug.apk'
 
 function Invoke-Checked {
     param(
