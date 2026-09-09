@@ -12,7 +12,7 @@
         "EXTERNAL_INCLUDE": "",
         "PATH": "C:/Program Files (x86)/Android/AndroidNDK/android-ndk-r27c/toolchains/llvm/prebuilt/windows-x86_64/bin;$penv{PATH}"
       },
-      "binaryDir": "${sourceDir}/out/build/android-arm64-debug",
+      "binaryDir": "${sourceDir}/../out/cmake/android-arm64-debug",
       "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Debug",
           "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",

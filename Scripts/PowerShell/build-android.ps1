@@ -28,8 +28,8 @@ $xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath
 $xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
 $xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
 $gradleWrapper = Join-Path $projectRoot 'gradlew.bat'
-$apkPath = Join-Path $projectRoot 'app\build\outputs\apk\debug\app-debug.apk'
-$updaterApkPath = Join-Path $projectRoot 'updater\build\outputs\apk\debug\updater-debug.apk'
+$apkPath = Join-Path $projectRoot 'out\gradle\app\outputs\apk\debug\app-debug.apk'
+$updaterApkPath = Join-Path $projectRoot 'out\gradle\updater\outputs\apk\debug\updater-debug.apk'
 
 function Invoke-Checked {
     param(
@@ -97,7 +97,7 @@ try {
     Pop-Location
 }
 
-$nativeLibrary = Join-Path $projectRoot "app\src\main\jniLibs\$Architecture\libmobileclock.so"
+$nativeLibrary = Join-Path $projectRoot "out\android\jniLibs\$Architecture\libmobileclock.so"
 if (-not (Test-Path $nativeLibrary)) {
     throw "CMake completed but did not produce $nativeLibrary"
 }

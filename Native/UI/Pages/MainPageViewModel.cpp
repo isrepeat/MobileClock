@@ -53,8 +53,8 @@ namespace mobileclock::ui {
         std::function<void()> refreshPage)
         : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
         , createAlarmCommand([this]() {
-            this->alarms.emplace_back("", "", false);
-            this->refreshPage();
+            Alarm& alarm = this->alarms.EmplaceBack("", "", false);
+            alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
         })
         , navigateToSettingsCommand([&navigator]() {
             navigator.Navigate(Page::settings);
@@ -130,7 +130,7 @@ namespace mobileclock::ui {
         return this->status;
     }
 
-    const std::vector<MainPageViewModel::Alarm>& MainPageViewModel::Alarms() const {
+    const xaml::ObservableCollection<MainPageViewModel::Alarm>& MainPageViewModel::Alarms() const {
         return this->alarms;
     }
 
@@ -204,8 +204,7 @@ namespace mobileclock::ui {
         if (iterator == this->alarms.end()) {
             return false;
         }
-        this->alarms.erase(iterator);
-        this->refreshPage();
+        this->alarms.Erase(iterator);
         return true;
     }
 

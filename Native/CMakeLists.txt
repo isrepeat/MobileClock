@@ -183,9 +183,6 @@ source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 set(mobileclock_ui_project_files
     MobileClock.UI/Controls/AlarmList.h
     MobileClock.UI/Controls/AlarmList.xaml
-    MobileClock.UI/Controls/ControlRebuildParticipant.h
-    MobileClock.UI/Controls/ControlsRuntime.h
-    MobileClock.UI/Controls/MobileClockControls.h
     MobileClock.UI/Controls/TimelineTabs.h
     MobileClock.UI/Controls/TimelineTabs.xaml
     MobileClock.UI/MobileClock.UI.vcxproj
@@ -206,8 +203,6 @@ set_source_files_properties(${mobileclock_ui_native_bridge_project_files} PROPER
 
 add_library(mobileclock_ui STATIC
     MobileClock.UI/Controls/AlarmList.cpp
-    MobileClock.UI/Controls/ControlsRuntime.cpp
-    MobileClock.UI/Controls/MobileClockControls.cpp
     MobileClock.UI/Controls/TimelineTabs.cpp
     ${mobileclock_ui_control_xaml_generated}
     ${mobileclock_ui_control_xaml_generated_headers}
@@ -272,7 +267,7 @@ if (ANDROID)
     # из jniLibs и не запускает вторую, независимую CMake-сборку.
     set_target_properties(mobileclock PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY
-            "${CMAKE_CURRENT_SOURCE_DIR}/../app/src/main/jniLibs/${mobileclock_android_abi}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../out/android/jniLibs/${mobileclock_android_abi}"
     )
 endif()
 

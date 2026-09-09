@@ -749,6 +749,30 @@ namespace _details {
         AnimationController::Update(*page, std::chrono::milliseconds(180));
         Require(!page->IsPresent(), "Hide uses Show duration");
     }
+
+    void ObservableItems() {
+        using namespace xaml;
+        struct Item final {
+            int value = 0;
+        };
+        ObservableCollection<Item> items{{1}, {2}};
+        Element list(ElementType::listView);
+        list.SetItemsSource(items, [](const void* data, BindingScope&) {
+            const Item& item = *static_cast<const Item*>(data);
+            auto container = std::make_unique<Element>(ElementType::textBlock);
+            container->SetDataContext(&item);
+            container->SetText(std::to_string(item.value));
+            return container;
+        });
+        Require(list.Children().size() == 2, "initial items were not realized");
+        Element* const retained = list.Children()[1].get();
+        items.EmplaceBack(Item{3});
+        Require(list.Children().size() == 3 && list.Children()[1].get() == retained,
+            "insert recreated an unaffected item");
+        items.Erase(items.begin());
+        Require(list.Children().size() == 2 && list.Children()[0].get() == retained,
+            "remove did not retain the following item");
+    }
 }
 
 int main() {
@@ -764,6 +788,7 @@ int main() {
     _details::GlowAndMixedTracks();
     _details::ParametersAndReversal();
     _details::RenderingAndFallback();
+    _details::ObservableItems();
     std::cout << "All typed animation tests passed";
     return 0;
 }

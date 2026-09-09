@@ -19,6 +19,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 Native/out/
+Native/!VS_TMP/
 Native/!Generated/
 
 Native/cmake/vs-android-drivers/**/clang.exe

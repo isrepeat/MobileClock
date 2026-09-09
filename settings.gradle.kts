@@ -23,5 +23,10 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "MobileClock"
+rootProject.layout.buildDirectory.set(rootProject.layout.projectDirectory.dir("out/gradle/root"))
 include(":app")
 include(":updater")
+
+subprojects {
+    layout.buildDirectory.set(rootProject.layout.projectDirectory.dir("out/gradle/$name"))
+}

@@ -9,10 +9,15 @@
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration"><ConfigurationType>StaticLibrary</ConfigurationType><UseDebugLibraries>true</UseDebugLibraries><PlatformToolset>v145</PlatformToolset></PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration"><ConfigurationType>StaticLibrary</ConfigurationType><UseDebugLibraries>false</UseDebugLibraries><PlatformToolset>v145</PlatformToolset></PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-    <PropertyGroup Condition="'$(PreviewerMobileClockUiOutputDir)'!=''"><OutDir>$(PreviewerMobileClockUiOutputDir)</OutDir><IntDir>$(PreviewerMobileClockUiIntermediateDir)</IntDir></PropertyGroup>
+    <PropertyGroup>
+        <OutDir Condition="'$(PreviewerMobileClockUiOutputDir)'!=''">$(PreviewerMobileClockUiOutputDir)</OutDir>
+        <IntDir Condition="'$(PreviewerMobileClockUiIntermediateDir)'!=''">$(PreviewerMobileClockUiIntermediateDir)</IntDir>
+        <OutDir Condition="'$(PreviewerMobileClockUiOutputDir)'==''">$(ProjectDir)..\!VS_TMP\Build\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</OutDir>
+        <IntDir Condition="'$(PreviewerMobileClockUiIntermediateDir)'==''">$(ProjectDir)..\!VS_TMP\Intermediate\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</IntDir>
+    </PropertyGroup>
     <PropertyGroup><TargetName>MobileClock.UI</TargetName></PropertyGroup>
     <ItemDefinitionGroup><ClCompile><AdditionalIncludeDirectories>$(ProjectDir)..;$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories><LanguageStandard>stdcpp17</LanguageStandard><AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions></ClCompile></ItemDefinitionGroup>
-    <ItemGroup><ClCompile Include="Controls\AlarmList.cpp" /><ClCompile Include="Controls\ControlsRuntime.cpp" /><ClCompile Include="Controls\MobileClockControls.cpp" /><ClCompile Include="Controls\TimelineTabs.cpp" /><ClInclude Include="Controls\AlarmList.h" /><ClInclude Include="Controls\ControlRebuildParticipant.h" /><ClInclude Include="Controls\ControlsRuntime.h" /><ClInclude Include="Controls\MobileClockControls.h" /><ClInclude Include="Controls\TimelineTabs.h" /><None Include="Controls\AlarmList.xaml" /><None Include="Controls\TimelineTabs.xaml" /></ItemGroup>
+    <ItemGroup><ClCompile Include="Controls\AlarmList.cpp" /><ClCompile Include="Controls\TimelineTabs.cpp" /><ClInclude Include="Controls\AlarmList.h" /><ClInclude Include="Controls\TimelineTabs.h" /><None Include="Controls\AlarmList.xaml" /><None Include="Controls\TimelineTabs.xaml" /></ItemGroup>
     <ItemGroup><ProjectReference Include="$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.vcxproj"><Project>{D5B97C3C-3A64-4A72-A71C-1186767DB3B1}</Project><SetConfiguration>Configuration=$(Configuration)</SetConfiguration><SetPlatform>Platform=x64</SetPlatform></ProjectReference></ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

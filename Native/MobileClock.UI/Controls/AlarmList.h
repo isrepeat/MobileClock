@@ -5,17 +5,15 @@
 #include <XamlRuntime/UserControl.h>
 #include <XamlRuntime/XamlLayout.h>
 
-#include "MobileClock.UI/Controls/ControlRebuildParticipant.h"
-
 #include <string_view>
-#include <chrono>
 #include <memory>
 #include <vector>
+#include <chrono>
 
 namespace mobileclock::ui::controls {
     class AlarmList final : public xaml::UserControl {
     public:
-        struct RemovalState {
+        struct RemovalTransition {
             std::vector<xaml::Rect> previousBounds;
             xaml::Size scrollExtent;
             float horizontalOffset = 0.0f;
@@ -41,18 +39,17 @@ namespace mobileclock::ui::controls {
 
         const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
-        static std::unique_ptr<IControlRebuildParticipant> CreateRebuildParticipant();
-        static RemovalState CaptureRemovalState(xaml::Element& controlRoot, const void* dataContext);
-        static void RestoreViewportAndAnimate(
+        static RemovalTransition PrepareRemoval(xaml::Element& controlRoot, const void* dataContext);
+        static bool RemoveItem(
             xaml::Element& controlRoot,
             xaml::Element& pageRoot,
-            const RemovalState& state,
+            const RemovalTransition& transition,
             xaml::AnimationController& animations,
             std::chrono::milliseconds duration);
 
-        RemovalState CaptureRemovalState(const void* dataContext) const;
-        void RestoreViewportAndAnimate(
-            const RemovalState& state,
+        RemovalTransition PrepareRemoval(const void* dataContext) const;
+        bool RemoveItem(
+            const RemovalTransition& transition,
             xaml::Element& pageRoot,
             xaml::AnimationController& animations,
             std::chrono::milliseconds duration);

@@ -1,6 +1,7 @@
 #pragma once
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
+#include <XamlRuntime/ObservableCollection.h>
 
 #include "UI/ApplicationActions.h"
 #include "UI/Navigation.h"
@@ -64,7 +65,7 @@ namespace mobileclock::ui {
         void SetClockText(std::string value);
         const std::string& PackageVersion() const;
         const std::string& Status() const;
-        const std::vector<Alarm>& Alarms() const;
+        const xaml::ObservableCollection<Alarm>& Alarms() const;
         bool IsAlarmActionsMenuVisible() const;
         void SetIsAlarmActionsMenuVisible(bool value);
 
@@ -93,7 +94,7 @@ namespace mobileclock::ui {
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
         bool isAlarmActionsMenuVisible = false;
-        std::vector<Alarm> alarms{
+        xaml::ObservableCollection<Alarm> alarms{
             {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
             {"06:18", "Сб, Вс", false},
             {"06:30", "Ежедневно", true},
