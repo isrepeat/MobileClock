@@ -1,0 +1,29 @@
+<Project>
+  <PropertyGroup>
+    <PreviewerBuildRoot>$(MSBuildThisFileDirectory)..\!VS_TMP</PreviewerBuildRoot>
+    <OutDir>$(PreviewerBuildRoot)\Build\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</OutDir>
+    <IntDir>$(PreviewerBuildRoot)\Intermediate\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</IntDir>
+    <NativeBridgeOutputDir>$(PreviewerBuildRoot)\Build\$(Configuration)\x64\XamlPreviewer.NativeBridge\</NativeBridgeOutputDir>
+    <NativeAngleZlibName>z.dll</NativeAngleZlibName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+  </ItemGroup>
+
+  <!-- NativeBridge — отдельный C++ проект. Собираем его явно: стандартный
+       ProjectReference подставляет Win32 в транзитивные C++-проекты библиотеки. -->
+  <Target Name="BuildNativeBridge" BeforeTargets="Build">
+    <MSBuild Projects="..\XamlPreviewer.NativeBridge\XamlPreviewer.NativeBridge.vcxproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);Platform=x64;BuildProjectReferences=false"
+             BuildInParallel="false" />
+  </Target>
+
+  <Target Name="CopyNativeBridge" AfterTargets="Build">
+    <Error Condition="!Exists('$(NativeBridgeOutputDir)XamlPreviewer.NativeBridge.dll')" Text="XamlPreviewer.NativeBridge.dll was not built: $(NativeBridgeOutputDir)XamlPreviewer.NativeBridge.dll" />
+    <Copy SourceFiles="$(NativeBridgeOutputDir)XamlPreviewer.NativeBridge.dll" DestinationFolder="$(OutDir)" />
+    <Copy SourceFiles="$(NativeBridgeOutputDir)XamlPreviewer.NativeBridge.pdb" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('$(NativeBridgeOutputDir)XamlPreviewer.NativeBridge.pdb')" />
+    <Copy SourceFiles="$(NativeBridgeOutputDir)libEGL.dll;$(NativeBridgeOutputDir)libGLESv2.dll;$(NativeBridgeOutputDir)$(NativeAngleZlibName)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

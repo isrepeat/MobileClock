@@ -43,12 +43,14 @@
     <ItemGroup>
         <ClCompile Include="AnimationRenderers.cpp" />
         <ClCompile Include="PreviewSession.cpp" />
+        <ClCompile Include="Registrations.cpp" />
         <ClCompile Include="Effects\Effects.cpp" />
         <ClCompile Include="Effects\Shaders.cpp" />
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="AnimationRenderers.h" />
         <ClInclude Include="PreviewSession.h" />
+        <ClInclude Include="Registrations.h" />
         <ClInclude Include="PageTransition.h" />
         <ClInclude Include="Effects\Effects.h" />
         <ClInclude Include="Effects\Shaders.h" />

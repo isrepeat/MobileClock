@@ -9,7 +9,7 @@ object NativeRenderer {
 
     init {
         // Загружает libmobileclock.so из APK. После этого ART может вызвать
-        // экспортированные JNI-функции из MobileClock.Native/main.cpp.
+        // экспортированные JNI-функции из MobileClock.AndroidHost/main.cpp.
         System.loadLibrary("mobileclock")
     }
 
@@ -66,7 +66,7 @@ object NativeRenderer {
 
     // У external-методов нет Kotlin-тела: вызов переходит в JNI. ART ищет
     // C++-символ Java_com_example_mobileclock_native_NativeRenderer_<имя метода>
-    // в libmobileclock.so. Этот символ определён в MobileClock.Native/main.cpp.
+    // в libmobileclock.so. Этот символ определён в MobileClock.AndroidHost/main.cpp.
     //
     // Примеры преобразования аргументов: Surface/AssetManager -> jobject,
     // Int -> jint, Float -> jfloat, String -> jstring.

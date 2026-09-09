@@ -14,17 +14,18 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$nativeRoot = Join-Path $projectRoot 'MobileClock.Native'
+$androidHostRoot = Join-Path $projectRoot 'MobileClock.AndroidHost'
+$applicationRoot = Join-Path $projectRoot 'MobileClock.Application'
 $uiRoot = Join-Path $projectRoot 'MobileClock.UI'
 $xamlCompilerRoot = Join-Path $projectRoot 'UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
-$xamlCompilerBuild = Join-Path $projectRoot 'Build\MobileClock.Native\xaml-compiler'
+$xamlCompilerBuild = Join-Path $projectRoot 'Build\MobileClock.Application\xaml-compiler'
 $xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
 $xamlSourceRoots = @(
-    (Join-Path $nativeRoot 'UI'),
+    (Join-Path $applicationRoot 'UI'),
     $uiRoot
 )
-$xamlGeneratedRoot = Join-Path $projectRoot 'Build\MobileClock.Native\!Generated\Xaml'
-$xamlIgnoreConfigurationPath = Join-Path $nativeRoot 'UI\XamlCompilerIgnore.json'
+$xamlGeneratedRoot = Join-Path $projectRoot 'Build\MobileClock.Application\!Generated\Xaml'
+$xamlIgnoreConfigurationPath = Join-Path $applicationRoot 'UI\XamlCompilerIgnore.json'
 $xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath -Raw | ConvertFrom-Json
 $xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
 $xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
@@ -85,7 +86,7 @@ foreach ($xamlSourceRoot in $xamlSourceRoots) {
     }
 }
 
-Push-Location $nativeRoot
+Push-Location $projectRoot
 try {
     $cmakePreset = 'android-arm64-debug'
     Write-Host "==> Building native $Architecture library with CMake"
@@ -99,7 +100,7 @@ try {
     Pop-Location
 }
 
-$nativeLibrary = Join-Path $projectRoot "Build\MobileClock.Native\android\jniLibs\$Architecture\libmobileclock.so"
+$nativeLibrary = Join-Path $projectRoot "Build\MobileClock.AndroidHost\android\jniLibs\$Architecture\libmobileclock.so"
 if (-not (Test-Path $nativeLibrary)) {
     throw "CMake completed but did not produce $nativeLibrary"
 }

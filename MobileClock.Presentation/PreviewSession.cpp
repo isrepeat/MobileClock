@@ -4,6 +4,7 @@
 #include "Effects/Shaders.h"
 #include "AnimationRenderers.h"
 #include "PageTransition.h"
+#include "Registrations.h"
 
 #include <string>
 
@@ -12,8 +13,8 @@ namespace mobileclock::presentation {
     // API
     //
     void PreviewSession::Attach(xaml::Element& root) {
-        xaml::AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
-        mobileclock::renderer::RegisterAnimations(registry);
+        xaml::AnimationRegistry registry;
+        RegisterAnimations(registry);
         this->animations.Attach(root, registry, false);
     }
 
@@ -50,12 +51,12 @@ namespace mobileclock::presentation {
     }
 
     xaml::RendererRegistry PreviewSession::CreateRenderers() {
-        xaml::RendererRegistry renderers = mobileclock::resources::effects::CreateRenderers();
-        mobileclock::renderer::RegisterAnimationRenderers(renderers);
+        xaml::RendererRegistry renderers;
+        RegisterRenderers(renderers);
         return renderers;
     }
 
     es_renderer::OpenGlRenderer::ShaderProgramSources PreviewSession::CreateShaderPrograms() {
-        return mobileclock::resources::effects::CreateShaderPrograms();
+        return mobileclock::presentation::CreateShaderPrograms();
     }
 }

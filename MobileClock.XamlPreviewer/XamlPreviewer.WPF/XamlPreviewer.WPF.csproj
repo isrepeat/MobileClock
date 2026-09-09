@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>XamlPreviewer</AssemblyName>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Icons\close.svg" />
+    <Resource Include="Resources\Icons\expand-all.svg" />
+    <Resource Include="Resources\Icons\find-next.svg" />
+    <Resource Include="Resources\Icons\find-previous.svg" />
+    <Resource Include="Resources\Icons\navigate-back.svg" />
+    <Resource Include="Resources\Icons\navigate-forward.svg" />
+    <Content Include="Resources\Cursors\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Кэш WPF может сохраниться после удаления сгенерированных исходников.
+       В этом случае повторяем генерацию, а не передаём отсутствующие файлы в CSC.
+       Временный проект WPF и IntelliSense не должны сбрасывать кэш основной сборки. -->
+  <Target Name="InvalidateMissingMarkupOutputs"
+          BeforeTargets="MarkupCompilePass1"
+          Condition="'$(DesignTimeBuild)'!='true' and '$(AssemblyName)'=='XamlPreviewer'">
+    <ItemGroup>
+      <_ExpectedMarkupSource Include="@(Page->'$(IntermediateOutputPath)%(RelativeDir)%(Filename).g.cs')" />
+      <_ExpectedMarkupSource Include="@(ApplicationDefinition->'$(IntermediateOutputPath)%(RelativeDir)%(Filename).g.cs')" />
+      <_MissingMarkupSource Include="@(_ExpectedMarkupSource)" Condition="!Exists('%(Identity)')" />
+    </ItemGroup>
+    <Delete Files="$(IntermediateOutputPath)$(AssemblyName)_MarkupCompile.cache;$(IntermediateOutputPath)$(AssemblyName)_MarkupCompile.lref"
+            Condition="'@(_MissingMarkupSource)'!=''" />
+  </Target>
+
+  <Import Project="XamlPreviewer.WPF.targets" />
+</Project>

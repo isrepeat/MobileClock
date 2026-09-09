@@ -66,8 +66,8 @@ android {
         buildConfig = true
     }
     sourceSets {
-        getByName("main").assets.directories += "../MobileClock.Native/Resources"
-        getByName("main").jniLibs.srcDirs("../Build/MobileClock.Native/android/jniLibs")
+        getByName("main").assets.directories += "../MobileClock.AndroidHost/Resources"
+        getByName("main").jniLibs.srcDirs("../Build/MobileClock.AndroidHost/android/jniLibs")
     }
     androidResources {
         // Исходники модуля хоста компилируются в native-библиотеку и не нужны в assets.

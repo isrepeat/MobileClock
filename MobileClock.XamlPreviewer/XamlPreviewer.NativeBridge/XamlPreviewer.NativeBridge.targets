@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <PreviewerBuildRoot>$(MSBuildThisFileDirectory)..\!VS_TMP</PreviewerBuildRoot>
+        <OutDir>$(PreviewerBuildRoot)\Build\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</OutDir>
+        <IntDir>$(PreviewerBuildRoot)\Intermediate\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</IntDir>
+        <TargetName>XamlPreviewer.NativeBridge</TargetName>
+        <MobileClockCmake>$(VSInstallDir)Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe</MobileClockCmake>
+        <MobileClockNinja>$(VSInstallDir)Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe</MobileClockNinja>
+        <MobileClockCmakeBuildDirectory>$(ProjectDir)..\..\Build\cmake\previewer-x64</MobileClockCmakeBuildDirectory>
+    </PropertyGroup>
+    <ItemDefinitionGroup>
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(ProjectDir)..\..;$(ProjectDir)..\..\MobileClock.Application;$(ProjectDir)..\..\MobileClock.AndroidHost;$(ProjectDir)..\..\Build\MobileClock.Application;$(ProjectDir)..\..\UtilityHelpersLib\3rdParty\Spdlog\Spdlog.Shared\Spdlog;$(ProjectDir)..\..\UtilityHelpersLib\Helpers\Helpers.Logging;$(ProjectDir)..\..\UtilityHelpersLib\HelpersNew\HelpersNew.Shared;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\OpenGLESRenderer\OpenGLESRenderer.Shared;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <LanguageStandard>stdcpp17</LanguageStandard>
+            <WarningLevel>Level4</WarningLevel>
+            <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+        </ClCompile>
+        <Link>
+            <AdditionalLibraryDirectories>$(MobileClockCmakeBuildDirectory);$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\!NUGET_TMP\Build\$(Configuration)\x64\OpenGLESRenderer;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalDependencies>mobileclock_application.lib;mobileclock_presentation.lib;mobileclock_ui.lib;utility_helpers_new.lib;utility_helpers_xaml_runtime.lib;utility_helpers_logging.lib;OpenGLESRenderer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+        </Link>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <PackageReference Include="ANGLE.Windows.x64" Version="1.0.0" />
+    </ItemGroup>
+    <Target Name="BuildMobileClockApplication" BeforeTargets="Link">
+        <Exec Command="&quot;$(MSBuildToolsPath)\MSBuild.exe&quot; &quot;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\OpenGLESRenderer\OpenGLESRenderer.vcxproj&quot; /t:Build /p:Configuration=$(Configuration);Platform=x64 /m:1 /v:minimal" />
+        <Exec Command="&quot;$(MobileClockCmake)&quot; -S &quot;$(ProjectDir)..\..&quot; -B &quot;$(MobileClockCmakeBuildDirectory)&quot; -G Ninja -DCMAKE_BUILD_TYPE=$(Configuration) -DCMAKE_MAKE_PROGRAM=&quot;$(MobileClockNinja)&quot;" />
+        <Exec Command="&quot;$(MobileClockCmake)&quot; --build &quot;$(MobileClockCmakeBuildDirectory)&quot; --target mobileclock_application utility_helpers_new -- -j 2" />
+    </Target>
+</Project>
