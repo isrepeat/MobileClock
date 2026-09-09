@@ -164,6 +164,51 @@ source_group(TREE "${mobileclock_generated_root}/Xaml" PREFIX "!Generated\\Xaml"
 )
 source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 
+set(mobileclock_platform_files
+    platform/MobileClock.Controls/MobileClock.Controls.vcxproj
+    platform/MobileClock.PreviewExtension/ControlsPreviewApi.h
+    platform/MobileClock.PreviewExtension/ControlsPreviewRuntime.cpp
+    platform/MobileClock.PreviewExtension/MobileClock.PreviewExtension.vcxproj
+)
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/platform" PREFIX "platform" FILES
+    ${mobileclock_platform_files}
+)
+set_source_files_properties(${mobileclock_platform_files} PROPERTIES HEADER_FILE_ONLY ON)
+
+set(mobileclock_controls_project_files
+    UI/Controls/AlarmList.h
+    UI/Controls/AlarmList.xaml
+    UI/Controls/ControlRebuildParticipant.h
+    UI/Controls/ControlsRuntime.h
+    UI/Controls/MobileClockControls.h
+)
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/UI/Controls" PREFIX "UI\\Controls" FILES
+    ${mobileclock_controls_project_files}
+)
+
+add_library(mobileclock_controls STATIC
+    UI/Controls/AlarmList.cpp
+    UI/Controls/ControlsRuntime.cpp
+    UI/Controls/MobileClockControls.cpp
+)
+target_sources(mobileclock_controls PRIVATE
+    ${mobileclock_controls_project_files}
+    ${mobileclock_platform_files}
+)
+target_include_directories(mobileclock_controls PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${mobileclock_generated_build_dir}"
+)
+set_target_properties(mobileclock_controls PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    POSITION_INDEPENDENT_CODE ON
+)
+target_link_libraries(mobileclock_controls PUBLIC
+    utility_helpers::xaml_runtime
+)
+
 add_library(mobileclock SHARED
     main.cpp
     NativeApplication.cpp
@@ -175,7 +220,6 @@ add_library(mobileclock SHARED
     Renderer/AndroidApplicationActions.cpp
     Renderer/AndroidCommandDispatcher.cpp
     Renderer/NativeRenderer.cpp
-    UI/Controls/AlarmList.cpp
     UI/Controls/TimelineTabs.cpp
     UI/Pages/MainPageViewModel.cpp
     UI/PageManager.cpp
@@ -220,6 +264,7 @@ find_library(log-lib log)
 # Системные Android-библиотеки ищем через NDK, а Logcat-обёртку над spdlog
 # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
+    mobileclock_controls
     utility_helpers::open_gles_renderer
     utility_helpers::new
     utility_helpers::xaml_runtime

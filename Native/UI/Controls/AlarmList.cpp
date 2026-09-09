@@ -1,22 +1,57 @@
 #include <XamlRuntime/Animation.h>
-#include <XamlRuntime/XamlLayout.h>
 
 #include "UI/Controls/AlarmList.h"
 
 #include <algorithm>
+#include <memory>
+#include <string_view>
+#include <utility>
 
 namespace mobileclock::ui::controls::_details {
-    xaml::Element* FindElement(xaml::Element& element, std::string_view id) {
-        if (element.Id() == id) {
-            return &element;
+    class AlarmListRebuildState final : public ControlRebuildState {
+    public:
+        explicit AlarmListRebuildState(AlarmList::RemovalState value)
+            : value(std::move(value)) {
         }
-        for (const std::unique_ptr<xaml::Element>& child : element.Children()) {
-            if (xaml::Element* const found = FindElement(*child, id)) {
-                return found;
+
+        AlarmList::RemovalState value;
+    };
+
+    class AlarmListRebuildParticipant final : public IControlRebuildParticipant {
+    public:
+        //
+        // IControlRebuildParticipant
+        //
+        std::string_view ClassName() const override {
+            return "mobileclock::ui::controls::AlarmList";
+        }
+
+        std::unique_ptr<ControlRebuildState> Capture(
+            xaml::Element& controlRoot,
+            xaml::Element& target) const override {
+            AlarmList::RemovalState state = AlarmList::CaptureRemovalState(
+                controlRoot,
+                target.DataContext());
+            if (!state.isPresent) {
+                return nullptr;
             }
+            return std::make_unique<AlarmListRebuildState>(std::move(state));
         }
-        return nullptr;
-    }
+
+        void Restore(
+            xaml::Element& controlRoot,
+            xaml::Element& pageRoot,
+            const ControlRebuildState& state,
+            xaml::AnimationController& animations) const override {
+            const auto& alarmListState = static_cast<const AlarmListRebuildState&>(state);
+            AlarmList::RestoreViewportAndAnimate(
+                controlRoot,
+                pageRoot,
+                alarmListState.value,
+                animations,
+                std::chrono::milliseconds(840));
+        }
+    };
 }
 
 namespace mobileclock::ui::controls {
@@ -27,9 +62,15 @@ namespace mobileclock::ui::controls {
         return this->itemsSource;
     }
 
-    AlarmList::RemovalState AlarmList::CaptureRemovalState(const void* dataContext) const {
-        xaml::Element* const list = this->FindElement("alarms");
-        xaml::Element* const scrollViewer = this->FindElement("alarmsScrollViewer");
+    std::unique_ptr<IControlRebuildParticipant> AlarmList::CreateRebuildParticipant() {
+        return std::make_unique<_details::AlarmListRebuildParticipant>();
+    }
+
+    AlarmList::RemovalState AlarmList::CaptureRemovalState(
+        xaml::Element& controlRoot,
+        const void* dataContext) {
+        xaml::Element* const list = FindElement(controlRoot, "alarms");
+        xaml::Element* const scrollViewer = FindElement(controlRoot, "alarmsScrollViewer");
         if (list == nullptr || scrollViewer == nullptr) {
             return {};
         }
@@ -49,46 +90,27 @@ namespace mobileclock::ui::controls {
     }
 
     void AlarmList::RestoreViewportAndAnimate(
-        const RemovalState& state,
+        xaml::Element& controlRoot,
         xaml::Element& pageRoot,
+        const RemovalState& state,
         xaml::AnimationController& animations,
         std::chrono::milliseconds duration) {
         if (!state.isPresent) {
             return;
         }
-        this->RestoreViewport(state, pageRoot);
-        this->AnimateRemainingItems(state, animations, duration);
-    }
-
-    //
-    // Internal
-    //
-    void AlarmList::RestoreViewport(const RemovalState& state, xaml::Element& pageRoot) {
-        xaml::Element* const scrollViewer = this->FindElement("alarmsScrollViewer");
-        if (scrollViewer == nullptr) {
+        xaml::Element* const list = FindElement(controlRoot, "alarms");
+        xaml::Element* const scrollViewer = FindElement(controlRoot, "alarmsScrollViewer");
+        if (list == nullptr || scrollViewer == nullptr || state.removedIndex >= state.previousBounds.size()) {
             return;
         }
         scrollViewer->HoldScrollExtent(state.scrollExtent);
         scrollViewer->SetHorizontalOffset(state.horizontalOffset);
         scrollViewer->SetVerticalOffset(state.verticalOffset);
-        const xaml::Rect bounds = pageRoot.Bounds();
-        if (bounds.width > 0.0f && bounds.height > 0.0f) {
-            xaml::layout(pageRoot, {bounds.width, bounds.height});
+        const xaml::Rect pageBounds = pageRoot.Bounds();
+        if (pageBounds.width > 0.0f && pageBounds.height > 0.0f) {
+            xaml::layout(pageRoot, {pageBounds.width, pageBounds.height});
         }
-    }
-
-    void AlarmList::AnimateRemainingItems(
-        const RemovalState& state,
-        xaml::AnimationController& animations,
-        std::chrono::milliseconds duration) {
-        xaml::Element* const list = this->FindElement("alarms");
-        xaml::Element* const scrollViewer = this->FindElement("alarmsScrollViewer");
-        if (list == nullptr || state.removedIndex >= state.previousBounds.size()) {
-            return;
-        }
-        if (scrollViewer != nullptr) {
-            animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
-        }
+        animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
         const auto& items = list->Children();
         const size_t count = std::min(items.size(), state.previousBounds.size() - state.removedIndex - 1);
         for (size_t index = 0; index < count; ++index) {
@@ -99,10 +121,33 @@ namespace mobileclock::ui::controls {
         }
     }
 
-    xaml::Element* AlarmList::FindElement(std::string_view id) const {
-        return _details::FindElement(*const_cast<AlarmList*>(this), id);
+    AlarmList::RemovalState AlarmList::CaptureRemovalState(const void* dataContext) const {
+        return CaptureRemovalState(*const_cast<AlarmList*>(this), dataContext);
     }
 
+    void AlarmList::RestoreViewportAndAnimate(
+        const RemovalState& state,
+        xaml::Element& pageRoot,
+        xaml::AnimationController& animations,
+        std::chrono::milliseconds duration) {
+        RestoreViewportAndAnimate(*this, pageRoot, state, animations, duration);
+    }
+
+    //
+    // Internal
+    //
     void AlarmList::OnInitialized() {
+    }
+
+    xaml::Element* AlarmList::FindElement(xaml::Element& element, std::string_view id) {
+        if (element.Id() == id) {
+            return &element;
+        }
+        for (const std::unique_ptr<xaml::Element>& child : element.Children()) {
+            if (xaml::Element* const found = FindElement(*child, id)) {
+                return found;
+            }
+        }
+        return nullptr;
     }
 }

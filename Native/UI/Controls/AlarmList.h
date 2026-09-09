@@ -2,12 +2,14 @@
 
 #include <XamlRuntime/DependentProperty.h>
 #include <XamlRuntime/UserControl.h>
+#include <XamlRuntime/XamlLayout.h>
 
 #include "!Generated/Xaml/Controls/AlarmList.xaml.h"
+#include "UI/Controls/ControlRebuildParticipant.h"
 
 #include <chrono>
-#include <functional>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace mobileclock::ui::controls {
@@ -39,6 +41,15 @@ namespace mobileclock::ui::controls {
 
         const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
+        static std::unique_ptr<IControlRebuildParticipant> CreateRebuildParticipant();
+        static RemovalState CaptureRemovalState(xaml::Element& controlRoot, const void* dataContext);
+        static void RestoreViewportAndAnimate(
+            xaml::Element& controlRoot,
+            xaml::Element& pageRoot,
+            const RemovalState& state,
+            xaml::AnimationController& animations,
+            std::chrono::milliseconds duration);
+
         RemovalState CaptureRemovalState(const void* dataContext) const;
         void RestoreViewportAndAnimate(
             const RemovalState& state,
@@ -52,13 +63,8 @@ namespace mobileclock::ui::controls {
             this->itemsSource.Set(static_cast<const void*>(&value));
         }
 
-        void RestoreViewport(const RemovalState& state, xaml::Element& pageRoot);
-        void AnimateRemainingItems(
-            const RemovalState& state,
-            xaml::AnimationController& animations,
-            std::chrono::milliseconds duration);
-        xaml::Element* FindElement(std::string_view id) const;
         void OnInitialized() override;
+        static xaml::Element* FindElement(xaml::Element& element, std::string_view id);
 
     private:
         xaml::DependentProperty<const void*> itemsSource;
