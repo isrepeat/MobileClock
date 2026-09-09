@@ -6,8 +6,8 @@
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/XamlLayout.h>
 
-#include "../../MobileClock.Presentation/Registrations.h"
 #include "../../MobileClock.Application/UI/ApplicationSession.h"
+#include "../../MobileClock.Presentation/Registrations.h"
 #include "AngleRenderSurface.h"
 
 #include <algorithm>

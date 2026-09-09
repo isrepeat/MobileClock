@@ -129,14 +129,14 @@ file(GLOB_RECURSE mobileclock_application_source_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 )
 file(GLOB_RECURSE mobileclock_icon_files CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icons/*"
+    "${mobileclock_project_root}/MobileClock.Application/Resources/Icons/*"
 )
-file(GLOB_RECURSE mobileclock_shader_files CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Shaders/*"
+file(GLOB_RECURSE mobileclock_font_files CONFIGURE_DEPENDS
+    "${mobileclock_project_root}/MobileClock.Application/Resources/Fonts/*"
 )
-set(mobileclock_resource_files
+set(mobileclock_application_resource_files
     ${mobileclock_icon_files}
-    ${mobileclock_shader_files}
+    ${mobileclock_font_files}
 )
 # Заголовки сабмодуля принадлежат его собственным CMake-целям. В цели
 # приложения показываем только её собственные исходники.
@@ -157,7 +157,7 @@ if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated
         "Generated XAML sources are missing. Run Scripts/PowerShell/build-android.ps1 first.")
 endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_source_files_properties(${mobileclock_resource_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties(${mobileclock_application_resource_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set(mobileclock_application_header_files ${mobileclock_header_files})
 list(FILTER mobileclock_application_header_files EXCLUDE REGEX "/MobileClock\\.UI/")
 list(FILTER mobileclock_application_header_files EXCLUDE REGEX "/MobileClock\\.UI\\.NativeBridge/")
@@ -176,7 +176,7 @@ list(FILTER mobileclock_ui_control_xaml_generated INCLUDE REGEX "/Controls/")
 set(mobileclock_ui_control_xaml_generated_headers ${mobileclock_xaml_generated_headers})
 list(FILTER mobileclock_ui_control_xaml_generated_headers INCLUDE REGEX "/Controls/")
 source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
-source_group("Resources\\Shaders" FILES ${mobileclock_shader_files})
+source_group("Resources\\Fonts" FILES ${mobileclock_font_files})
 source_group("Header Files" FILES ${mobileclock_application_header_files})
 source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "Application" FILES
     ${mobileclock_ui_header_files}
@@ -283,6 +283,7 @@ source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFI
 )
 add_library(mobileclock_application STATIC
     ${mobileclock_application_runtime_source_files}
+    ${mobileclock_application_resource_files}
     ${mobileclock_page_xaml_source}
     ${mobileclock_page_xaml_generated}
     ${mobileclock_page_xaml_generated_headers}
@@ -314,7 +315,6 @@ if (ANDROID)
     add_library(mobileclock_android_host SHARED
         ${mobileclock_application_source_files}
         ${mobileclock_application_header_files}
-        ${mobileclock_resource_files}
     )
     target_include_directories(mobileclock_android_host PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"

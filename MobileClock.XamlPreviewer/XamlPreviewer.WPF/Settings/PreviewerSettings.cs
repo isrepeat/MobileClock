@@ -16,7 +16,7 @@ internal sealed class DevicePreset {
 }
 
 internal sealed class PreviewerSettings {
-    private const string DefaultResourcesDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.AndroidHost\Resources";
+    private const string DefaultResourcesDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\Resources";
     private const string DefaultXamlDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\UI";
     private const string DefaultScenariosPath = @"C:\WORK\Android\Projects\MobileClock\MobileClock.AndroidHost\Tests\XamlPreviewer\scenarios.json";
     private const string DefaultScenarios = """

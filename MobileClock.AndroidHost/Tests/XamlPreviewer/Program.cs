@@ -24,7 +24,7 @@ internal static class Program {
         var assembly = Assembly.LoadFrom(Path.Combine(output, "XamlPreviewer.dll"));
         sessionType = assembly.GetType("XamlPreviewer.PreviewSession", true)!;
         rendererType = assembly.GetType("XamlPreviewer.PreviewRenderer", true)!;
-        resources = Path.Combine(root, "MobileClock.AndroidHost/Resources");
+        resources = Path.Combine(root, "MobileClock.Application/Resources");
         CheckPreviewDirectives();
         CheckScenarioInteractions(assembly);
         CheckConfigurableLists(assembly);

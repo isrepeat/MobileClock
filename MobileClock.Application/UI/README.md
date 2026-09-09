@@ -22,7 +22,7 @@
 ## Кто предоставляет эффекты и шейдеры
 
 Движок не регистрирует конкретные эффекты автоматически. MobileClock явно
-подключает модуль хоста `MobileClock.Native/Resources/Effects`:
+подключает модуль presentation `MobileClock.Presentation/Effects`:
 `Effects.cpp` содержит Fade, SlideFade, Wave и Glow, `Shaders.cpp` — GLSL волны.
 Базовые шейдеры фигур, текста и изображений встроены в OpenGLESRenderer.
 Эти исходники компилируются в хост, а не в XamlRuntime или OpenGLESRenderer.
@@ -1075,7 +1075,7 @@ layout. Здесь `32` не означает долю ширины страни
 ```cpp
 #include <XamlRuntime/Animation.h>
 
-#include "Resources/Effects/Effects.h"
+#include "MobileClock.Presentation/Effects/Effects.h"
 #include "UI/PageTransition.h"
 
 namespace mobileclock::renderer::_details {
@@ -1580,7 +1580,7 @@ struct Glow {
 };
 ```
 
-Этот тип объявлен в `MobileClock.Native/Resources/Effects/Effects.h` в namespace `mobileclock::resources::effects`.
+Этот тип объявлен в `MobileClock.Presentation/Effects/Effects.h` в namespace `mobileclock::resources::effects`.
 Типы готовых эффектов явно регистрирует `mobileclock::resources::effects::CreateStates()`.
 Пример разметки: [ButtonGlow.xaml](Examples/Buttons/ButtonGlow.xaml).
 
@@ -1807,7 +1807,7 @@ C++ вычисляет знак по направлению навигации �
 `duration`; в примере заданы 320 и 120 мс соответственно.
 
 XamlPreviewer использует тот же runtime и проверку схем. NativeBridge
-регистрирует эффекты из Resources/Effects и анимации приложения из
+регистрирует эффекты из MobileClock.Presentation/Effects и анимации приложения из
 Renderer/AnimationRenderers.cpp, включая `animationPageTransition` и
 `animationSettingsReveal`. При навигации выполняются настоящие Hide/Show
 обеих страниц, а не WPF-анимация снимка. Исходная сессия освобождается,
@@ -1859,7 +1859,7 @@ ShaderProgramSources, и базовая отрисовка продолжит р
 вызывает ошибку, а не молчаливый возврат к стандартному шейдеру.
 
 Волна и Glow — эффекты приложения. Их состояния и обработчики находятся в
-MobileClock.Native/Resources/Effects/Effects.cpp. Шейдер волны находится там же в
+MobileClock.Presentation/Effects/Effects.cpp. Шейдер волны находится там же в
 Shaders.cpp; ключ `"button-wave"` известен только хосту. Glow сейчас рисует
 обводку через базовые операции backend и отдельного GLSL-шейдера не имеет.
 Библиотека не регистрирует эти эффекты и не хранит их поля в Element.

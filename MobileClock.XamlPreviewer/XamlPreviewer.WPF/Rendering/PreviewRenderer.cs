@@ -215,8 +215,21 @@ internal static class PreviewRenderer {
         if (File.Exists(pageControlsPath)) {
             return pageControlsPath;
         }
+        var directory = new DirectoryInfo(xamlDirectory);
+        while (directory is not null) {
+            var sharedControlPath = Path.Combine(
+                directory.FullName,
+                "MobileClock.UI",
+                "Controls",
+                controlName + ".xaml");
+            if (File.Exists(sharedControlPath)) {
+                return sharedControlPath;
+            }
+            directory = directory.Parent;
+        }
         return Path.GetFullPath(Path.Combine(
             xamlDirectory,
+            "..",
             "..",
             "MobileClock.UI",
             "Controls",

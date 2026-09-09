@@ -66,7 +66,7 @@ android {
         buildConfig = true
     }
     sourceSets {
-        getByName("main").assets.directories += "../MobileClock.AndroidHost/Resources"
+        getByName("main").assets.directories += "../MobileClock.Application/Resources"
         getByName("main").jniLibs.srcDirs("../Build/MobileClock.AndroidHost/android/jniLibs")
     }
     androidResources {
