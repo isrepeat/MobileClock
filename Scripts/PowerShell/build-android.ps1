@@ -18,9 +18,12 @@ $nativeRoot = Join-Path $projectRoot 'Native'
 $xamlCompilerRoot = Join-Path $nativeRoot 'UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
 $xamlCompilerBuild = Join-Path $projectRoot 'out\xaml-compiler'
 $xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
-$xamlSourceRoot = Join-Path $nativeRoot 'UI'
+$xamlSourceRoots = @(
+    (Join-Path $nativeRoot 'UI'),
+    (Join-Path $nativeRoot 'MobileClock.UI')
+)
 $xamlGeneratedRoot = Join-Path $nativeRoot '!Generated\Xaml'
-$xamlIgnoreConfigurationPath = Join-Path $xamlSourceRoot 'XamlCompilerIgnore.json'
+$xamlIgnoreConfigurationPath = Join-Path $nativeRoot 'UI\XamlCompilerIgnore.json'
 $xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath -Raw | ConvertFrom-Json
 $xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
 $xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
@@ -56,21 +59,28 @@ if (-not (Test-Path $xamlCompiler)) {
     throw "XamlCompiler build completed but did not produce $xamlCompiler"
 }
 
-Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File -Recurse | ForEach-Object {
-    # Windows PowerShell 5.1 работает на .NET Framework, где ещё нет
-    # System.IO.Path.GetRelativePath. Все найденные файлы гарантированно
-    # находятся внутри $xamlSourceRoot, поэтому достаточно убрать этот префикс.
-    $relativePath = $_.FullName.Substring($xamlSourceRoot.Length).TrimStart('\', '/')
-    $generatedPath = Join-Path $xamlGeneratedRoot ($relativePath + '.cpp')
-    $compilerArguments = @($_.FullName, $generatedPath)
-    foreach ($directory in $xamlIgnoredDirectories) {
-        $compilerArguments += '--ignore-directory', $directory
+foreach ($xamlSourceRoot in $xamlSourceRoots) {
+    Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File -Recurse | ForEach-Object {
+        # Windows PowerShell 5.1 работает на .NET Framework, где ещё нет
+        # System.IO.Path.GetRelativePath. Все найденные файлы гарантированно
+        # находятся внутри $xamlSourceRoot, поэтому достаточно убрать этот префикс.
+        $relativePath = $_.FullName.Substring($xamlSourceRoot.Length).TrimStart('\', '/')
+        $generatedPath = Join-Path $xamlGeneratedRoot ($relativePath + '.cpp')
+        $compilerArguments = @(
+            $_.FullName,
+            $generatedPath,
+            '--control-include-prefix',
+            'MobileClock.UI/Controls'
+        )
+        foreach ($directory in $xamlIgnoredDirectories) {
+            $compilerArguments += '--ignore-directory', $directory
+        }
+        foreach ($suffix in $xamlIgnoredFileSuffixes) {
+            $compilerArguments += '--ignore-file-suffix', $suffix
+        }
+        Write-Host "==> Compiling $($_.Name) into native UI classes"
+        Invoke-Checked $xamlCompiler $compilerArguments
     }
-    foreach ($suffix in $xamlIgnoredFileSuffixes) {
-        $compilerArguments += '--ignore-file-suffix', $suffix
-    }
-    Write-Host "==> Compiling $($_.Name) into native UI classes"
-    Invoke-Checked $xamlCompiler $compilerArguments
 }
 
 Push-Location $nativeRoot

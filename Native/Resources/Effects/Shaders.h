@@ -1,5 +1,4 @@
 #pragma once
-
 #include <ESRenderer/OpenGlRenderer.h>
 
 namespace mobileclock::resources::effects {

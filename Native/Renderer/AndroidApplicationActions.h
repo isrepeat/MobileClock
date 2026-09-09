@@ -1,5 +1,4 @@
 #pragma once
-
 #include "UI/ApplicationActions.h"
 
 namespace mobileclock::renderer {

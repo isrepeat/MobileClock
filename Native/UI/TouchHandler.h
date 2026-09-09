@@ -1,5 +1,4 @@
 #pragma once
-
 #include <XamlRuntime/InteractionController.h>
 
 namespace xaml {

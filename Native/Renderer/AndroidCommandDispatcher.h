@@ -1,5 +1,4 @@
 #pragma once
-
 #include <jni.h>
 
 namespace mobileclock::renderer {

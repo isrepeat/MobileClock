@@ -1,7 +1,6 @@
 #pragma once
-
-#include <memory>
 #include <string_view>
+#include <memory>
 
 namespace xaml {
     class AnimationController;

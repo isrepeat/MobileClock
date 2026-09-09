@@ -1,5 +1,4 @@
 #pragma once
-
 #include <XamlRuntime/RenderEngine.h>
 
 namespace mobileclock::resources::effects {

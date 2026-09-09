@@ -1,11 +1,12 @@
-#include <Helpers.Logging/Logging.h>
-#include <XamlRuntime/Animation.h>
-#include <XamlRuntime/RenderEngine.h>
-
-#include "!Generated/Build/BuildVersion.h"
-#include "!Generated/Xaml/Pages/MainPage.xaml.h"
-#include "UI/Controls/AlarmList.h"
 #include "UI/Pages/MainPageViewModel.h"
+
+#include <Helpers.Logging/Logging.h>
+#include <XamlRuntime/RenderEngine.h>
+#include <XamlRuntime/Animation.h>
+
+#include "!Generated/Xaml/Pages/MainPage.xaml.h"
+#include "MobileClock.UI/Controls/AlarmList.h"
+#include "!Generated/Build/BuildVersion.h"
 
 #include <stdexcept>
 #include <algorithm>

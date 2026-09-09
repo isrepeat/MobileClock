@@ -1,10 +1,9 @@
 #pragma once
+#include "MobileClock.UI/Controls/ControlRebuildParticipant.h"
 
-#include "UI/Controls/ControlRebuildParticipant.h"
-
+#include <unordered_map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace xaml {

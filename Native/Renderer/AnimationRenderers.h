@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Resources/Effects/Effects.h"
 
 namespace xaml {

@@ -1,14 +1,13 @@
 #pragma once
+#include "!Generated/Xaml/Controls/TimelineTabs.xaml.h"
 
 #include <XamlRuntime/UserControl.h>
-
-#include "!Generated/Xaml/Controls/TimelineTabs.xaml.h"
 
 namespace mobileclock::ui::controls {
     class TimelineTabs final : public xaml::UserControl {
     public:
-        TimelineTabs();
-        ~TimelineTabs() override;
+        TimelineTabs() = default;
+        ~TimelineTabs() override = default;
 
         template <typename TViewModel>
         static std::unique_ptr<TimelineTabs> Create(TViewModel& viewModel, xaml::BindingScope& bindings) {

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 

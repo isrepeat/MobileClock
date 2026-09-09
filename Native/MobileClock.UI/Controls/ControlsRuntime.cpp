@@ -1,8 +1,9 @@
-#include <XamlRuntime/Animation.h>
-#include <XamlRuntime/XamlLayout.h>
+#include "ControlsRuntime.h"
 
-#include "UI/Controls/ControlsRuntime.h"
-#include "UI/Controls/MobileClockControls.h"
+#include <XamlRuntime/XamlLayout.h>
+#include <XamlRuntime/Animation.h>
+
+#include "MobileClockControls.h"
 
 namespace mobileclock::ui::controls {
     //

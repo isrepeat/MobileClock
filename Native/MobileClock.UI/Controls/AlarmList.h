@@ -1,15 +1,15 @@
 #pragma once
+#include "!Generated/Xaml/Controls/AlarmList.xaml.h"
 
 #include <XamlRuntime/DependentProperty.h>
 #include <XamlRuntime/UserControl.h>
 #include <XamlRuntime/XamlLayout.h>
 
-#include "!Generated/Xaml/Controls/AlarmList.xaml.h"
-#include "UI/Controls/ControlRebuildParticipant.h"
+#include "MobileClock.UI/Controls/ControlRebuildParticipant.h"
 
+#include <string_view>
 #include <chrono>
 #include <memory>
-#include <string_view>
 #include <vector>
 
 namespace mobileclock::ui::controls {

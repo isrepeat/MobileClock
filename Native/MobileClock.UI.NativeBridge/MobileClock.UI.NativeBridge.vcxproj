@@ -25,35 +25,35 @@
         <PlatformToolset>v145</PlatformToolset>
     </PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-    <PropertyGroup Condition="'$(PreviewerControlExtensionOutputDir)'!=''">
-        <OutDir>$(PreviewerControlExtensionOutputDir)</OutDir>
-        <IntDir>$(PreviewerControlExtensionIntermediateDir)</IntDir>
+    <PropertyGroup Condition="'$(PreviewerMobileClockUiNativeBridgeOutputDir)'!=''">
+        <OutDir>$(PreviewerMobileClockUiNativeBridgeOutputDir)</OutDir>
+        <IntDir>$(PreviewerMobileClockUiNativeBridgeIntermediateDir)</IntDir>
     </PropertyGroup>
     <PropertyGroup>
-        <TargetName>MobileClock.PreviewExtension</TargetName>
+        <TargetName>MobileClock.UI.NativeBridge</TargetName>
     </PropertyGroup>
     <ItemDefinitionGroup>
         <ClCompile>
-            <AdditionalIncludeDirectories>$(ProjectDir)..\..;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories>$(ProjectDir)..;$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
             <LanguageStandard>stdcpp17</LanguageStandard>
             <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="ControlsPreviewRuntime.cpp" />
-        <ClInclude Include="ControlsPreviewApi.h" />
+        <ClCompile Include="MobileClockUiNativeBridge.cpp" />
+        <ClInclude Include="MobileClockUiNativeBridge.h" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.vcxproj">
+        <ProjectReference Include="$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.vcxproj">
             <Project>{D5B97C3C-3A64-4A72-A71C-1186767DB3B1}</Project>
             <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
             <SetPlatform>Platform=x64</SetPlatform>
         </ProjectReference>
-        <ProjectReference Include="$(ProjectDir)..\MobileClock.Controls\MobileClock.Controls.vcxproj">
+        <ProjectReference Include="$(ProjectDir)..\MobileClock.UI\MobileClock.UI.vcxproj">
             <Project>{6B2ED5CB-EAAC-4889-86DE-53AA05EC839F}</Project>
             <SetConfiguration>Configuration=$(Configuration)</SetConfiguration>
             <SetPlatform>Platform=x64</SetPlatform>
-            <AdditionalProperties>Configuration=$(Configuration);Platform=x64;PreviewerControlsLibraryOutputDir=$(PreviewerControlsLibraryOutputDir);PreviewerControlsLibraryIntermediateDir=$(PreviewerControlsLibraryIntermediateDir)</AdditionalProperties>
+            <AdditionalProperties>Configuration=$(Configuration);Platform=x64;PreviewerMobileClockUiOutputDir=$(PreviewerMobileClockUiOutputDir);PreviewerMobileClockUiIntermediateDir=$(PreviewerMobileClockUiIntermediateDir)</AdditionalProperties>
         </ProjectReference>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,9 +1,10 @@
+#include "UI/PageManager.h"
+
 #include <XamlRuntime/RenderEngine.h>
 
+#include "MobileClock.UI/Controls/AlarmList.h"
 #include "Renderer/AnimationRenderers.h"
-#include "UI/Controls/AlarmList.h"
 #include "UI/PageTransition.h"
-#include "UI/PageManager.h"
 
 namespace mobileclock::ui {
     PageManager::PageManager(IApplicationActions& actions)

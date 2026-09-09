@@ -72,6 +72,7 @@ add_subdirectory(UtilityHelpersLib)
 # .so, а компиляция и линковка выполняются этим CMake-проектом.
 file(GLOB_RECURSE mobileclock_xaml_source CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/UI/*.xaml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/MobileClock.UI/*.xaml"
 )
 file(GLOB_RECURSE mobileclock_xaml_generated CONFIGURE_DEPENDS
     "${mobileclock_generated_root}/Xaml/*.xaml.cpp"
@@ -143,14 +144,29 @@ if (NOT mobileclock_xaml_source OR NOT mobileclock_xaml_generated
 endif()
 set_source_files_properties(${mobileclock_xaml_source} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties(${mobileclock_resource_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set(mobileclock_ui_header_files ${mobileclock_header_files})
+set(mobileclock_application_header_files ${mobileclock_header_files})
+list(FILTER mobileclock_application_header_files EXCLUDE REGEX "/MobileClock\\.UI/")
+list(FILTER mobileclock_application_header_files EXCLUDE REGEX "/MobileClock\\.UI\\.NativeBridge/")
+set(mobileclock_ui_header_files ${mobileclock_application_header_files})
 list(FILTER mobileclock_ui_header_files INCLUDE REGEX "/UI/")
+set(mobileclock_page_xaml_source ${mobileclock_xaml_source})
+list(FILTER mobileclock_page_xaml_source INCLUDE REGEX "/UI/")
+set(mobileclock_ui_control_xaml_source ${mobileclock_xaml_source})
+list(FILTER mobileclock_ui_control_xaml_source INCLUDE REGEX "/MobileClock\.UI/")
+set(mobileclock_page_xaml_generated ${mobileclock_xaml_generated})
+list(FILTER mobileclock_page_xaml_generated INCLUDE REGEX "/Pages/")
+set(mobileclock_page_xaml_generated_headers ${mobileclock_xaml_generated_headers})
+list(FILTER mobileclock_page_xaml_generated_headers INCLUDE REGEX "/Pages/")
+set(mobileclock_ui_control_xaml_generated ${mobileclock_xaml_generated})
+list(FILTER mobileclock_ui_control_xaml_generated INCLUDE REGEX "/Controls/")
+set(mobileclock_ui_control_xaml_generated_headers ${mobileclock_xaml_generated_headers})
+list(FILTER mobileclock_ui_control_xaml_generated_headers INCLUDE REGEX "/Controls/")
 source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
 source_group("Resources\\Shaders" FILES ${mobileclock_shader_files})
-source_group("Header Files" FILES ${mobileclock_header_files})
+source_group("Header Files" FILES ${mobileclock_application_header_files})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/UI" PREFIX "UI" FILES
     ${mobileclock_ui_header_files}
-    ${mobileclock_xaml_source}
+    ${mobileclock_page_xaml_source}
 )
 source_group("Resources\\Effects" FILES
     Resources/Effects/Effects.cpp
@@ -164,48 +180,53 @@ source_group(TREE "${mobileclock_generated_root}/Xaml" PREFIX "!Generated\\Xaml"
 )
 source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 
-set(mobileclock_platform_files
-    platform/MobileClock.Controls/MobileClock.Controls.vcxproj
-    platform/MobileClock.PreviewExtension/ControlsPreviewApi.h
-    platform/MobileClock.PreviewExtension/ControlsPreviewRuntime.cpp
-    platform/MobileClock.PreviewExtension/MobileClock.PreviewExtension.vcxproj
+set(mobileclock_ui_project_files
+    MobileClock.UI/Controls/AlarmList.h
+    MobileClock.UI/Controls/AlarmList.xaml
+    MobileClock.UI/Controls/ControlRebuildParticipant.h
+    MobileClock.UI/Controls/ControlsRuntime.h
+    MobileClock.UI/Controls/MobileClockControls.h
+    MobileClock.UI/Controls/TimelineTabs.h
+    MobileClock.UI/Controls/TimelineTabs.xaml
+    MobileClock.UI/MobileClock.UI.vcxproj
 )
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/platform" PREFIX "platform" FILES
-    ${mobileclock_platform_files}
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MobileClock.UI" PREFIX "MobileClock.UI" FILES
+    ${mobileclock_ui_project_files}
+    ${mobileclock_ui_control_xaml_source}
 )
-set_source_files_properties(${mobileclock_platform_files} PROPERTIES HEADER_FILE_ONLY ON)
+set(mobileclock_ui_native_bridge_project_files
+    MobileClock.UI.NativeBridge/MobileClockUiNativeBridge.h
+    MobileClock.UI.NativeBridge/MobileClockUiNativeBridge.cpp
+    MobileClock.UI.NativeBridge/MobileClock.UI.NativeBridge.vcxproj
+)
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MobileClock.UI.NativeBridge" PREFIX "MobileClock.UI.NativeBridge" FILES
+    ${mobileclock_ui_native_bridge_project_files}
+)
+set_source_files_properties(${mobileclock_ui_native_bridge_project_files} PROPERTIES HEADER_FILE_ONLY ON)
 
-set(mobileclock_controls_project_files
-    UI/Controls/AlarmList.h
-    UI/Controls/AlarmList.xaml
-    UI/Controls/ControlRebuildParticipant.h
-    UI/Controls/ControlsRuntime.h
-    UI/Controls/MobileClockControls.h
+add_library(mobileclock_ui STATIC
+    MobileClock.UI/Controls/AlarmList.cpp
+    MobileClock.UI/Controls/ControlsRuntime.cpp
+    MobileClock.UI/Controls/MobileClockControls.cpp
+    MobileClock.UI/Controls/TimelineTabs.cpp
+    ${mobileclock_ui_control_xaml_generated}
+    ${mobileclock_ui_control_xaml_generated_headers}
 )
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/UI/Controls" PREFIX "UI\\Controls" FILES
-    ${mobileclock_controls_project_files}
+target_sources(mobileclock_ui PRIVATE
+    ${mobileclock_ui_project_files}
+    ${mobileclock_ui_native_bridge_project_files}
 )
-
-add_library(mobileclock_controls STATIC
-    UI/Controls/AlarmList.cpp
-    UI/Controls/ControlsRuntime.cpp
-    UI/Controls/MobileClockControls.cpp
-)
-target_sources(mobileclock_controls PRIVATE
-    ${mobileclock_controls_project_files}
-    ${mobileclock_platform_files}
-)
-target_include_directories(mobileclock_controls PUBLIC
+target_include_directories(mobileclock_ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${mobileclock_generated_build_dir}"
 )
-set_target_properties(mobileclock_controls PROPERTIES
+set_target_properties(mobileclock_ui PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
 )
-target_link_libraries(mobileclock_controls PUBLIC
+target_link_libraries(mobileclock_ui PUBLIC
     utility_helpers::xaml_runtime
 )
 
@@ -220,16 +241,15 @@ add_library(mobileclock SHARED
     Renderer/AndroidApplicationActions.cpp
     Renderer/AndroidCommandDispatcher.cpp
     Renderer/NativeRenderer.cpp
-    UI/Controls/TimelineTabs.cpp
     UI/Pages/MainPageViewModel.cpp
     UI/PageManager.cpp
     UI/Pages/SettingsPageViewModel.cpp
     UI/TouchHandler.cpp
-    ${mobileclock_header_files}
+    ${mobileclock_application_header_files}
     ${mobileclock_xaml_source}
     ${mobileclock_resource_files}
-    ${mobileclock_xaml_generated}
-    ${mobileclock_xaml_generated_headers}
+    ${mobileclock_page_xaml_generated}
+    ${mobileclock_page_xaml_generated_headers}
 )
 target_include_directories(mobileclock PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -264,7 +284,7 @@ find_library(log-lib log)
 # Системные Android-библиотеки ищем через NDK, а Logcat-обёртку над spdlog
 # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
 target_link_libraries(mobileclock
-    mobileclock_controls
+    mobileclock_ui
     utility_helpers::open_gles_renderer
     utility_helpers::new
     utility_helpers::xaml_runtime

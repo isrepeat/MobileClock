@@ -1,11 +1,11 @@
+#include "MobileClock.UI/Controls/AlarmList.h"
+
 #include <XamlRuntime/Animation.h>
 
-#include "UI/Controls/AlarmList.h"
-
-#include <algorithm>
-#include <memory>
 #include <string_view>
+#include <algorithm>
 #include <utility>
+#include <memory>
 
 namespace mobileclock::ui::controls::_details {
     class AlarmListRebuildState final : public ControlRebuildState {

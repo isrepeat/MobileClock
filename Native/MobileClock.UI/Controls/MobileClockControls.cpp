@@ -1,6 +1,7 @@
-#include "UI/Controls/AlarmList.h"
-#include "UI/Controls/ControlsRuntime.h"
-#include "UI/Controls/MobileClockControls.h"
+#include "MobileClockControls.h"
+
+#include "ControlsRuntime.h"
+#include "AlarmList.h"
 
 namespace mobileclock::ui::controls {
     void RegisterMobileClockControls(ControlsRuntime& runtime) {

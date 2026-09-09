@@ -1,7 +1,8 @@
+#include "UI/Pages/SettingsPageViewModel.h"
+
 #include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/Xaml/Pages/SettingsPage.xaml.h"
-#include "UI/Pages/SettingsPageViewModel.h"
 
 #include <utility>
 
