@@ -10,12 +10,14 @@ namespace XamlPreviewer;
 // WPF hosts the image and input only; MobileClock owns the runtime tree.
 internal sealed class MobileClockSession : IDisposable {
     private readonly AnglePreviewRenderer renderer;
+    private readonly PreviewCursorSet cursorSet;
     private readonly Image image;
     private IntPtr session;
     private bool hasPointerCapture;
 
     public MobileClockSession(string resourcesDirectory, int width, int height) {
         this.renderer = new AnglePreviewRenderer(resourcesDirectory, width, height);
+        this.cursorSet = new PreviewCursorSet();
         this.session = NativeRuntime.mc_create_session(width, height);
         try {
             NativeRuntime.Ensure(this.session != IntPtr.Zero);
@@ -27,6 +29,7 @@ internal sealed class MobileClockSession : IDisposable {
             this.image.MouseLeftButtonDown += this.ImageMouseLeftButtonDown;
             this.image.MouseLeftButtonUp += this.ImageMouseLeftButtonUp;
             this.image.MouseMove += this.ImageMouseMove;
+            this.image.MouseLeave += this.ImageMouseLeave;
         }
         catch {
             if (this.session != IntPtr.Zero) {
@@ -56,6 +59,7 @@ internal sealed class MobileClockSession : IDisposable {
         this.image.MouseLeftButtonDown -= this.ImageMouseLeftButtonDown;
         this.image.MouseLeftButtonUp -= this.ImageMouseLeftButtonUp;
         this.image.MouseMove -= this.ImageMouseMove;
+        this.image.MouseLeave -= this.ImageMouseLeave;
         if (this.hasPointerCapture) {
             this.image.ReleaseMouseCapture();
             this.hasPointerCapture = false;
@@ -64,6 +68,7 @@ internal sealed class MobileClockSession : IDisposable {
             NativeRuntime.mc_destroy_session(this.session);
             this.session = IntPtr.Zero;
         }
+        this.cursorSet.Dispose();
         this.renderer.Dispose();
     }
 
@@ -74,6 +79,11 @@ internal sealed class MobileClockSession : IDisposable {
             this.ScaleX(point.X),
             this.ScaleY(point.Y)) != 0);
         this.hasPointerCapture = this.image.CaptureMouse();
+        this.SetCursor(this.CursorKind(point) switch {
+            PreviewCursorKind.Tap => this.cursorSet.TapPressed,
+            PreviewCursorKind.Grab => this.cursorSet.Grabbing,
+            _ => null,
+        });
         this.UpdateAndRender();
         eventArgs.Handled = true;
     }
@@ -89,20 +99,26 @@ internal sealed class MobileClockSession : IDisposable {
             this.ScaleY(point.Y)) != 0);
         this.image.ReleaseMouseCapture();
         this.hasPointerCapture = false;
+        this.SetCursor(this.CursorKind(point));
         this.UpdateAndRender();
         eventArgs.Handled = true;
     }
 
     private void ImageMouseMove(object sender, MouseEventArgs eventArgs) {
+        var point = eventArgs.GetPosition(this.image);
         if (!this.hasPointerCapture) {
+            this.SetCursor(this.CursorKind(point));
             return;
         }
-        var point = eventArgs.GetPosition(this.image);
         NativeRuntime.Ensure(NativeRuntime.mc_pointer_move(
             this.session,
             this.ScaleX(point.X),
             this.ScaleY(point.Y)) != 0);
         this.UpdateAndRender();
+    }
+
+    private void ImageMouseLeave(object sender, MouseEventArgs eventArgs) {
+        this.image.Cursor = null;
     }
 
     private void Render() {
@@ -115,5 +131,33 @@ internal sealed class MobileClockSession : IDisposable {
 
     private float ScaleY(double value) {
         return (float)(value / this.image.ActualHeight * this.renderer.Height);
+    }
+
+    private PreviewCursorKind CursorKind(Point point) {
+        if (this.image.ActualWidth <= 0.0 || this.image.ActualHeight <= 0.0) {
+            return PreviewCursorKind.None;
+        }
+        return (PreviewCursorKind)NativeRuntime.mc_cursor_kind(
+            this.session,
+            this.ScaleX(point.X),
+            this.ScaleY(point.Y));
+    }
+
+    private void SetCursor(PreviewCursorKind kind) {
+        this.SetCursor(kind switch {
+            PreviewCursorKind.Tap => this.cursorSet.Tap,
+            PreviewCursorKind.Grab => this.cursorSet.Grab,
+            _ => null,
+        });
+    }
+
+    private void SetCursor(Cursor? cursor) {
+        this.image.Cursor = cursor;
+    }
+
+    private enum PreviewCursorKind {
+        None,
+        Tap,
+        Grab,
     }
 }

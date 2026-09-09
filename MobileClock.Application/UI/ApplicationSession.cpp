@@ -50,6 +50,10 @@ namespace mobileclock::ui {
         this->pageManager.CancelTouch();
     }
 
+    int ApplicationSession::CursorKind(float x, float y) {
+        return this->pageManager.CursorKind(x, y);
+    }
+
     void ApplicationSession::Update() {
         this->pageManager.UpdateClock();
     }

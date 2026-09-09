@@ -66,6 +66,7 @@ XAML_RUNTIME_BRIDGE_API int mc_pointer_down(mc_session* session, float x, float 
 XAML_RUNTIME_BRIDGE_API int mc_pointer_move(mc_session* session, float x, float y);
 XAML_RUNTIME_BRIDGE_API int mc_pointer_up(mc_session* session, float x, float y);
 XAML_RUNTIME_BRIDGE_API int mc_pointer_cancel(mc_session* session);
+XAML_RUNTIME_BRIDGE_API int mc_cursor_kind(mc_session* session, float x, float y);
 XAML_RUNTIME_BRIDGE_API int mc_update(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_render_angle_surface(
     mc_session* session,

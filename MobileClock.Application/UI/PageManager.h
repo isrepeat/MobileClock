@@ -36,6 +36,7 @@ namespace mobileclock::ui {
         bool HandleTouchMove(float x, float y);
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
+        int CursorKind(float x, float y);
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
 

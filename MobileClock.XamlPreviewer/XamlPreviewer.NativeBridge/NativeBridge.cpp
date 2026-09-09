@@ -373,6 +373,13 @@ int mc_pointer_cancel(mc_session* session) {
     return 1;
 }
 
+int mc_cursor_kind(mc_session* session, float x, float y) {
+    if (session == nullptr) {
+        return 0;
+    }
+    return session->session.CursorKind(x, y);
+}
+
 int mc_update(mc_session* session) {
     if (session == nullptr) {
         return 0;

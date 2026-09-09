@@ -104,6 +104,9 @@ internal static class NativeRuntime {
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_pointer_cancel")]
     public static extern int mc_pointer_cancel(IntPtr session);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_cursor_kind")]
+    public static extern int mc_cursor_kind(IntPtr session, float x, float y);
+
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_update")]
     public static extern int mc_update(IntPtr session);
 

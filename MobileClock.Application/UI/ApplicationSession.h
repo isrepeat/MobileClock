@@ -26,6 +26,7 @@ namespace mobileclock::ui {
         void PointerMove(float x, float y);
         void PointerUp(float x, float y);
         void CancelPointer();
+        int CursorKind(float x, float y);
         void Update();
         void Render(xaml::IRenderBackend& renderer) const;
 
