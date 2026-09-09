@@ -191,16 +191,6 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MobileClock.UI" PREFIX "MobileClo
     ${mobileclock_ui_project_files}
     ${mobileclock_ui_control_xaml_source}
 )
-set(mobileclock_ui_native_bridge_project_files
-    MobileClock.UI.NativeBridge/MobileClockUiNativeBridge.h
-    MobileClock.UI.NativeBridge/MobileClockUiNativeBridge.cpp
-    MobileClock.UI.NativeBridge/MobileClock.UI.NativeBridge.vcxproj
-)
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/MobileClock.UI.NativeBridge" PREFIX "MobileClock.UI.NativeBridge" FILES
-    ${mobileclock_ui_native_bridge_project_files}
-)
-set_source_files_properties(${mobileclock_ui_native_bridge_project_files} PROPERTIES HEADER_FILE_ONLY ON)
-
 add_library(mobileclock_ui STATIC
     MobileClock.UI/Controls/AlarmList.cpp
     MobileClock.UI/Controls/TimelineTabs.cpp
@@ -209,7 +199,6 @@ add_library(mobileclock_ui STATIC
 )
 target_sources(mobileclock_ui PRIVATE
     ${mobileclock_ui_project_files}
-    ${mobileclock_ui_native_bridge_project_files}
 )
 target_include_directories(mobileclock_ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -19,7 +19,7 @@ internal static class Program {
     [STAThread]
     private static int Main(string[] args) {
         string root = Path.GetFullPath(args[0]);
-        string output = Path.Combine(root, "Native/UtilityHelpersLib/Tools/XamlPreviewer/!VS_TMP/Build/Debug/x64/XamlPreviewer");
+        string output = Path.Combine(root, "Native/UtilityHelpersLib/!VS_TMP/Build/Debug/x64/XamlPreviewer.WPF");
         Require(SetDllDirectory(output), "Cannot set native dependency directory");
         var assembly = Assembly.LoadFrom(Path.Combine(output, "XamlPreviewer.dll"));
         sessionType = assembly.GetType("XamlPreviewer.PreviewSession", true)!;

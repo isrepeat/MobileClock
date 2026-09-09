@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <Resource Include="../../UtilityHelpersLib/Tools/XamlPreviewer/Resources/Icons/*.svg"
+    <Resource Include="../../UtilityHelpersLib/Tools/XamlPreviewer/XamlPreviewer.WPF/Resources/Icons/*.svg"
               Link="Resources/Icons/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

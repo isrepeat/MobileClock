@@ -5,23 +5,11 @@
 #include <XamlRuntime/UserControl.h>
 #include <XamlRuntime/XamlLayout.h>
 
-#include <string_view>
 #include <memory>
-#include <vector>
-#include <chrono>
 
 namespace mobileclock::ui::controls {
     class AlarmList final : public xaml::UserControl {
     public:
-        struct RemovalTransition {
-            std::vector<xaml::Rect> previousBounds;
-            xaml::Size scrollExtent;
-            float horizontalOffset = 0.0f;
-            float verticalOffset = 0.0f;
-            size_t removedIndex = 0;
-            bool isPresent = false;
-        };
-
         AlarmList() = default;
         ~AlarmList() override = default;
 
@@ -39,21 +27,6 @@ namespace mobileclock::ui::controls {
 
         const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
-        static RemovalTransition PrepareRemoval(xaml::Element& controlRoot, const void* dataContext);
-        static bool RemoveItem(
-            xaml::Element& controlRoot,
-            xaml::Element& pageRoot,
-            const RemovalTransition& transition,
-            xaml::AnimationController& animations,
-            std::chrono::milliseconds duration);
-
-        RemovalTransition PrepareRemoval(const void* dataContext) const;
-        bool RemoveItem(
-            const RemovalTransition& transition,
-            xaml::Element& pageRoot,
-            xaml::AnimationController& animations,
-            std::chrono::milliseconds duration);
-
     private:
         template <typename TItemsSource>
         void SetItemsSource(const TItemsSource& value) {
@@ -61,7 +34,6 @@ namespace mobileclock::ui::controls {
         }
 
         void OnInitialized() override;
-        static xaml::Element* FindElement(xaml::Element& element, std::string_view id);
 
     private:
         xaml::DependentProperty<const void*> itemsSource;
