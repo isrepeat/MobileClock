@@ -2,11 +2,11 @@
 .gradle/
 .kotlin/
 Build/*
+**/build/
 !Build/Gradle/
 !Build/Gradle/**
 Build/Gradle/.gradle/
 Build/Gradle/local.properties
-**/build/
 MobileClock.Native/!VS_TMP/
 MobileClock.XamlPreviewer/!VS_TMP/
 
