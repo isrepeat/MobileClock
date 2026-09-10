@@ -1,6 +1,6 @@
-#include "UI/ApplicationSession.h"
-
 #include "MobileClock.Presentation/Registrations.h"
+
+#include "UI/ApplicationSession.h"
 
 #include <utility>
 
@@ -50,8 +50,8 @@ namespace mobileclock::ui {
         this->pageManager.CancelTouch();
     }
 
-    int ApplicationSession::CursorKind(float x, float y) {
-        return this->pageManager.CursorKind(x, y);
+    xaml::Element& ApplicationSession::Root() {
+        return this->pageManager.Root();
     }
 
     void ApplicationSession::Update() {

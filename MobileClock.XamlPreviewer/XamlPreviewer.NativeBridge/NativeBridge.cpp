@@ -377,7 +377,21 @@ int mc_cursor_kind(mc_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
-    return session->session.CursorKind(x, y);
+    xaml::Element& root = session->session.Root();
+    xaml::Element* const visual = xaml::HitTestVisual(root, x, y);
+    if (visual == nullptr) {
+        return 0;
+    }
+    xaml::Element* const interactive = xaml::HitTest(root, x, y);
+    if (interactive != nullptr && interactive->Type() != xaml::ElementType::scrollViewer) {
+        return 1;
+    }
+    for (xaml::Element* element = visual; element != nullptr; element = element->Parent()) {
+        if (element->Type() == xaml::ElementType::scrollViewer) {
+            return 2;
+        }
+    }
+    return 0;
 }
 
 int mc_update(mc_session* session) {

@@ -1,5 +1,5 @@
 #pragma once
-#include "!Generated/Xaml/Controls/TimelineTabs.xaml.h"
+#include "!Generated/MobileClock.UI/Xaml/Controls/TimelineTabs.xaml.h"
 
 #include <XamlRuntime/UserControl.h>
 

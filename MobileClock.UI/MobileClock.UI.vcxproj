@@ -28,13 +28,9 @@
     </ClCompile></ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="Controls\AlarmList.cpp" /><ClCompile Include="Controls\TimelineTabs.cpp" />
-        <ClCompile Include="..\Build\MobileClock.Application\!Generated\Xaml\Controls\AlarmList.xaml.cpp" />
-        <ClCompile Include="..\Build\MobileClock.Application\!Generated\Xaml\Controls\TimelineTabs.xaml.cpp" />
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="Controls\AlarmList.h" /><ClInclude Include="Controls\TimelineTabs.h" />
-        <ClInclude Include="..\Build\MobileClock.Application\!Generated\Xaml\Controls\AlarmList.xaml.h" />
-        <ClInclude Include="..\Build\MobileClock.Application\!Generated\Xaml\Controls\TimelineTabs.xaml.h" />
     </ItemGroup>
     <ItemGroup><ProjectReference Include="$(ProjectDir)..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.vcxproj"><Project>{D5B97C3C-3A64-4A72-A71C-1186767DB3B1}</Project><SetConfiguration>Configuration=$(Configuration)</SetConfiguration><SetPlatform>Platform=x64</SetPlatform></ProjectReference></ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

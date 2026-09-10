@@ -1,6 +1,5 @@
 #include "UI/PageManager.h"
 
-#include <XamlRuntime/Input.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #include "MobileClock.Presentation/AnimationRenderers.h"
@@ -122,21 +121,10 @@ namespace mobileclock::ui {
         this->touchHandler.CancelTouch();
     }
 
-    int PageManager::CursorKind(float x, float y) {
-        xaml::Element& root = this->currentPage == Page::main
+    xaml::Element& PageManager::Root() {
+        return this->currentPage == Page::main
             ? this->mainPageViewModel.Root()
             : this->settingsPageViewModel.Root();
-        xaml::Element* const interactive = xaml::HitTest(root, x, y);
-        if (interactive != nullptr && interactive->Type() != xaml::ElementType::scrollViewer) {
-            return 1;
-        }
-        xaml::Element* visual = xaml::HitTestVisual(root, x, y);
-        for (; visual != nullptr; visual = visual->Parent()) {
-            if (visual->Type() == xaml::ElementType::scrollViewer) {
-                return 2;
-            }
-        }
-        return 0;
     }
 
     void PageManager::RefreshMainPage() {

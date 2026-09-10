@@ -1,11 +1,11 @@
+#include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
-#include <XamlRuntime/XamlLayout.h>
 
 #include "TouchHandler.h"
 
-#include <cmath>
 #include <string_view>
+#include <cmath>
 
 namespace mobileclock::ui::_details {
     xaml::Element* FindElementById(xaml::Element& element, std::string_view id) {

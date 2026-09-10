@@ -21,10 +21,15 @@ $xamlCompilerRoot = Join-Path $projectRoot 'UtilityHelpersLib\NugetProjects\Xaml
 $xamlCompilerBuild = Join-Path $projectRoot 'Build\MobileClock.Application\xaml-compiler'
 $xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
 $xamlSourceRoots = @(
-    (Join-Path $applicationRoot 'UI'),
-    $uiRoot
+    @{
+        Source = Join-Path $applicationRoot 'UI'
+        Generated = Join-Path $projectRoot '!Generated\MobileClock.Application\Xaml'
+    },
+    @{
+        Source = $uiRoot
+        Generated = Join-Path $projectRoot '!Generated\MobileClock.UI\Xaml'
+    }
 )
-$xamlGeneratedRoot = Join-Path $projectRoot 'Build\MobileClock.Application\!Generated\Xaml'
 $xamlIgnoreConfigurationPath = Join-Path $applicationRoot 'UI\XamlCompilerIgnore.json'
 $xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath -Raw | ConvertFrom-Json
 $xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
@@ -63,12 +68,12 @@ if (-not (Test-Path $xamlCompiler)) {
 }
 
 foreach ($xamlSourceRoot in $xamlSourceRoots) {
-    Get-ChildItem -LiteralPath $xamlSourceRoot -Filter '*.xaml' -File -Recurse | ForEach-Object {
+    Get-ChildItem -LiteralPath $xamlSourceRoot.Source -Filter '*.xaml' -File -Recurse | ForEach-Object {
         # Windows PowerShell 5.1 работает на .NET Framework, где ещё нет
         # System.IO.Path.GetRelativePath. Все найденные файлы гарантированно
         # находятся внутри $xamlSourceRoot, поэтому достаточно убрать этот префикс.
-        $relativePath = $_.FullName.Substring($xamlSourceRoot.Length).TrimStart('\', '/')
-        $generatedPath = Join-Path $xamlGeneratedRoot ($relativePath + '.cpp')
+        $relativePath = $_.FullName.Substring($xamlSourceRoot.Source.Length).TrimStart('\', '/')
+        $generatedPath = Join-Path $xamlSourceRoot.Generated ($relativePath + '.cpp')
         $compilerArguments = @(
             $_.FullName,
             $generatedPath,

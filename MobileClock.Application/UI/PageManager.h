@@ -3,10 +3,10 @@
 #include <XamlRuntime/Animation.h>
 
 #include "UI/Pages/SettingsPageViewModel.h"
+#include "UI/Pages/MainPageViewModel.h"
 #include "UI/ApplicationActions.h"
 #include "UI/TouchHandler.h"
 #include "UI/Navigation.h"
-#include "UI/Pages/MainPageViewModel.h"
 
 #include <chrono>
 #include <string>
@@ -36,7 +36,7 @@ namespace mobileclock::ui {
         bool HandleTouchMove(float x, float y);
         bool HandleTouchUp(float x, float y);
         void CancelTouch();
-        int CursorKind(float x, float y);
+        xaml::Element& Root();
         void UpdateClock();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
 

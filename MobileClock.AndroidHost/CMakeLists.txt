@@ -10,10 +10,11 @@ string(REGEX REPLACE "^VERSION_NAME=([^\r\n]+)$" "\\1"
 if (NOT mobileclock_package_version)
     message(FATAL_ERROR "VERSION_NAME is missing in ${mobileclock_version_file}")
 endif()
-set(mobileclock_generated_root "${CMAKE_CURRENT_SOURCE_DIR}/../Build/MobileClock.Application/!Generated")
-get_filename_component(mobileclock_generated_parent "${mobileclock_generated_root}" DIRECTORY)
 get_filename_component(mobileclock_project_root "${CMAKE_CURRENT_SOURCE_DIR}" DIRECTORY)
+set(mobileclock_generated_root "${mobileclock_project_root}/!Generated")
 set(mobileclock_generated_build_dir "${mobileclock_generated_root}/Build")
+set(mobileclock_application_xaml_generated_root "${mobileclock_generated_root}/MobileClock.Application/Xaml")
+set(mobileclock_ui_xaml_generated_root "${mobileclock_generated_root}/MobileClock.UI/Xaml")
 set(mobileclock_build_version_header "${mobileclock_generated_build_dir}/BuildVersion.h")
 file(MAKE_DIRECTORY "${mobileclock_generated_build_dir}")
 configure_file(BuildVersion.h.in
@@ -81,10 +82,12 @@ file(GLOB_RECURSE mobileclock_xaml_source CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.UI/*.xaml"
 )
 file(GLOB_RECURSE mobileclock_xaml_generated CONFIGURE_DEPENDS
-    "${mobileclock_generated_root}/Xaml/*.xaml.cpp"
+    "${mobileclock_application_xaml_generated_root}/*.xaml.cpp"
+    "${mobileclock_ui_xaml_generated_root}/*.xaml.cpp"
 )
 file(GLOB_RECURSE mobileclock_xaml_generated_headers CONFIGURE_DEPENDS
-    "${mobileclock_generated_root}/Xaml/*.xaml.h"
+    "${mobileclock_application_xaml_generated_root}/*.xaml.h"
+    "${mobileclock_ui_xaml_generated_root}/*.xaml.h"
 )
 # XamlCompilerIgnore.json является единым источником правил для генератора и
 # app-target. Генератор оставляет старые артефакты на диске, поэтому CMake
@@ -167,29 +170,30 @@ set(mobileclock_page_xaml_source ${mobileclock_xaml_source})
 list(FILTER mobileclock_page_xaml_source INCLUDE REGEX "/UI/")
 set(mobileclock_ui_control_xaml_source ${mobileclock_xaml_source})
 list(FILTER mobileclock_ui_control_xaml_source INCLUDE REGEX "/MobileClock\.UI/")
-set(mobileclock_page_xaml_generated ${mobileclock_xaml_generated})
-list(FILTER mobileclock_page_xaml_generated INCLUDE REGEX "/Pages/")
-set(mobileclock_page_xaml_generated_headers ${mobileclock_xaml_generated_headers})
-list(FILTER mobileclock_page_xaml_generated_headers INCLUDE REGEX "/Pages/")
-set(mobileclock_ui_control_xaml_generated ${mobileclock_xaml_generated})
-list(FILTER mobileclock_ui_control_xaml_generated INCLUDE REGEX "/Controls/")
-set(mobileclock_ui_control_xaml_generated_headers ${mobileclock_xaml_generated_headers})
-list(FILTER mobileclock_ui_control_xaml_generated_headers INCLUDE REGEX "/Controls/")
 source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
 source_group("Resources\\Fonts" FILES ${mobileclock_font_files})
 source_group("Header Files" FILES ${mobileclock_application_header_files})
-source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "Application" FILES
+source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "UI" FILES
     ${mobileclock_ui_header_files}
     ${mobileclock_page_xaml_source}
 )
-source_group(TREE "${mobileclock_generated_root}/Xaml" PREFIX "!Generated\\Xaml" FILES
+source_group(TREE "${mobileclock_generated_root}" PREFIX "" FILES
     ${mobileclock_xaml_generated}
     ${mobileclock_xaml_generated_headers}
+    "${mobileclock_build_version_header}"
 )
-source_group("!Generated\\Build" FILES "${mobileclock_build_version_header}")
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES
     ${mobileclock_application_source_files}
     ${mobileclock_application_header_files}
+)
+
+add_custom_target(mobileclock_generated SOURCES
+    ${mobileclock_xaml_generated}
+    ${mobileclock_xaml_generated_headers}
+    "${mobileclock_build_version_header}"
+)
+set_target_properties(mobileclock_generated PROPERTIES
+    FOLDER "!Generated"
 )
 
 set(mobileclock_presentation_source_files
@@ -205,7 +209,7 @@ set(mobileclock_presentation_source_files
     ../MobileClock.Presentation/Effects/Shaders.cpp
     ../MobileClock.Presentation/Effects/Shaders.h
 )
-source_group(TREE "${mobileclock_project_root}/MobileClock.Presentation" PREFIX "MobileClock.Presentation" FILES
+source_group(TREE "${mobileclock_project_root}/MobileClock.Presentation" FILES
     ${mobileclock_presentation_source_files}
 )
 add_library(mobileclock_presentation STATIC ${mobileclock_presentation_source_files})
@@ -243,13 +247,10 @@ source_group("Controls" FILES
 )
 add_library(mobileclock_ui STATIC
     ${mobileclock_ui_control_files}
-    ${mobileclock_ui_control_xaml_generated}
-    ${mobileclock_ui_control_xaml_generated_headers}
 )
 target_include_directories(mobileclock_ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${mobileclock_project_root}"
-    "${mobileclock_generated_parent}"
     "${mobileclock_generated_build_dir}"
 )
 set_target_properties(mobileclock_ui PROPERTIES
@@ -264,35 +265,22 @@ target_link_libraries(mobileclock_ui PUBLIC
 
 # Application — общий platform-neutral runtime. Android и desktop previewer
 # подключают эту библиотеку, но не создают Element tree самостоятельно.
-set(mobileclock_application_runtime_source_files
-    "${mobileclock_project_root}/MobileClock.Application/UI/ApplicationSession.cpp"
-    "${mobileclock_project_root}/MobileClock.Application/UI/ApplicationSession.h"
-    "${mobileclock_project_root}/MobileClock.Application/UI/PageManager.cpp"
-    "${mobileclock_project_root}/MobileClock.Application/UI/PageManager.h"
-    "${mobileclock_project_root}/MobileClock.Application/UI/TouchHandler.cpp"
-    "${mobileclock_project_root}/MobileClock.Application/UI/TouchHandler.h"
-    "${mobileclock_project_root}/MobileClock.Application/UI/Navigation.h"
-    "${mobileclock_project_root}/MobileClock.Application/UI/ApplicationActions.h"
-    "${mobileclock_project_root}/MobileClock.Application/UI/Pages/MainPageViewModel.cpp"
-    "${mobileclock_project_root}/MobileClock.Application/UI/Pages/MainPageViewModel.h"
-    "${mobileclock_project_root}/MobileClock.Application/UI/Pages/SettingsPageViewModel.cpp"
-    "${mobileclock_project_root}/MobileClock.Application/UI/Pages/SettingsPageViewModel.h"
+file(GLOB_RECURSE mobileclock_application_runtime_source_files CONFIGURE_DEPENDS
+    "${mobileclock_project_root}/MobileClock.Application/UI/*.cpp"
+    "${mobileclock_project_root}/MobileClock.Application/UI/*.h"
 )
-source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "Application" FILES
+source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "UI" FILES
     ${mobileclock_application_runtime_source_files}
 )
 add_library(mobileclock_application STATIC
     ${mobileclock_application_runtime_source_files}
     ${mobileclock_application_resource_files}
     ${mobileclock_page_xaml_source}
-    ${mobileclock_page_xaml_generated}
-    ${mobileclock_page_xaml_generated_headers}
 )
 target_include_directories(mobileclock_application PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${mobileclock_project_root}"
     "${mobileclock_project_root}/MobileClock.Application"
-    "${mobileclock_generated_parent}"
     "${mobileclock_generated_build_dir}"
 )
 set_target_properties(mobileclock_application PROPERTIES
@@ -319,7 +307,6 @@ if (ANDROID)
     target_include_directories(mobileclock_android_host PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${mobileclock_project_root}"
-        "${mobileclock_generated_parent}"
         "${mobileclock_generated_build_dir}"
     )
     # Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.

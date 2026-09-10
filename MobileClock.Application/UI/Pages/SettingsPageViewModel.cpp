@@ -2,7 +2,7 @@
 
 #include <XamlRuntime/RenderEngine.h>
 
-#include "!Generated/Xaml/Pages/SettingsPage.xaml.h"
+#include "!Generated/MobileClock.Application/Xaml/Pages/SettingsPage.xaml.h"
 
 #include <utility>
 

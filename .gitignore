@@ -2,6 +2,7 @@
 .gradle/
 .kotlin/
 Build/*
+\!Generated/
 **/build/
 !Build/Gradle/
 !Build/Gradle/**

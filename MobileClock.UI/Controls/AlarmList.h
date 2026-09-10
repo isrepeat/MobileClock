@@ -1,5 +1,5 @@
 #pragma once
-#include "!Generated/Xaml/Controls/AlarmList.xaml.h"
+#include "!Generated/MobileClock.UI/Xaml/Controls/AlarmList.xaml.h"
 
 #include <XamlRuntime/DependentProperty.h>
 #include <XamlRuntime/UserControl.h>
