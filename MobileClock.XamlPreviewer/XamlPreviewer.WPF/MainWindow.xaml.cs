@@ -5,6 +5,8 @@ using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -42,12 +44,16 @@ public partial class MainWindow : Window {
     private string? markupPath;
     private bool isMarkupDirty;
     private bool isSettingsDirty;
+    private bool isScenarioDirty;
     private bool updatingEditors;
     private bool suppressFoldingStatePersistence;
     private EditorMode editorMode;
+    private string? scenarioPath;
+    private string? scenarioFileText;
 
     private enum EditorMode {
         Xaml,
+        Scenario,
         Settings,
     }
 
@@ -67,6 +73,7 @@ public partial class MainWindow : Window {
         WindowTheme.EnableDarkTitleBar(this);
         this.markupSearchPanel = MainWindow.ConfigureEditor(this.MarkupEditor, MarkupSyntaxHighlighter.Create());
         MainWindow.ConfigureEditor(this.SettingsEditor, MarkupSyntaxHighlighter.CreateJson());
+        MainWindow.ConfigureEditor(this.ScenarioEditor, MarkupSyntaxHighlighter.CreateJson());
         this.markupSearchPanel.IsVisibleChanged += this.MarkupSearchPanelLayoutChanged;
         this.markupEditorController = new MarkupEditorController(this.MarkupEditor);
         this.markupEditorController.FoldingStateChanged += this.MarkupEditorFoldingStateChanged;
@@ -308,12 +315,39 @@ public partial class MainWindow : Window {
             this.statusPresenter.Success($"Настройки сохранены: {this.settings.FilePath}");
             return;
         }
+        if (this.editorMode == EditorMode.Scenario) {
+            if (this.scenarioPath is null) {
+                return;
+            }
+            try {
+                using var document = JsonDocument.Parse(this.ScenarioEditor.Text);
+                if (document.RootElement.ValueKind != JsonValueKind.Object) {
+                    throw new JsonException("Корневой элемент должен быть объектом.");
+                }
+                File.WriteAllText(this.scenarioPath, this.ScenarioEditor.Text.TrimEnd());
+                this.isScenarioDirty = false;
+                this.RefreshScenarioNames();
+                if (this.scenarioPath is not null) {
+                    this.editorMode = EditorMode.Scenario;
+                    this.ScenarioButton.IsChecked = true;
+                    this.UpdateEditorMode();
+                }
+                this.ShowNativeApplicationPreview();
+                this.statusPresenter.Success($"Сценарии сохранены: {this.scenarioPath}");
+            }
+            catch (JsonException exception) {
+                this.statusPresenter.Error($"Сценарии не сохранены: {exception.Message}");
+            }
+            this.UpdateDocumentState();
+            return;
+        }
         if (this.markupPath is null) {
             return;
         }
 
         File.WriteAllText(this.markupPath, this.markupEditorController.Text.TrimEnd());
         this.isMarkupDirty = false;
+        this.RefreshScenarioNames();
         this.UpdateDocumentState();
         this.statusPresenter.Success($"Сохранено: {this.markupPath}");
     }
@@ -331,12 +365,21 @@ public partial class MainWindow : Window {
         this.ScheduleRender();
     }
 
+    private void ResetSessionButtonClick(object sender, RoutedEventArgs eventArgs) {
+        this.animationTimer.Stop();
+        this.nativeApplicationSession?.Dispose();
+        this.nativeApplicationSession = null;
+        this.previewLayer.Children.Clear();
+        this.ShowNativeApplicationPreview();
+    }
+
     private void AnimationSpeedPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
         if (this.updatingPreviewControls || this.AnimationSpeedPicker.SelectedItem is not AnimationSpeed speed) {
             return;
         }
 
         this.settings.AnimationPlaybackRate = speed.Rate;
+        this.nativeApplicationSession?.SetAnimationPlaybackRate(speed.Rate);
         this.SyncSettingsEditor();
         this.PersistSettings();
     }
@@ -431,9 +474,25 @@ public partial class MainWindow : Window {
 
     private void SettingsButtonClick(object sender, RoutedEventArgs eventArgs) {
         if (this.SettingsButton.IsChecked == true) {
+            this.ScenarioButton.IsChecked = false;
             this.editorMode = EditorMode.Settings;
             if (!this.isSettingsDirty) {
                 this.SyncSettingsEditor();
+            }
+        } else {
+            this.editorMode = EditorMode.Xaml;
+        }
+        this.UpdateEditorMode();
+    }
+
+    private void ScenarioButtonClick(object sender, RoutedEventArgs eventArgs) {
+        if (this.ScenarioButton.IsChecked == true && this.scenarioPath is not null) {
+            this.SettingsButton.IsChecked = false;
+            this.editorMode = EditorMode.Scenario;
+            if (!this.isScenarioDirty) {
+                this.updatingEditors = true;
+                this.ScenarioEditor.Text = File.ReadAllText(this.scenarioPath);
+                this.updatingEditors = false;
             }
         } else {
             this.editorMode = EditorMode.Xaml;
@@ -446,6 +505,10 @@ public partial class MainWindow : Window {
             this.LoadMarkup(Path.Combine(this.settings.XamlDirectory, pageName));
         }
 
+        this.ShowNativeApplicationPreview();
+    }
+
+    private void ScenarioPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
         this.ShowNativeApplicationPreview();
     }
 
@@ -462,6 +525,9 @@ public partial class MainWindow : Window {
         if (!this.updatingEditors) {
             if (ReferenceEquals(sender, this.SettingsEditor)) {
                 this.isSettingsDirty = true;
+            }
+            if (ReferenceEquals(sender, this.ScenarioEditor)) {
+                this.isScenarioDirty = true;
             }
 
             this.UpdateDocumentState();
@@ -571,6 +637,8 @@ public partial class MainWindow : Window {
             this.suppressFoldingStatePersistence = false;
         }
         this.isMarkupDirty = false;
+        this.RefreshScenarioNames();
+        this.ConfigureWatchers();
         this.UpdateDocumentState();
         // PersistSettings записывает previewer.settings.json. Его изменение
         // асинхронно придёт обратно через settingsWatcher, поэтому refresh ниже
@@ -609,6 +677,7 @@ public partial class MainWindow : Window {
     private void ConfigureWatchers() {
         this.fileWatchController.Configure(
             this.markupPath,
+            this.scenarioPath,
             this.settings.FilePath,
             this.settings.XamlDirectory);
     }
@@ -628,9 +697,18 @@ public partial class MainWindow : Window {
                     this.markupEditorController.SetText(markup);
                     this.updatingEditors = false;
                     this.isMarkupDirty = false;
+                    this.RefreshScenarioNames();
+                    this.ConfigureWatchers();
                     this.UpdateDocumentState();
                     previewChanged = true;
                 }
+            }
+            if (this.scenarioPath is not null
+                && (!File.Exists(this.scenarioPath)
+                    || !string.Equals(File.ReadAllText(this.scenarioPath), this.scenarioFileText, StringComparison.Ordinal))) {
+                this.RefreshScenarioNames();
+                this.ConfigureWatchers();
+                previewChanged = true;
             }
             if (File.Exists(this.settings.FilePath)) {
                 var settingsJson = File.ReadAllText(this.settings.FilePath);
@@ -758,18 +836,28 @@ public partial class MainWindow : Window {
 
     private void UpdateEditorMode() {
         this.MarkupEditor.Visibility = this.editorMode == EditorMode.Xaml ? Visibility.Visible : Visibility.Collapsed;
+        this.ScenarioPanel.Visibility = this.editorMode == EditorMode.Scenario ? Visibility.Visible : Visibility.Collapsed;
         this.SettingsPanel.Visibility = this.editorMode == EditorMode.Settings ? Visibility.Visible : Visibility.Collapsed;
         this.OpenButton.IsEnabled = this.editorMode == EditorMode.Xaml;
+        this.UpdateScenarioToggle();
         this.UpdateDocumentState();
     }
 
     private void UpdateDocumentState() {
         this.SettingsButton.Content = this.isSettingsDirty ? "Настройки *" : "Настройки";
+        this.ScenarioButton.ToolTip = this.isScenarioDirty ? "Сценарии изменены" : null;
         this.SaveButton.IsEnabled = this.editorMode switch {
             EditorMode.Xaml => this.isMarkupDirty,
+            EditorMode.Scenario => this.isScenarioDirty,
             EditorMode.Settings => this.isSettingsDirty,
             _ => false,
         };
+    }
+
+    private void UpdateScenarioToggle() {
+        var isScenarioMode = this.editorMode == EditorMode.Scenario;
+        this.XamlModeText.Foreground = PreviewBrushes.Parse(isScenarioMode ? "#E6E6E6" : "#D5BD7D");
+        this.ScenarioModeText.Foreground = PreviewBrushes.Parse(isScenarioMode ? "#D5BD7D" : "#E6E6E6");
     }
 
     private void InitializePreviewControls() {
@@ -860,6 +948,76 @@ public partial class MainWindow : Window {
         return Path.GetFileNameWithoutExtension(pagePath);
     }
 
+    private void RefreshScenarioNames() {
+        var previous = this.ScenarioPicker.SelectedItem as string;
+        var wasScenarioMode = this.editorMode == EditorMode.Scenario;
+        this.scenarioPath = null;
+        this.scenarioFileText = null;
+        this.ScenarioPicker.ItemsSource = null;
+        this.ScenarioPicker.SelectedItem = null;
+        this.ScenarioPicker.Visibility = Visibility.Collapsed;
+        this.ScenarioLabel.Visibility = Visibility.Collapsed;
+        if (this.markupPath is null) {
+            this.ClearScenarioMode();
+            return;
+        }
+        const string pattern = "<\\?mobileclock-preview-scenario\\s+path=\\\"(?<path>[^\\\"]+)\\\"\\s*\\?>";
+        var match = Regex.Match(File.ReadAllText(this.markupPath), pattern, RegexOptions.CultureInvariant);
+        if (!match.Success) {
+            this.ClearScenarioMode();
+            return;
+        }
+        var candidate = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(this.markupPath)!, match.Groups["path"].Value));
+        if (!File.Exists(candidate)) {
+            this.ClearScenarioMode();
+            this.statusPresenter.Information($"Файл сценариев не найден: {candidate}");
+            return;
+        }
+        try {
+            var scenarioFileText = File.ReadAllText(candidate);
+            using var document = JsonDocument.Parse(scenarioFileText);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) {
+                throw new JsonException("Корневой элемент должен быть объектом.");
+            }
+            var names = document.RootElement.EnumerateObject().Select(property => property.Name).ToArray();
+            if (names.Length == 0) {
+                this.ClearScenarioMode();
+                return;
+            }
+            this.scenarioPath = candidate;
+            this.scenarioFileText = scenarioFileText;
+            this.ScenarioPicker.ItemsSource = names;
+            this.ScenarioPicker.SelectedItem = names.Contains(previous)
+                ? previous
+                : names[0];
+            this.ScenarioPicker.Visibility = Visibility.Visible;
+            this.ScenarioLabel.Visibility = Visibility.Visible;
+            this.ScenarioButton.Visibility = Visibility.Visible;
+            this.ScenarioButton.IsChecked = wasScenarioMode;
+        }
+        catch (Exception exception) when (exception is IOException || exception is JsonException) {
+            this.ClearScenarioMode();
+            this.statusPresenter.Information($"Сценарии не загружены: {exception.Message}");
+        }
+    }
+
+    private void ClearScenarioMode() {
+        this.ScenarioButton.Visibility = Visibility.Collapsed;
+        this.ScenarioButton.IsChecked = false;
+        if (this.editorMode == EditorMode.Scenario) {
+            this.editorMode = EditorMode.Xaml;
+            this.UpdateEditorMode();
+        }
+    }
+
+    private string? GetSelectedScenarioJson() {
+        if (this.scenarioPath is null || this.ScenarioPicker.SelectedItem is not string name) {
+            return null;
+        }
+        using var document = JsonDocument.Parse(File.ReadAllText(this.scenarioPath));
+        return document.RootElement.TryGetProperty(name, out var scenario) ? scenario.GetRawText() : null;
+    }
+
     private void ShowNativeApplicationPreview() {
         if (this.isClosing) {
             return;
@@ -875,10 +1033,15 @@ public partial class MainWindow : Window {
                     this.settings.ResourcesDirectory,
                     previewSize.Width,
                     previewSize.Height);
+                this.nativeApplicationSession.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
                 this.previewLayer.Children.Clear();
                 this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);
             }
             this.nativeApplicationSession.LoadPage(this.GetNativeApplicationPageName());
+            var scenario = this.GetSelectedScenarioJson();
+            if (scenario is not null) {
+                this.nativeApplicationSession.ApplyPreviewScenario(this.GetNativeApplicationPageName(), scenario);
+            }
             this.nativeApplicationSession.UpdateAndRender();
             this.animationTimer.Start();
             this.statusPresenter.Success($"Native app: {this.GetNativeApplicationPageName()}");
@@ -907,6 +1070,7 @@ public partial class MainWindow : Window {
         var scale = this.GetEditorScale();
         foreach (var editor in new[] {
             this.MarkupEditor,
+            this.ScenarioEditor,
             this.SettingsEditor,
         }) {
             editor.FontSize = defaultFontSize * scale;

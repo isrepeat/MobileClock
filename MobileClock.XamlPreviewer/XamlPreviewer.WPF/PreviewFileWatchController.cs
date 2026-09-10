@@ -8,6 +8,7 @@ internal sealed class PreviewFileWatchController : IDisposable {
     private readonly DispatcherTimer refreshTimer;
     private readonly Action refresh;
     private FileSystemWatcher? markupWatcher;
+    private FileSystemWatcher? scenarioWatcher;
     private FileSystemWatcher? xamlDirectoryWatcher;
     private FileSystemWatcher? settingsWatcher;
     private bool isDisposed;
@@ -21,8 +22,9 @@ internal sealed class PreviewFileWatchController : IDisposable {
         this.refreshTimer.Tick += this.RefreshTimerTick;
     }
 
-    public void Configure(string? markupPath, string settingsPath, string xamlDirectory) {
+    public void Configure(string? markupPath, string? scenarioPath, string settingsPath, string xamlDirectory) {
         this.ReplaceWatcher(ref this.markupWatcher, this.CreateFileWatcher(markupPath));
+        this.ReplaceWatcher(ref this.scenarioWatcher, this.CreateFileWatcher(scenarioPath));
         this.ReplaceWatcher(ref this.settingsWatcher, this.CreateFileWatcher(settingsPath));
         this.ReplaceWatcher(ref this.xamlDirectoryWatcher, this.CreateDirectoryWatcher(xamlDirectory));
     }
@@ -34,6 +36,7 @@ internal sealed class PreviewFileWatchController : IDisposable {
         this.isDisposed = true;
         this.refreshTimer.Stop();
         this.DisposeWatcher(ref this.markupWatcher);
+        this.DisposeWatcher(ref this.scenarioWatcher);
         this.DisposeWatcher(ref this.xamlDirectoryWatcher);
         this.DisposeWatcher(ref this.settingsWatcher);
     }

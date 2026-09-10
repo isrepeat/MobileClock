@@ -4,6 +4,7 @@
 #include <XamlRuntime/ObservableCollection.h>
 
 #include "UI/ApplicationActions.h"
+#include "UI/ISerializable.h"
 #include "UI/Navigation.h"
 
 #include <functional>
@@ -21,7 +22,7 @@ namespace mobileclock::ui::controls {
 }
 
 namespace mobileclock::ui {
-    class MainPageViewModel final {
+    class MainPageViewModel final : public ISerializable {
     public:
         class Alarm final {
         public:
@@ -84,6 +85,10 @@ namespace mobileclock::ui {
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        bool Deserialize(std::string_view json, std::string& error) override;
+#endif
 
     private:
         void ApplyAlarmActionsPanelState(bool useTransitions);

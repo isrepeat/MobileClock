@@ -277,6 +277,16 @@ add_library(mobileclock_application STATIC
     ${mobileclock_application_resource_files}
     ${mobileclock_page_xaml_source}
 )
+if (NOT ANDROID AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_sources(mobileclock_application PRIVATE
+        "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared/JsonParser/JsonParser.cpp"
+    )
+    target_compile_definitions(mobileclock_application PUBLIC MOBILECLOCK_XAML_PREVIEWER=1)
+    target_include_directories(mobileclock_application PRIVATE
+        "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared"
+        "${mobileclock_project_root}/UtilityHelpersLib/Helpers/Helpers.Shared"
+    )
+endif()
 target_include_directories(mobileclock_application PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${mobileclock_project_root}"

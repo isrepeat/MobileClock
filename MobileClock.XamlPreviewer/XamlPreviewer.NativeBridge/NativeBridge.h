@@ -60,7 +60,12 @@ XAML_RUNTIME_BRIDGE_API const char* xr_last_error(void);
 XAML_RUNTIME_BRIDGE_API mc_session* mc_create_session(int width, int height);
 XAML_RUNTIME_BRIDGE_API void mc_destroy_session(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_load_page(mc_session* session, const char* page);
+XAML_RUNTIME_BRIDGE_API int mc_apply_preview_scenario(
+    mc_session* session,
+    const char* page,
+    const char* json);
 XAML_RUNTIME_BRIDGE_API int mc_resize(mc_session* session, int width, int height);
+XAML_RUNTIME_BRIDGE_API int mc_set_animation_playback_rate(mc_session* session, float value);
 XAML_RUNTIME_BRIDGE_API int mc_set_status(mc_session* session, const char* value);
 XAML_RUNTIME_BRIDGE_API int mc_pointer_down(mc_session* session, float x, float y);
 XAML_RUNTIME_BRIDGE_API int mc_pointer_move(mc_session* session, float x, float y);

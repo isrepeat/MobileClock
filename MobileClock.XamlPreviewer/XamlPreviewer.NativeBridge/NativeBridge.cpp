@@ -311,6 +311,28 @@ int mc_load_page(mc_session* session, const char* page) {
     }
 }
 
+int mc_apply_preview_scenario(mc_session* session, const char* page, const char* json) {
+    try {
+        xaml::bridge::lastError.clear();
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        if (session == nullptr || page == nullptr || json == nullptr
+            || !session->session.ApplyPreviewScenario(page, json, xaml::bridge::lastError)) {
+            if (xaml::bridge::lastError.empty()) {
+                xaml::bridge::lastError = "Preview scenario was not applied";
+            }
+            return 0;
+        }
+        return 1;
+#else
+        xaml::bridge::lastError = "Preview scenarios are available only in the Debug XAML Previewer";
+        return 0;
+#endif
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
 int mc_resize(mc_session* session, int width, int height) {
     try {
         xaml::bridge::lastError.clear();
@@ -320,6 +342,20 @@ int mc_resize(mc_session* session, int width, int height) {
         session->width = width;
         session->height = height;
         session->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
+int mc_set_animation_playback_rate(mc_session* session, float value) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr) {
+            throw std::invalid_argument("Session is required");
+        }
+        session->session.SetAnimationPlaybackRate(value);
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();

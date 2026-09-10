@@ -1,5 +1,9 @@
 #include "UI/PageManager.h"
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include "UI/PreviewScenario.h"
+#endif
+
 #include <XamlRuntime/RenderEngine.h>
 
 #include "MobileClock.Presentation/AnimationRenderers.h"
@@ -61,9 +65,26 @@ namespace mobileclock::ui {
         this->animations.Attach(settings, registry);
     }
 
+    void PageManager::SetAnimationPlaybackRate(float value) {
+        this->animations.SetPlaybackRate(value);
+    }
+
     void PageManager::SetStatus(std::string value) {
         this->mainPageViewModel.SetStatus(std::move(value));
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    bool PageManager::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
+        if (page == "MainPage" || page == "main") {
+            return mobileclock::ui::ApplyPreviewScenario(this->mainPageViewModel, json, error);
+        }
+        if (page == "SettingsPage" || page == "settings") {
+            return mobileclock::ui::ApplyPreviewScenario(this->settingsPageViewModel, json, error);
+        }
+        error = "Unknown MobileClock page";
+        return false;
+    }
+#endif
 
     void PageManager::HandleTouchDown(float x, float y) {
         if (this->isTransitioning || this->pendingAlarmDeletion != nullptr) {

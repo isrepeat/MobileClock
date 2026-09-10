@@ -1,5 +1,9 @@
 #include "UI/Pages/SettingsPageViewModel.h"
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <JsonParser/JsonParser.h>
+#endif
+
 #include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/SettingsPage.xaml.h"
@@ -7,6 +11,17 @@
 #include <utility>
 
 namespace mobileclock::ui {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    namespace _details {
+        struct SettingsPagePreviewScenario final {
+            std::optional<std::string> Theme = "Тёмная";
+            std::optional<std::string> Sound = "Мелодия по умолчанию";
+
+            JS_OBJECT(JS_MEMBER(Theme), JS_MEMBER(Sound));
+        };
+    }
+#endif
+
     SettingsPageViewModel::SettingsPageViewModel(
         IPageNavigator& navigator,
         IApplicationActions& actions)
@@ -72,4 +87,22 @@ namespace mobileclock::ui {
             this->propertyChangedHandlers[index] = nullptr;
         };
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    bool SettingsPageViewModel::Deserialize(std::string_view json, std::string& error) {
+        _details::SettingsPagePreviewScenario scenario;
+        JS::ParseContext context(json.data(), json.size());
+        if (context.parseTo(scenario) != JS::Error::NoError) {
+            error = context.makeErrorString();
+            return false;
+        }
+        if (scenario.Theme) {
+            this->theme = std::move(*scenario.Theme);
+        }
+        if (scenario.Sound) {
+            this->sound = std::move(*scenario.Sound);
+        }
+        return true;
+    }
+#endif
 }

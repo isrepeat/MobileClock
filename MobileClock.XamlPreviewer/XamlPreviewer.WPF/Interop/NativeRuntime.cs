@@ -89,8 +89,17 @@ internal static class NativeRuntime {
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_load_page")]
     public static extern int mc_load_page(IntPtr session, [MarshalAs(UnmanagedType.LPUTF8Str)] string page);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_apply_preview_scenario")]
+    public static extern int mc_apply_preview_scenario(
+        IntPtr session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string page,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string json);
+
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_resize")]
     public static extern int mc_resize(IntPtr session, int width, int height);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_set_animation_playback_rate")]
+    public static extern int mc_set_animation_playback_rate(IntPtr session, float value);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_pointer_down")]
     public static extern int mc_pointer_down(IntPtr session, float x, float y);

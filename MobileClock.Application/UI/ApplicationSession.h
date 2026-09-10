@@ -20,8 +20,12 @@ namespace mobileclock::ui {
         ApplicationSession& operator=(const ApplicationSession&) = delete;
 
         void Initialize(xaml::Size availableSize);
+        void SetAnimationPlaybackRate(float value);
         bool LoadPage(std::string_view name);
         void SetStatus(std::string value);
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
+#endif
         void PointerDown(float x, float y);
         void PointerMove(float x, float y);
         void PointerUp(float x, float y);

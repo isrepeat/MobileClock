@@ -22,6 +22,11 @@
         <UseDebugLibraries>true</UseDebugLibraries>
         <PlatformToolset>v145</PlatformToolset>
     </PropertyGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <ClCompile>
+            <PreprocessorDefinitions>MOBILECLOCK_XAML_PREVIEWER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        </ClCompile>
+    </ItemDefinitionGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
         <ConfigurationType>DynamicLibrary</ConfigurationType>
         <UseDebugLibraries>false</UseDebugLibraries>

@@ -742,6 +742,22 @@
         </Grid.RowDefinitions>
         <DockPanel
                    Margin="10">
+            <ToggleButton x:Name="ScenarioButton"
+                          Width="150"
+                          Margin="0 0 8 0"
+                          Style="{StaticResource EditorSwitchToggleButtonStyle}"
+                          Click="ScenarioButtonClick"
+                          Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="XamlModeText"
+                               Text="XAML" />
+                    <TextBlock Margin="8 0"
+                               Foreground="#777777"
+                               Text="/" />
+                    <TextBlock x:Name="ScenarioModeText"
+                               Text="Сценарии" />
+                </StackPanel>
+            </ToggleButton>
             <ToggleButton x:Name="SettingsButton"
                           Width="100"
                           Margin="0 0 8 0"
@@ -759,6 +775,11 @@
                     IsEnabled="False"
                     Click="SaveButtonClick"
                     Content="Сохранить" />
+            <Button x:Name="ResetSessionButton"
+                    Width="110"
+                    Margin="0 0 16 0"
+                    Click="ResetSessionButtonClick"
+                    Content="Перезапустить" />
             <Button Width="30"
                     Click="EditorZoomOutButtonClick"
                     Content="−" />
@@ -779,6 +800,17 @@
                       Width="180"
                       Margin="0 0 16 0"
                       SelectionChanged="PagePickerSelectionChanged" />
+            <TextBlock x:Name="ScenarioLabel"
+                       Margin="0 0 8 0"
+                       VerticalAlignment="Center"
+                       Foreground="#DDDDDD"
+                       Text="Сценарий:"
+                       Visibility="Collapsed" />
+            <ComboBox x:Name="ScenarioPicker"
+                      Width="160"
+                      Margin="0 0 16 0"
+                      SelectionChanged="ScenarioPickerSelectionChanged"
+                      Visibility="Collapsed" />
             <TextBlock x:Name="FilePathText"
                        Margin="16 0 0 0"
                        VerticalAlignment="Center"
@@ -1007,6 +1039,27 @@
                            Foreground="#DDDDDD"
                            Text="Настройки previewer (JSON)" />
                 <avalonedit:TextEditor x:Name="SettingsEditor"
+                                       Grid.Row="1"
+                                       FontFamily="Cascadia Mono, Consolas"
+                                       FontSize="14"
+                                       HorizontalScrollBarVisibility="Auto"
+                                       ShowLineNumbers="True"
+                                       TextChanged="EditorTextChanged"
+                                       PreviewKeyDown="EditorPreviewKeyDown"
+                                       VerticalScrollBarVisibility="Auto" />
+            </Grid>
+            <Grid x:Name="ScenarioPanel"
+                  Grid.Column="0"
+                  Margin="10"
+                  Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Margin="0 0 0 8"
+                           Foreground="#DDDDDD"
+                           Text="Сценарии (JSON)" />
+                <avalonedit:TextEditor x:Name="ScenarioEditor"
                                        Grid.Row="1"
                                        FontFamily="Cascadia Mono, Consolas"
                                        FontSize="14"

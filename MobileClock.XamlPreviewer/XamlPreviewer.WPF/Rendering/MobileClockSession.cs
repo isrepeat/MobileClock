@@ -50,6 +50,15 @@ internal sealed class MobileClockSession : IDisposable {
         this.Render();
     }
 
+    public void SetAnimationPlaybackRate(double value) {
+        NativeRuntime.Ensure(NativeRuntime.mc_set_animation_playback_rate(this.session, (float)value) != 0);
+    }
+
+    public void ApplyPreviewScenario(string page, string json) {
+        NativeRuntime.Ensure(NativeRuntime.mc_apply_preview_scenario(this.session, page, json) != 0);
+        this.Render();
+    }
+
     public void UpdateAndRender() {
         NativeRuntime.Ensure(NativeRuntime.mc_update(this.session) != 0);
         this.Render();

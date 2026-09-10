@@ -18,6 +18,10 @@ namespace mobileclock::ui {
         this->pageManager.Initialize(availableSize);
     }
 
+    void ApplicationSession::SetAnimationPlaybackRate(float value) {
+        this->pageManager.SetAnimationPlaybackRate(value);
+    }
+
     bool ApplicationSession::LoadPage(std::string_view name) {
         if (name == "MainPage" || name == "main") {
             this->pageManager.Navigate(Page::main);
@@ -33,6 +37,12 @@ namespace mobileclock::ui {
     void ApplicationSession::SetStatus(std::string value) {
         this->pageManager.SetStatus(std::move(value));
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    bool ApplicationSession::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
+        return this->pageManager.ApplyPreviewScenario(page, json, error);
+    }
+#endif
 
     void ApplicationSession::PointerDown(float x, float y) {
         this->pageManager.HandleTouchDown(x, y);

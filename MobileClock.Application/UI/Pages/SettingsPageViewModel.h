@@ -3,6 +3,7 @@
 #include <XamlRuntime/Binding.h>
 
 #include "UI/ApplicationActions.h"
+#include "UI/ISerializable.h"
 #include "UI/Navigation.h"
 
 #include <functional>
@@ -16,7 +17,7 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class SettingsPageViewModel final {
+    class SettingsPageViewModel final : public ISerializable {
     public:
         enum class Property {
             theme,
@@ -43,6 +44,10 @@ namespace mobileclock::ui {
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        bool Deserialize(std::string_view json, std::string& error) override;
+#endif
 
     private:
         std::string theme = "Тёмная";

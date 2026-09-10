@@ -1,5 +1,9 @@
 #include "UI/Pages/MainPageViewModel.h"
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <JsonParser/JsonParser.h>
+#endif
+
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/Animation.h>
@@ -13,6 +17,24 @@
 #include <ctime>
 
 namespace mobileclock::ui::_details {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    struct PreviewAlarm final {
+        std::string Time;
+        std::string Repeat;
+        bool IsEnabled = false;
+
+        JS_OBJECT(JS_MEMBER(Time), JS_MEMBER(Repeat), JS_MEMBER(IsEnabled));
+    };
+
+    struct MainPagePreviewScenario final {
+        std::optional<std::string> Status = "Готово к проверке обновлений";
+        std::optional<bool> IsAlarmActionsMenuVisible = false;
+        std::optional<std::vector<PreviewAlarm>> Alarms = std::vector<PreviewAlarm>{};
+
+        JS_OBJECT(JS_MEMBER(Status), JS_MEMBER(IsAlarmActionsMenuVisible), JS_MEMBER(Alarms));
+    };
+#endif
+
     bool TryGetLocalTime(std::time_t value, std::tm& result) {
 #if defined(_WIN32)
         return localtime_s(&result, &value) == 0;
@@ -267,6 +289,32 @@ namespace mobileclock::ui {
             this->propertyChangedHandlers[index] = nullptr;
         };
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    bool MainPageViewModel::Deserialize(std::string_view json, std::string& error) {
+        _details::MainPagePreviewScenario scenario;
+        JS::ParseContext context(json.data(), json.size());
+        if (context.parseTo(scenario) != JS::Error::NoError) {
+            error = context.makeErrorString();
+            return false;
+        }
+        if (scenario.Alarms) {
+            this->alarms.Clear();
+            for (const _details::PreviewAlarm& alarmValue : *scenario.Alarms) {
+                Alarm& alarm = this->alarms.EmplaceBack(alarmValue.Time, alarmValue.Repeat, alarmValue.IsEnabled);
+                alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+            }
+        }
+        if (scenario.Status) {
+            this->SetStatus(std::move(*scenario.Status));
+        }
+        if (scenario.IsAlarmActionsMenuVisible) {
+            this->SetIsAlarmActionsMenuVisible(*scenario.IsAlarmActionsMenuVisible);
+        }
+        this->refreshPage();
+        return true;
+    }
+#endif
 
     void MainPageViewModel::NotifyPropertyChanged(Property property) {
         for (const PropertyChangedHandler& handler : this->propertyChangedHandlers) {

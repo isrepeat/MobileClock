@@ -31,7 +31,11 @@ namespace mobileclock::ui {
         void Navigate(Page page) override;
 
         void Initialize(xaml::Size availableSize);
+        void SetAnimationPlaybackRate(float value);
         void SetStatus(std::string value);
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
+#endif
         void HandleTouchDown(float x, float y);
         bool HandleTouchMove(float x, float y);
         bool HandleTouchUp(float x, float y);
