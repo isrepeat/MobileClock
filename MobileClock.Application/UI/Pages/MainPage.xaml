@@ -91,7 +91,7 @@
                         verticalAlignment="Stretch"
                         horizontalAlignment="Left"
                         background="#DDB54F"/>
-                <controls:AlarmList itemsSource="{Binding Alarms}"
+                <controls:InteractiveList itemsSource="{Binding Alarms}"
                                     verticalAlignment="Stretch"
                                     horizontalAlignment="Stretch"/>
             </Grid>

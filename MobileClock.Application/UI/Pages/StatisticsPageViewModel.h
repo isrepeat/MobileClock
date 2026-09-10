@@ -2,7 +2,6 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 
-#include "UI/ApplicationActions.h"
 #include "UI/ISerializable.h"
 #include "UI/PageRegistry.h"
 #include "UI/Navigation.h"
@@ -18,30 +17,27 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class SettingsPageViewModel final : public ISerializable {
+    class StatisticsPageViewModel final : public ISerializable {
     public:
-        inline static constexpr std::string_view PageName = "SettingsPage";
+        inline static constexpr std::string_view PageName = "StatisticsPage";
 
         enum class Property {
-            theme,
-            sound,
+            title,
+            summary,
         };
 
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        explicit SettingsPageViewModel(PageContext& context);
-        ~SettingsPageViewModel() = default;
+        explicit StatisticsPageViewModel(PageContext& context);
+        ~StatisticsPageViewModel() = default;
 
-        SettingsPageViewModel(const SettingsPageViewModel&) = delete;
-        SettingsPageViewModel& operator=(const SettingsPageViewModel&) = delete;
+        StatisticsPageViewModel(const StatisticsPageViewModel&) = delete;
+        StatisticsPageViewModel& operator=(const StatisticsPageViewModel&) = delete;
 
-        const std::string& Theme() const;
-        const std::string& Sound() const;
-
+        const std::string& Title() const;
+        const std::string& Summary() const;
         xaml::Element::Command NavigateToMainCommand() const;
-        xaml::Element::Command ShareLogsCommand() const;
-        xaml::Element::Command ExportLogsCommand() const;
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();
@@ -54,13 +50,14 @@ namespace mobileclock::ui {
 #endif
 
     private:
-        std::string theme = "Тёмная";
-        std::string sound = "Мелодия по умолчанию";
+        void NotifyPropertyChanged(Property property);
+
+    private:
+        std::string title = "Статистика";
+        std::string summary = "Нет данных";
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
         xaml::Element::Command navigateToMainCommand;
-        xaml::Element::Command shareLogsCommand;
-        xaml::Element::Command exportLogsCommand;
     };
 }

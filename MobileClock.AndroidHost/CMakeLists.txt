@@ -219,7 +219,7 @@ target_include_directories(mobileclock_presentation PUBLIC
     "${mobileclock_project_root}/UtilityHelpersLib/NugetProjects/XamlRuntime/Nuget/OpenGLESRenderer/OpenGLESRenderer.Shared"
 )
 set_target_properties(mobileclock_presentation PROPERTIES
-    CXX_STANDARD 17
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
@@ -234,9 +234,10 @@ if (ANDROID)
 endif()
 
 set(mobileclock_ui_control_files
-    ../MobileClock.UI/Controls/AlarmList.cpp
-    ../MobileClock.UI/Controls/AlarmList.h
-    ../MobileClock.UI/Controls/AlarmList.xaml
+    ../MobileClock.UI/Controls/InteractiveList.cpp
+    ../MobileClock.UI/Controls/InteractiveList.h
+    ../MobileClock.UI/Controls/IGestureTarget.h
+    ../MobileClock.UI/Controls/InteractiveList.xaml
     ../MobileClock.UI/Controls/TimelineTabs.cpp
     ../MobileClock.UI/Controls/TimelineTabs.h
     ../MobileClock.UI/Controls/TimelineTabs.xaml
@@ -254,7 +255,7 @@ target_include_directories(mobileclock_ui PUBLIC
     "${mobileclock_generated_build_dir}"
 )
 set_target_properties(mobileclock_ui PROPERTIES
-    CXX_STANDARD 17
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
@@ -294,7 +295,7 @@ target_include_directories(mobileclock_application PUBLIC
     "${mobileclock_generated_build_dir}"
 )
 set_target_properties(mobileclock_application PROPERTIES
-    CXX_STANDARD 17
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
@@ -322,7 +323,7 @@ if (ANDROID)
     # Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.
     set_target_properties(mobileclock_android_host PROPERTIES
         OUTPUT_NAME mobileclock
-        CXX_STANDARD 17
+        CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF
     )

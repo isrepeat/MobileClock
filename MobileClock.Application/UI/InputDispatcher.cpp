@@ -1,30 +1,40 @@
+#include "UI/InputDispatcher.h"
+
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
 
-#include "TouchHandler.h"
+#include "MobileClock.UI/Controls/IGestureTarget.h"
 
-#include <string_view>
 #include <cmath>
+#include <memory>
 
 namespace mobileclock::ui::_details {
-    xaml::Element* FindElementById(xaml::Element& element, std::string_view id) {
-        if (element.Id() == id) {
-            return &element;
-        }
-        for (const auto& child : element.Children()) {
-            if (xaml::Element* const found = FindElementById(*child, id)) {
-                return found;
+    IGestureTarget* FindGestureTarget(xaml::Element* element) {
+        while (element != nullptr) {
+            if (auto* const target = dynamic_cast<IGestureTarget*>(element)) {
+                return target;
             }
+            element = element->Parent();
         }
         return nullptr;
     }
 
-    bool Contains(const xaml::Rect& bounds, float x, float y) {
-        return x >= bounds.x
-            && x <= bounds.x + bounds.width
-            && y >= bounds.y
-            && y <= bounds.y + bounds.height;
+    bool UpdateGestureTargets(
+        xaml::Element& element,
+        xaml::Element& pageRoot,
+        xaml::AnimationController& animations) {
+        bool wasUpdated = false;
+        if (auto* const target = dynamic_cast<IGestureTarget*>(&element)) {
+            target->UpdateGestures(pageRoot, animations);
+            wasUpdated = true;
+        }
+        for (const std::unique_ptr<xaml::Element>& child : element.Children()) {
+            if (UpdateGestureTargets(*child, pageRoot, animations)) {
+                wasUpdated = true;
+            }
+        }
+        return wasUpdated;
     }
 }
 
@@ -32,7 +42,7 @@ namespace mobileclock::ui {
     //
     // API
     //
-    void TouchHandler::HandleTouchDown(
+    void InputDispatcher::PointerDown(
         xaml::Element& root,
         float x,
         float y,
@@ -40,15 +50,10 @@ namespace mobileclock::ui {
         if (animations == nullptr) {
             return;
         }
-        xaml::Element* const alarmScrollViewer = _details::FindElementById(root, "alarmsScrollViewer");
-        if (alarmScrollViewer != nullptr && _details::Contains(alarmScrollViewer->Bounds(), x, y)) {
-            this->scrollViewer = alarmScrollViewer;
-        } else {
-            this->scrollViewer = xaml::HitTestVisual(root, x, y);
-            while (this->scrollViewer != nullptr
-                && this->scrollViewer->Type() != xaml::ElementType::scrollViewer) {
-                this->scrollViewer = this->scrollViewer->Parent();
-            }
+        this->scrollViewer = xaml::HitTestVisual(root, x, y);
+        while (this->scrollViewer != nullptr
+            && this->scrollViewer->Type() != xaml::ElementType::scrollViewer) {
+            this->scrollViewer = this->scrollViewer->Parent();
         }
         this->scrollController.Cancel();
         this->touchDownX = x;
@@ -56,12 +61,13 @@ namespace mobileclock::ui {
         this->lastTouchY = y;
         this->gestureAxis = GestureAxis::none;
         this->interactionController.SetPanTargetPredicate([](const xaml::Element& element) {
-            return element.Id() == "alarmBlock";
+            IGestureTarget* const target = _details::FindGestureTarget(const_cast<xaml::Element*>(&element));
+            return target != nullptr && target->CanHandlePan(element);
         });
         this->interactionController.PointerDown(root, *animations, x, y);
     }
 
-    bool TouchHandler::HandleTouchMove(float x, float y) {
+    bool InputDispatcher::PointerMove(float x, float y) {
         const float horizontalDistance = x - this->touchDownX;
         const float verticalDistance = y - this->touchDownY;
         constexpr float gestureThreshold = 8.0f;
@@ -81,37 +87,39 @@ namespace mobileclock::ui {
         return this->interactionController.PointerMove(x, y);
     }
 
-    xaml::Element* TouchHandler::HandleTouchUp(
+    xaml::Element* InputDispatcher::PointerUp(
         xaml::Element& root,
         float x,
         float y,
-        xaml::AnimationController& animations,
-        const void*& swipedDataContext) {
+        xaml::AnimationController& animations) {
         if (this->gestureAxis == GestureAxis::vertical) {
             this->scrollController.End();
             this->scrollViewer = nullptr;
             this->gestureAxis = GestureAxis::none;
-            swipedDataContext = nullptr;
             return nullptr;
         }
         this->scrollViewer = nullptr;
         const xaml::GestureResult result = this->interactionController.PointerUp(root, animations, x, y);
-        swipedDataContext = result.kind == xaml::GestureKind::pan && result.target != nullptr
-            ? result.target->DataContext()
-            : nullptr;
+        if (result.kind == xaml::GestureKind::pan) {
+            IGestureTarget* const target = _details::FindGestureTarget(result.target);
+            if (target != nullptr && target->HandleGesture(result, animations)) {
+                return nullptr;
+            }
+        }
         return result.kind == xaml::GestureKind::tap ? result.target : nullptr;
     }
 
-    void TouchHandler::CancelTouch() {
+    void InputDispatcher::Cancel() {
         this->interactionController.Cancel();
         this->scrollController.Cancel();
         this->scrollViewer = nullptr;
         this->gestureAxis = GestureAxis::none;
     }
 
-    bool TouchHandler::Update() {
+    bool InputDispatcher::Update(xaml::Element& pageRoot, xaml::AnimationController& animations) {
         const bool interactionUpdated = this->interactionController.Update();
         const bool scrollUpdated = this->scrollController.Update();
-        return interactionUpdated || scrollUpdated;
+        const bool gesturesUpdated = _details::UpdateGestureTargets(pageRoot, pageRoot, animations);
+        return interactionUpdated || scrollUpdated || gesturesUpdated;
     }
 }

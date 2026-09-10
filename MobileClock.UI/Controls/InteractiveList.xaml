@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<UserControl x:Class="mobileclock::ui::controls::AlarmList"
+<UserControl x:Class="mobileclock::ui::controls::InteractiveList"
              xmlns="urn:mobileclock:xaml"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer id="alarmsScrollViewer"
+    <ScrollViewer id="interactiveListScrollViewer"
                   verticalAlignment="Stretch"
                   horizontalAlignment="Stretch"
                   verticalScrollBarVisibility="Auto">
-        <ListView id="alarms"
+        <ListView id="interactiveListItems"
                   verticalAlignment="Stretch"
                   horizontalAlignment="Stretch"
                   itemsSource="{Binding ItemsSource}">
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Border id="alarmItem"
+                    <Border id="interactiveListItem"
                             height="200"
                             margin="0 0 16 0"
                             verticalAlignment="Stretch"
                             horizontalAlignment="Stretch">
-                        <Border id="alarmBlock"
+                        <Border id="interactiveListGestureTarget"
                                 command="{Binding AlarmBlockCommand}"
                                 verticalAlignment="Stretch"
                                 horizontalAlignment="Stretch">

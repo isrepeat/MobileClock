@@ -58,7 +58,7 @@
           }
         }
       },
-      "alarmBlock": {
+      "interactiveListGestureTarget": {
         "pan": {
           "type": "removeAt",
           "path": "Alarms"
@@ -136,7 +136,7 @@
           }
         }
       },
-      "alarmBlock": {
+      "interactiveListGestureTarget": {
         "pan": {
           "type": "removeAt",
           "path": "Alarms"
@@ -209,7 +209,7 @@
           }
         }
       },
-      "alarmBlock": {
+      "interactiveListGestureTarget": {
         "pan": {
           "type": "removeAt",
           "path": "Alarms"

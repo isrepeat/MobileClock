@@ -1,10 +1,11 @@
 #pragma once
+#include <XamlRuntime/ObservableCollection.h>
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
-#include <XamlRuntime/ObservableCollection.h>
 
 #include "UI/ApplicationActions.h"
 #include "UI/ISerializable.h"
+#include "UI/PageRegistry.h"
 #include "UI/Navigation.h"
 
 #include <functional>
@@ -17,13 +18,11 @@ namespace xaml {
     class RendererRegistry;
 }
 
-namespace mobileclock::ui::controls {
-    class AlarmList;
-}
-
 namespace mobileclock::ui {
     class MainPageViewModel final : public ISerializable {
     public:
+        inline static constexpr std::string_view PageName = "MainPage";
+
         class Alarm final {
         public:
             Alarm(std::string time, std::string repeat, bool isEnabled);
@@ -53,10 +52,7 @@ namespace mobileclock::ui {
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        MainPageViewModel(
-            IPageNavigator& navigator,
-            IApplicationActions& actions,
-            std::function<void()> refreshPage);
+        explicit MainPageViewModel(PageContext& context);
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
@@ -79,9 +75,8 @@ namespace mobileclock::ui {
         void SetStatus(std::string value);
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
-        bool HandleSwipe(const void* dataContext);
-        controls::AlarmList& AlarmList();
-        void UpdateClock();
+        bool RemoveItem(const void* dataContext);
+        void Update();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
@@ -113,6 +108,5 @@ namespace mobileclock::ui {
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
         xaml::Element::Command toggleAlarmActionsMenuCommand;
-        std::function<void()> refreshPage;
     };
 }

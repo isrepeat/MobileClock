@@ -27,6 +27,6 @@ add_executable(PageTransitionsTests main.cpp "${generated}" "${navigation_genera
 target_include_directories(PageTransitionsTests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_LIST_DIR}/../../.." "${CMAKE_CURRENT_LIST_DIR}/../..")
 target_sources(PageTransitionsTests PRIVATE "../../../MobileClock.Presentation/AnimationRenderers.cpp" "../../../MobileClock.Presentation/Effects/Effects.cpp")
 target_link_libraries(PageTransitionsTests PRIVATE utility_helpers::xaml_runtime)
-target_compile_features(PageTransitionsTests PRIVATE cxx_std_17)
+target_compile_features(PageTransitionsTests PRIVATE cxx_std_20)
 enable_testing()
 add_test(NAME PageTransitions COMMAND PageTransitionsTests)

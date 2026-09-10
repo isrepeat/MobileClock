@@ -1,6 +1,6 @@
-#include "MobileClock.Presentation/Registrations.h"
-
 #include "UI/ApplicationSession.h"
+
+#include "MobileClock.Presentation/Registrations.h"
 
 #include <utility>
 
@@ -23,15 +23,7 @@ namespace mobileclock::ui {
     }
 
     bool ApplicationSession::LoadPage(std::string_view name) {
-        if (name == "MainPage" || name == "main") {
-            this->pageManager.Navigate(Page::main);
-            return true;
-        }
-        if (name == "SettingsPage" || name == "settings") {
-            this->pageManager.Navigate(Page::settings);
-            return true;
-        }
-        return false;
+        return this->pageManager.Navigate(name);
     }
 
     void ApplicationSession::SetStatus(std::string value) {

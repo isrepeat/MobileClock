@@ -1,19 +1,20 @@
 #include "UI/Pages/MainPageViewModel.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include <JsonParser/JsonParser.h>
-#endif
-
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/Animation.h>
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <JsonParser/JsonParser.h>
+#endif
+
 #include "!Generated/MobileClock.Application/Xaml/Pages/MainPage.xaml.h"
-#include "MobileClock.UI/Controls/AlarmList.h"
+#include "UI/Pages/SettingsPageViewModel.h"
 #include "!Generated/Build/BuildVersion.h"
 
 #include <stdexcept>
 #include <algorithm>
+#include <format>
 #include <ctime>
 
 namespace mobileclock::ui::_details {
@@ -55,45 +56,30 @@ namespace mobileclock::ui::_details {
         return nullptr;
     }
 
-    controls::AlarmList* FindAlarmList(xaml::Element& element) {
-        if (auto* const alarmList = dynamic_cast<controls::AlarmList*>(&element)) {
-            return alarmList;
-        }
-        for (const std::unique_ptr<xaml::Element>& child : element.Children()) {
-            if (controls::AlarmList* const alarmList = FindAlarmList(*child)) {
-                return alarmList;
-            }
-        }
-        return nullptr;
-    }
 }
 
 namespace mobileclock::ui {
-    MainPageViewModel::MainPageViewModel(
-        IPageNavigator& navigator,
-        IApplicationActions& actions,
-        std::function<void()> refreshPage)
+    MainPageViewModel::MainPageViewModel(PageContext& context)
         : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
         , createAlarmCommand([this]() {
             Alarm& alarm = this->alarms.EmplaceBack("", "", false);
             alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
         })
-        , navigateToSettingsCommand([&navigator]() {
-            navigator.Navigate(Page::settings);
+        , navigateToSettingsCommand([&context]() {
+            context.navigator.Navigate<SettingsPageViewModel>();
         })
-        , toggleAlarmCommand([&actions]() {
-            actions.ToggleAlarm();
+        , toggleAlarmCommand([&context]() {
+            context.actions.ToggleAlarm();
         })
-        , updateApplicationCommand([&actions]() {
-            actions.UpdateApplication();
+        , updateApplicationCommand([&context]() {
+            context.actions.UpdateApplication();
         })
-        , uploadScreenshotCommand([&actions]() {
-            actions.UploadScreenshot();
+        , uploadScreenshotCommand([&context]() {
+            context.actions.UploadScreenshot();
         })
         , toggleAlarmActionsMenuCommand([this]() {
             this->SetIsAlarmActionsMenuVisible(!this->IsAlarmActionsMenuVisible());
-        })
-        , refreshPage(std::move(refreshPage)) {
+        }) {
         for (Alarm& alarm : this->alarms) {
             alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
         }
@@ -216,7 +202,7 @@ namespace mobileclock::ui {
         element.ExecuteCommand();
     }
 
-    bool MainPageViewModel::HandleSwipe(const void* dataContext) {
+    bool MainPageViewModel::RemoveItem(const void* dataContext) {
         const auto iterator = std::find_if(
             this->alarms.begin(),
             this->alarms.end(),
@@ -230,15 +216,7 @@ namespace mobileclock::ui {
         return true;
     }
 
-    controls::AlarmList& MainPageViewModel::AlarmList() {
-        controls::AlarmList* const alarmList = _details::FindAlarmList(*this->page);
-        if (alarmList == nullptr) {
-            throw std::runtime_error("Alarm list control was not found");
-        }
-        return *alarmList;
-    }
-
-    void MainPageViewModel::UpdateClock() {
+    void MainPageViewModel::Update() {
         const std::time_t now = std::time(nullptr);
         std::tm localTime{};
         if (!_details::TryGetLocalTime(now, localTime)) {
@@ -295,7 +273,7 @@ namespace mobileclock::ui {
         _details::MainPagePreviewScenario scenario;
         JS::ParseContext context(json.data(), json.size());
         if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = context.makeErrorString();
+            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
             return false;
         }
         if (scenario.Alarms) {
@@ -311,7 +289,6 @@ namespace mobileclock::ui {
         if (scenario.IsAlarmActionsMenuVisible) {
             this->SetIsAlarmActionsMenuVisible(*scenario.IsAlarmActionsMenuVisible);
         }
-        this->refreshPage();
         return true;
     }
 #endif

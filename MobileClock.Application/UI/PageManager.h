@@ -2,13 +2,13 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 
+#include "UI/Pages/StatisticsPageViewModel.h"
 #include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/Pages/MainPageViewModel.h"
-#include "UI/ApplicationActions.h"
-#include "UI/TouchHandler.h"
-#include "UI/Navigation.h"
+#include "UI/InputDispatcher.h"
+#include "UI/PageRegistry.h"
 
-#include <chrono>
+#include <string_view>
 #include <string>
 
 namespace xaml {
@@ -28,7 +28,7 @@ namespace mobileclock::ui {
         //
         // IPageNavigator
         //
-        void Navigate(Page page) override;
+        bool Navigate(std::string_view pageName) override;
 
         void Initialize(xaml::Size availableSize);
         void SetAnimationPlaybackRate(float value);
@@ -45,18 +45,19 @@ namespace mobileclock::ui {
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
 
     private:
-        void RefreshMainPage();
+        using ApplicationPages = PageRegistry<
+            MainPageViewModel,
+            SettingsPageViewModel,
+            StatisticsPageViewModel>;
 
     private:
         xaml::Size availableSize;
-        Page currentPage = Page::main;
-        Page outgoingPage = Page::main;
+        PageContext pageContext;
+        ApplicationPages pages;
+        IPage* currentPage = nullptr;
+        IPage* outgoingPage = nullptr;
         bool isTransitioning = false;
-        const void* pendingAlarmDeletion = nullptr;
-        std::chrono::steady_clock::time_point pendingAlarmDeletionAt;
         xaml::AnimationController animations;
-        TouchHandler touchHandler;
-        MainPageViewModel mainPageViewModel;
-        SettingsPageViewModel settingsPageViewModel;
+        InputDispatcher inputDispatcher;
     };
 }

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page xmlns="urn:mobileclock:xaml"
+      id="statisticsPage"
+      background="#1B1C17"
+      padding="24 24 80 24">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="0"
+                            to="1"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="Current"
+                            to="0"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+    </Page.Storyboards>
+    <StackPanel orientation="Vertical"
+                horizontalAlignment="Stretch"
+                verticalAlignment="Top">
+        <Grid height="90"
+              borderBrush="#4E4B3D"
+              borderThickness="0 0 0 1"
+              horizontalAlignment="Stretch">
+            <columnDefinitions>
+                <columnDefinition width="12%"/>
+                <columnDefinition width="76%"/>
+                <columnDefinition width="12%"/>
+            </columnDefinitions>
+            <Border id="backNavigation"
+                    background="#292A23"
+                    command="{Binding NavigateToMainCommand}"
+                    cornerRadius="24"
+                    padding="10"
+                    horizontalAlignment="Center"
+                    verticalAlignment="Center">
+                <SvgImage source="Icons/back.svg"
+                          tint="#EADCB5"
+                          width="40"
+                          height="40"
+                          horizontalAlignment="Center"
+                          verticalAlignment="Center"/>
+            </Border>
+            <TextBlock text="{Binding Title}"
+                       fontSize="40"
+                       fontWeight="Bold"
+                       foreground="#EADCB5"
+                       horizontalAlignment="Center"
+                       verticalAlignment="Center"
+                       gridColumn="1"/>
+        </Grid>
+        <TextBlock text="Сводка"
+                   fontSize="18"
+                   fontWeight="Bold"
+                   foreground="#9D9477"
+                   margin="8 36 0 12"/>
+        <Border background="#292A23"
+                borderBrush="#4E4B3D"
+                borderThickness="1"
+                cornerRadius="16"
+                padding="24"
+                horizontalAlignment="Stretch">
+            <TextBlock text="{Binding Summary}"
+                       fontSize="24"
+                       foreground="#D5BD7D"
+                       horizontalAlignment="Center"
+                       verticalAlignment="Center"/>
+        </Border>
+    </StackPanel>
+</Page>

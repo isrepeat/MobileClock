@@ -1,14 +1,16 @@
 #include "UI/Pages/SettingsPageViewModel.h"
 
+#include <XamlRuntime/RenderEngine.h>
+
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <JsonParser/JsonParser.h>
 #endif
 
-#include <XamlRuntime/RenderEngine.h>
-
 #include "!Generated/MobileClock.Application/Xaml/Pages/SettingsPage.xaml.h"
+#include "UI/Pages/MainPageViewModel.h"
 
 #include <utility>
+#include <format>
 
 namespace mobileclock::ui {
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -22,17 +24,15 @@ namespace mobileclock::ui {
     }
 #endif
 
-    SettingsPageViewModel::SettingsPageViewModel(
-        IPageNavigator& navigator,
-        IApplicationActions& actions)
-        : navigateToMainCommand([&navigator]() {
-            navigator.Navigate(Page::main);
+    SettingsPageViewModel::SettingsPageViewModel(PageContext& context)
+        : navigateToMainCommand([&context]() {
+            context.navigator.Navigate<MainPageViewModel>();
         })
-        , shareLogsCommand([&actions]() {
-            actions.ShareLogs();
+        , shareLogsCommand([&context]() {
+            context.actions.ShareLogs();
         })
-        , exportLogsCommand([&actions]() {
-            actions.ExportLogs();
+        , exportLogsCommand([&context]() {
+            context.actions.ExportLogs();
         }) {
     }
 
@@ -70,6 +70,9 @@ namespace mobileclock::ui {
         element.ExecuteCommand();
     }
 
+    void SettingsPageViewModel::Update() {
+    }
+
     void SettingsPageViewModel::Render(
         xaml::IRenderBackend& renderer,
         const xaml::RendererRegistry& renderers) const {
@@ -93,7 +96,7 @@ namespace mobileclock::ui {
         _details::SettingsPagePreviewScenario scenario;
         JS::ParseContext context(json.data(), json.size());
         if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = context.makeErrorString();
+            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
             return false;
         }
         if (scenario.Theme) {

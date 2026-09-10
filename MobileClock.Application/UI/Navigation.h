@@ -1,15 +1,16 @@
 #pragma once
+#include <string_view>
 
 namespace mobileclock::ui {
-    enum class Page {
-        main,
-        settings,
-    };
-
     class IPageNavigator {
     public:
         virtual ~IPageNavigator() = default;
 
-        virtual void Navigate(Page page) = 0;
+        virtual bool Navigate(std::string_view pageName) = 0;
+
+        template <typename TPage>
+        bool Navigate() {
+            return this->Navigate(TPage::PageName);
+        }
     };
 }

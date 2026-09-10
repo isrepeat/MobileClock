@@ -1,68 +1,64 @@
 #include "UI/PageManager.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include "UI/PreviewScenario.h"
-#endif
-
 #include <XamlRuntime/RenderEngine.h>
 
 #include "MobileClock.Presentation/AnimationRenderers.h"
 #include "MobileClock.Presentation/PageTransition.h"
 #include "MobileClock.Presentation/Registrations.h"
-#include "MobileClock.UI/Controls/AlarmList.h"
 
 namespace mobileclock::ui {
     PageManager::PageManager(IApplicationActions& actions)
-        : mainPageViewModel(*this, actions, [this]() {
-            this->RefreshMainPage();
-        })
-        , settingsPageViewModel(*this, actions) {
+        : pageContext{static_cast<IPageNavigator&>(*this), actions}
+        , pages(this->pageContext) {
     }
 
     //
     // IPageNavigator
     //
-    void PageManager::Navigate(Page page) {
-        if (this->currentPage == page || this->isTransitioning) {
-            return;
+    bool PageManager::Navigate(std::string_view pageName) {
+        IPage* const page = this->pages.Find(pageName);
+        if (page == nullptr || this->currentPage == page || this->isTransitioning) {
+            return page != nullptr;
         }
         this->outgoingPage = this->currentPage;
         this->currentPage = page;
-        this->mainPageViewModel.Root().SetVisibility(page == Page::main
-            ? xaml::attr::Visibility::visible : xaml::attr::Visibility::collapsed);
-        this->settingsPageViewModel.Root().SetVisibility(page == Page::settings
-            ? xaml::attr::Visibility::visible : xaml::attr::Visibility::collapsed);
-        this->isTransitioning = xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
-            || xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root());
+        this->pages.ForEach([page](IPage& candidate) {
+            candidate.Root().SetVisibility(&candidate == page
+                ? xaml::attr::Visibility::visible
+                : xaml::attr::Visibility::collapsed);
+        });
+        this->isTransitioning = this->pages.IsAnyAnimating();
+        return true;
     }
 
     //
     // API
     //
     void PageManager::Initialize(xaml::Size availableSize) {
-        this->touchHandler.CancelTouch();
+        this->inputDispatcher.Cancel();
         this->animations = xaml::AnimationController{};
-        this->currentPage = Page::main;
-        this->isTransitioning = false;
         this->availableSize = availableSize;
-        this->mainPageViewModel.Initialize(this->availableSize);
-        this->settingsPageViewModel.Initialize(availableSize);
         xaml::AnimationRegistry registry;
         mobileclock::presentation::RegisterAnimations(registry);
         const auto parameters = [this]() {
             return xaml::AnimationParameters::Create(presentation::PageTransitionData{
-                this->outgoingPage == Page::main ? "main" : "settings",
-                this->currentPage == Page::main ? "main" : "settings",
-                this->currentPage == Page::settings ? presentation::NavigationDirection::forward : presentation::NavigationDirection::backward,
+                this->outgoingPage == nullptr ? "" : std::string(this->outgoingPage->Name()),
+                this->currentPage == nullptr ? "" : std::string(this->currentPage->Name()),
+                this->currentPage == &this->pages.GetPage<MainPageViewModel>()
+                    ? presentation::NavigationDirection::backward
+                    : presentation::NavigationDirection::forward,
             });
         };
-        auto& main = this->mainPageViewModel.Root();
-        auto& settings = this->settingsPageViewModel.Root();
-        main.SetAnimationParametersProvider(parameters);
-        settings.SetAnimationParametersProvider(parameters);
-        settings.SetVisibility(xaml::attr::Visibility::collapsed);
-        this->animations.Attach(main, registry);
-        this->animations.Attach(settings, registry);
+        this->pages.ForEach([&](IPage& page) {
+            page.Initialize(this->availableSize);
+            page.Root().SetAnimationParametersProvider(parameters);
+            page.Root().SetVisibility(xaml::attr::Visibility::collapsed);
+            this->animations.Attach(page.Root(), registry);
+        });
+        this->currentPage = &this->pages.GetPage<MainPageViewModel>();
+        this->outgoingPage = this->currentPage;
+        this->currentPage->Root().SetVisibility(xaml::attr::Visibility::visible);
+        this->isTransitioning = false;
     }
 
     void PageManager::SetAnimationPlaybackRate(float value) {
@@ -70,138 +66,75 @@ namespace mobileclock::ui {
     }
 
     void PageManager::SetStatus(std::string value) {
-        this->mainPageViewModel.SetStatus(std::move(value));
+        this->pages.Get<MainPageViewModel>().SetStatus(std::move(value));
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool PageManager::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
-        if (page == "MainPage" || page == "main") {
-            return mobileclock::ui::ApplyPreviewScenario(this->mainPageViewModel, json, error);
+    bool PageManager::ApplyPreviewScenario(std::string_view pageName, std::string_view json, std::string& error) {
+        IPage* const page = this->pages.Find(pageName);
+        if (page == nullptr) {
+            error = "Unknown MobileClock page";
+            return false;
         }
-        if (page == "SettingsPage" || page == "settings") {
-            return mobileclock::ui::ApplyPreviewScenario(this->settingsPageViewModel, json, error);
-        }
-        error = "Unknown MobileClock page";
-        return false;
+        return page->ApplyScenario(json, error);
     }
 #endif
 
     void PageManager::HandleTouchDown(float x, float y) {
-        if (this->isTransitioning || this->pendingAlarmDeletion != nullptr) {
+        if (this->isTransitioning) {
             return;
         }
-        if (this->currentPage == Page::main) {
-            this->touchHandler.HandleTouchDown(this->mainPageViewModel.Root(), x, y, &this->animations);
-            return;
-        }
-        this->touchHandler.HandleTouchDown(this->settingsPageViewModel.Root(), x, y);
+        this->inputDispatcher.PointerDown(this->currentPage->Root(), x, y, &this->animations);
     }
 
     bool PageManager::HandleTouchMove(float x, float y) {
-        if (this->isTransitioning
-            || this->pendingAlarmDeletion != nullptr
-            || this->currentPage != Page::main) {
+        if (this->isTransitioning) {
             return false;
         }
-        return this->touchHandler.HandleTouchMove(x, y);
+        return this->inputDispatcher.PointerMove(x, y);
     }
 
     bool PageManager::HandleTouchUp(float x, float y) {
-        if (this->isTransitioning || this->pendingAlarmDeletion != nullptr) {
+        if (this->isTransitioning) {
             return false;
         }
-        xaml::Element& root = this->currentPage == Page::main
-            ? this->mainPageViewModel.Root()
-            : this->settingsPageViewModel.Root();
-        const void* swipedDataContext = nullptr;
-        xaml::Element* const element = this->touchHandler.HandleTouchUp(
-            root,
+        xaml::Element* const element = this->inputDispatcher.PointerUp(
+            this->currentPage->Root(),
             x,
             y,
-            this->animations,
-            swipedDataContext);
-        if (this->currentPage == Page::main && swipedDataContext != nullptr) {
-            this->pendingAlarmDeletion = swipedDataContext;
-            this->pendingAlarmDeletionAt = std::chrono::steady_clock::now()
-                + std::chrono::milliseconds(220);
-            return true;
-        }
+            this->animations);
         if (element == nullptr) {
             return false;
         }
-        if (this->currentPage == Page::main) {
-            this->mainPageViewModel.HandleTap(*element);
-            return true;
-        }
-
-        this->settingsPageViewModel.HandleTap(*element);
+        this->currentPage->HandleTap(*element);
         return true;
     }
 
     void PageManager::CancelTouch() {
-        this->touchHandler.CancelTouch();
+        this->inputDispatcher.Cancel();
     }
 
     xaml::Element& PageManager::Root() {
-        return this->currentPage == Page::main
-            ? this->mainPageViewModel.Root()
-            : this->settingsPageViewModel.Root();
-    }
-
-    void PageManager::RefreshMainPage() {
-        this->touchHandler.CancelTouch();
-        this->mainPageViewModel.Initialize(this->availableSize);
-        xaml::AnimationRegistry registry;
-        mobileclock::presentation::RegisterAnimations(registry);
-        this->animations.Attach(this->mainPageViewModel.Root(), registry);
-        this->mainPageViewModel.Root().SetAnimationParametersProvider([this]() {
-            return xaml::AnimationParameters::Create(presentation::PageTransitionData{
-                this->outgoingPage == Page::main ? "main" : "settings",
-                this->currentPage == Page::main ? "main" : "settings",
-                this->currentPage == Page::settings ? presentation::NavigationDirection::forward : presentation::NavigationDirection::backward,
-            });
-        });
+        return this->currentPage->Root();
     }
 
     void PageManager::UpdateClock() {
         this->animations.Update();
-        this->touchHandler.Update();
-        if (this->pendingAlarmDeletion != nullptr
-            && std::chrono::steady_clock::now() >= this->pendingAlarmDeletionAt) {
-            const void* const alarm = this->pendingAlarmDeletion;
-            this->pendingAlarmDeletion = nullptr;
-            const controls::AlarmList::RemovalState state = this->mainPageViewModel.AlarmList()
-                .CaptureRemovalState(alarm);
-            if (state.isPresent && this->mainPageViewModel.HandleSwipe(alarm)) {
-                this->mainPageViewModel.AlarmList().RestoreViewportAndAnimate(
-                    state,
-                    this->mainPageViewModel.Root(),
-                    this->animations,
-                    std::chrono::milliseconds(840));
-            }
-        }
-        if (this->isTransitioning
-            && !xaml::AnimationController::IsAnimating(this->mainPageViewModel.Root())
-            && !xaml::AnimationController::IsAnimating(this->settingsPageViewModel.Root())) {
+        this->inputDispatcher.Update(this->currentPage->Root(), this->animations);
+        if (this->isTransitioning && !this->pages.IsAnyAnimating()) {
             this->isTransitioning = false;
         }
-        this->mainPageViewModel.UpdateClock();
+        this->pages.ForEach([](IPage& page) {
+            page.Update();
+        });
     }
 
     void PageManager::Render(
         xaml::IRenderBackend& renderer,
         const xaml::RendererRegistry& renderers) const {
         if (this->isTransitioning) {
-            if (this->outgoingPage == Page::main) {
-                this->mainPageViewModel.Render(renderer, renderers);
-            } else {
-                this->settingsPageViewModel.Render(renderer, renderers);
-            }
+            this->outgoingPage->Render(renderer, renderers);
         }
-        if (this->currentPage == Page::main) {
-            this->mainPageViewModel.Render(renderer, renderers);
-            return;
-        }
-        this->settingsPageViewModel.Render(renderer, renderers);
+        this->currentPage->Render(renderer, renderers);
     }
 }
