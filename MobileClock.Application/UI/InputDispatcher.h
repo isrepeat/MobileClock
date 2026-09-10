@@ -8,6 +8,8 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
+    class IGestureTarget;
+
     class InputDispatcher final {
     public:
         void PointerDown(xaml::Element& root, float x, float y, xaml::AnimationController* animations = nullptr);
@@ -20,14 +22,19 @@ namespace mobileclock::ui {
         enum class GestureAxis {
             none,
             vertical,
+            horizontal,
         };
 
     private:
         xaml::InteractionController interactionController;
+        IGestureTarget* panTarget = nullptr;
+        xaml::Element* inputRoot = nullptr;
+        xaml::Element* panElement = nullptr;
         xaml::Element* scrollViewer = nullptr;
         xaml::ScrollController scrollController;
         float touchDownX = 0.0f;
         float touchDownY = 0.0f;
+        float lastTouchX = 0.0f;
         float lastTouchY = 0.0f;
         GestureAxis gestureAxis = GestureAxis::none;
     };

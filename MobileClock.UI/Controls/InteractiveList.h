@@ -42,11 +42,16 @@ namespace mobileclock::ui::controls {
         const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
         bool CanHandlePan(const xaml::Element& element) const override;
-        bool HandleGesture(const xaml::GestureResult& gesture, xaml::AnimationController& animations) override;
+        xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
+        void BeginPan(const PanState& state) override;
+        void UpdatePan(const PanState& state) override;
+        bool EndPan(const PanState& state, xaml::AnimationController& animations) override;
+        void CancelPan(xaml::Element& element) override;
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
     private:
         void SetRemoveHandler(std::function<bool(const void*)> value);
+        const void* FindItemDataContext(xaml::Element& element) const;
         bool BeginRemoval(const void* dataContext);
         RemovalState CaptureRemovalState(const void* dataContext) const;
         void Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
@@ -63,6 +68,8 @@ namespace mobileclock::ui::controls {
             std::chrono::milliseconds duration);
         xaml::Element* FindElement(std::string_view id) const;
         void OnInitialized() override;
+        bool IsIn(const xaml::Element& pageRoot) const override;
+        bool Owns(const xaml::Element& element) const override;
 
     private:
         xaml::DependentProperty<const void*> itemsSource;

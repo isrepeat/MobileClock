@@ -234,6 +234,7 @@ if (ANDROID)
 endif()
 
 set(mobileclock_ui_control_files
+    ../MobileClock.UI/Controls/IGestureTarget.cpp
     ../MobileClock.UI/Controls/InteractiveList.cpp
     ../MobileClock.UI/Controls/InteractiveList.h
     ../MobileClock.UI/Controls/IGestureTarget.h
@@ -283,6 +284,7 @@ if (NOT ANDROID AND CMAKE_BUILD_TYPE STREQUAL "Debug")
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared/JsonParser/JsonParser.cpp"
     )
     target_compile_definitions(mobileclock_application PUBLIC MOBILECLOCK_XAML_PREVIEWER=1)
+    target_compile_definitions(mobileclock_ui PRIVATE MOBILECLOCK_XAML_PREVIEWER=1)
     target_include_directories(mobileclock_application PRIVATE
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared"
         "${mobileclock_project_root}/UtilityHelpersLib/Helpers/Helpers.Shared"
