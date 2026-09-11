@@ -1,5 +1,4 @@
 #pragma once
-
 #ifdef _WIN32
 #define XAML_RUNTIME_BRIDGE_API __declspec(dllexport)
 #else
@@ -71,6 +70,7 @@ XAML_RUNTIME_BRIDGE_API int mc_apply_preview_scenario(
     mc_session* session,
     const char* page,
     const char* json);
+XAML_RUNTIME_BRIDGE_API int mc_reload_markup(mc_session* session, const char* page, const char* markup, const char* sourcePath);
 XAML_RUNTIME_BRIDGE_API int mc_resize(mc_session* session, int width, int height);
 XAML_RUNTIME_BRIDGE_API int mc_set_animation_playback_rate(mc_session* session, float value);
 XAML_RUNTIME_BRIDGE_API int mc_set_status(mc_session* session, const char* value);

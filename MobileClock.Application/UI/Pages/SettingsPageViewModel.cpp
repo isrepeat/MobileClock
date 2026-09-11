@@ -61,12 +61,20 @@ namespace mobileclock::ui {
 
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        this->runtimeBindings.reset();
+#endif
         this->page = xaml::generated::SettingsPage::Create(*this, this->bindings);
         xaml::layout(*this->page, availableSize);
     }
 
     void SettingsPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        if (this->runtimeBindings) {
+            this->runtimeBindings->UpdateSource(element);
+        }
+#endif
         element.ExecuteCommand();
     }
 
@@ -101,11 +109,56 @@ namespace mobileclock::ui {
         }
         if (scenario.Theme) {
             this->theme = std::move(*scenario.Theme);
+            for (const auto& handler : this->propertyChangedHandlers) {
+                if (handler) {
+                    handler(Property::theme);
+                }
+            }
         }
         if (scenario.Sound) {
             this->sound = std::move(*scenario.Sound);
+            for (const auto& handler : this->propertyChangedHandlers) {
+                if (handler) {
+                    handler(Property::sound);
+                }
+            }
         }
         return true;
+    }
+#endif
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    xaml::runtime::RuntimeBindingContext SettingsPageViewModel::RuntimeContext() {
+        auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
+        registry->AddText("Theme", [this]() { return this->Theme(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::theme) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddText("Sound", [this]() { return this->Sound(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::sound) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddCommand("NavigateToMainCommand", this->NavigateToMainCommand());
+        registry->AddCommand("ShareLogsCommand", this->ShareLogsCommand());
+        registry->AddCommand("ExportLogsCommand", this->ExportLogsCommand());
+        xaml::runtime::RuntimeBindingContext result{registry, "SettingsPageViewModel", {}};
+
+        return result;
+    }
+
+    void SettingsPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+        this->bindings.Clear();
+        this->runtimeBindings.reset();
+        this->page = std::move(result.root);
+        this->runtimeBindings = std::move(result.bindings);
     }
 #endif
 }

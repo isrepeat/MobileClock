@@ -1,4 +1,5 @@
 using System.Windows.Media.Imaging;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,6 +14,9 @@ internal sealed class MobileClockSession : IDisposable {
     private readonly PreviewCursorSet cursorSet;
     private readonly Image image;
     private IntPtr session;
+    private string? loadedPage;
+    private readonly Dictionary<string, string> scenarios = [];
+    private readonly Dictionary<string, string> markups = [];
     private bool hasPointerCapture;
     private bool isElementInspectionEnabled;
     private bool useDefaultCursorForElementInspection;
@@ -50,7 +54,24 @@ internal sealed class MobileClockSession : IDisposable {
     public int Width => this.renderer.Width;
 
     public void LoadPage(string page) {
+        if (this.loadedPage == page) {
+            return;
+        }
         NativeRuntime.Ensure(NativeRuntime.mc_load_page(this.session, page) != 0);
+        this.loadedPage = page;
+
+        this.Render();
+    }
+
+    public void LoadRuntimeMarkup(string page, string markup, string sourcePath) {
+        if (this.markups.TryGetValue(sourcePath, out var previous) && previous == markup) {
+            return;
+        }
+        NativeRuntime.Ensure(NativeRuntime.mc_reload_markup(this.session, page, markup, sourcePath) != 0);
+        if (Path.GetFileNameWithoutExtension(sourcePath) == page) {
+            this.markups.Clear();
+        }
+        this.markups[sourcePath] = markup;
         this.Render();
     }
 
@@ -96,12 +117,17 @@ internal sealed class MobileClockSession : IDisposable {
     }
 
     public void ApplyPreviewScenario(string page, string json) {
+        if (this.scenarios.TryGetValue(page, out var previous) && previous == json) {
+            return;
+        }
         NativeRuntime.Ensure(NativeRuntime.mc_apply_preview_scenario(this.session, page, json) != 0);
+        this.scenarios[page] = json;
         this.Render();
     }
 
     public void UpdateAndRender() {
         NativeRuntime.Ensure(NativeRuntime.mc_update(this.session) != 0);
+
         this.Render();
     }
 
@@ -118,6 +144,7 @@ internal sealed class MobileClockSession : IDisposable {
             NativeRuntime.mc_destroy_session(this.session);
             this.session = IntPtr.Zero;
         }
+
         this.cursorSet.Dispose();
         this.renderer.Dispose();
     }
@@ -202,7 +229,6 @@ internal sealed class MobileClockSession : IDisposable {
     private void Render() {
         this.image.Source = this.renderer.RenderMobileClockSession(this.session);
     }
-
     private float ScaleX(double value) {
         return (float)(value / this.image.ActualWidth * this.renderer.Width);
     }

@@ -9,7 +9,7 @@
 #include <utility>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include <string>
+#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 
 #include <memory>
@@ -33,6 +33,8 @@ namespace mobileclock::ui {
         virtual void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const = 0;
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         virtual bool ApplyScenario(std::string_view json, std::string& error) = 0;
+        virtual xaml::runtime::RuntimeBindingContext RuntimeContext() = 0;
+        virtual void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) = 0;
 #endif
     };
 
@@ -73,6 +75,14 @@ namespace mobileclock::ui {
         }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+        xaml::runtime::RuntimeBindingContext RuntimeContext() override {
+            return this->viewModel.RuntimeContext();
+        }
+
+        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) override {
+            this->viewModel.ReplaceRuntimeTree(std::move(result));
+        }
+
         bool ApplyScenario(std::string_view json, std::string& error) override {
             return this->viewModel.Deserialize(json, error);
         }
@@ -120,6 +130,11 @@ namespace mobileclock::ui {
 
         template <typename TViewModel>
         TViewModel& Get() {
+            return std::get<std::unique_ptr<PageAdapter<TViewModel>>>(this->pages)->ViewModel();
+        }
+
+        template <typename TViewModel>
+        const TViewModel& Get() const {
             return std::get<std::unique_ptr<PageAdapter<TViewModel>>>(this->pages)->ViewModel();
         }
 

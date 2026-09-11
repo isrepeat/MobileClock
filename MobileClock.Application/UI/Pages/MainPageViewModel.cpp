@@ -1,5 +1,10 @@
 #include "UI/Pages/MainPageViewModel.h"
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include "MobileClock.UI/Controls/InteractiveList.h"
+#include "MobileClock.UI/Controls/TimelineTabs.h"
+#endif
+
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/Animation.h>
@@ -103,6 +108,10 @@ namespace mobileclock::ui {
         return this->isEnabled;
     }
 
+    void MainPageViewModel::Alarm::SetIsEnabled(bool value) {
+        this->isEnabled = value;
+    }
+
     xaml::Element::Command MainPageViewModel::Alarm::AlarmBlockCommand() const {
         return this->alarmBlockCommand;
     }
@@ -192,6 +201,9 @@ namespace mobileclock::ui {
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
         LOG_FUNCTION_SCOPE("MobileClock", "MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
         this->bindings.Clear();
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        this->runtimeBindings.reset();
+#endif
         this->page = xaml::generated::MainPage::Create(*this, this->bindings);
         this->ApplyAlarmActionsPanelState(false);
         xaml::layout(*this->page, availableSize);
@@ -199,6 +211,11 @@ namespace mobileclock::ui {
 
     void MainPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        if (this->runtimeBindings) {
+            this->runtimeBindings->UpdateSource(element);
+        }
+#endif
         element.ExecuteCommand();
     }
 
@@ -252,10 +269,20 @@ namespace mobileclock::ui {
     void MainPageViewModel::ApplyAlarmActionsPanelState(bool useTransitions) {
         xaml::Element* const host = _details::FindElement(*this->page, "alarmActionsHost");
         if (host == nullptr) {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+            if (this->runtimeBindings) {
+                return;
+            }
+#endif
             throw std::runtime_error("Alarm actions visual-state host was not found");
         }
         const char* const stateName = this->isAlarmActionsMenuVisible ? "Expanded" : "Collapsed";
         if (!xaml::VisualStateManager::GoToState(*host, "AlarmActionsPanelStates", stateName, useTransitions)) {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+            if (this->runtimeBindings) {
+                return;
+            }
+#endif
             throw std::runtime_error("Alarm actions visual state was not found");
         }
     }
@@ -300,4 +327,100 @@ namespace mobileclock::ui {
             }
         }
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // API
+    //
+    xaml::runtime::RuntimeBindingContext MainPageViewModel::RuntimeContext() {
+        auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
+        registry->AddText("Status", [this]() { return this->Status(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::status) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddText("ClockText", [this]() { return this->ClockText(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::clockText) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddText("PackageVersion", [this]() { return this->PackageVersion(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::packageVersion) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddCommand("CreateAlarmCommand", this->CreateAlarmCommand());
+        registry->AddCommand("NavigateToSettingsCommand", this->NavigateToSettingsCommand());
+        registry->AddCommand("ToggleAlarmCommand", this->ToggleAlarmCommand());
+        registry->AddCommand("UpdateApplicationCommand", this->UpdateApplicationCommand());
+        registry->AddCommand("UploadScreenshotCommand", this->UploadScreenshotCommand());
+        registry->AddCommand("ToggleAlarmActionsMenuCommand", this->ToggleAlarmActionsMenuCommand());
+        xaml::runtime::RuntimeBindingContext result{registry, "MainPageViewModel", {}};
+        registry->AddBoolean("IsAlarmActionsMenuVisible", [this]() { return this->IsAlarmActionsMenuVisible(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::isAlarmActionsMenuVisible) {
+                        changed();
+                    }
+                });
+            }, [this](bool value) { this->SetIsAlarmActionsMenuVisible(value); });
+        xaml::runtime::RuntimeCollectionDescriptor collection;
+        collection.count = [this]() { return this->alarms.size(); };
+        collection.at = [this](size_t index) -> const void* {
+            auto iterator = this->alarms.begin();
+            std::advance(iterator, index);
+            return &*iterator;
+        };
+        collection.itemBindings = [](const void* value) {
+            const auto* alarm = static_cast<const Alarm*>(value);
+            auto item = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
+            item->AddText("Time", [alarm]() { return alarm == nullptr ? "" : alarm->Time(); });
+            item->AddText("Repeat", [alarm]() { return alarm == nullptr ? "" : alarm->Repeat(); });
+            item->AddBoolean("IsEnabled", [alarm]() { return alarm != nullptr && alarm->IsEnabled(); }, {},
+                [alarm](bool value) {
+                    if (alarm != nullptr) {
+                        const_cast<Alarm*>(alarm)->SetIsEnabled(value);
+                    }
+                });
+            item->AddCommand("AlarmBlockCommand", alarm == nullptr ? xaml::Element::Command{} : alarm->AlarmBlockCommand());
+            item->AddCommand("ToggleAlarmCommand", alarm == nullptr ? xaml::Element::Command{} : alarm->ToggleAlarmCommand());
+            return item;
+        };
+        collection.bind = [this](xaml::Element& element, xaml::Element::ItemTemplate itemTemplate) {
+            element.SetItemsSource(this->alarms, std::move(itemTemplate));
+        };
+        registry->AddCollection("Alarms", collection);
+        registry->AddCollection("ItemsSource", collection);
+        result.controls["InteractiveList"] = [this](xaml::BindingScope& scope) {
+            return controls::InteractiveList::Create(*this, this->alarms, scope);
+        };
+        result.controls["TimelineTabs"] = [this](xaml::BindingScope& scope) {
+            return controls::TimelineTabs::Create(*this, scope);
+        };
+        result.prepareTree = [this](xaml::Element& root) {
+            if (auto* host = _details::FindElement(root, "alarmActionsHost")) {
+                xaml::VisualStateManager::GoToState(*host, "AlarmActionsPanelStates",
+                    this->IsAlarmActionsMenuVisible() ? "Expanded" : "Collapsed", false);
+            }
+        };
+        return result;
+    }
+
+    void MainPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+        controls::InteractiveList::PreserveInstances(*this->page, *result.root, *result.bindings);
+        this->bindings.Clear();
+        this->runtimeBindings.reset();
+        this->page = std::move(result.root);
+        this->runtimeBindings = std::move(result.bindings);
+    }
+#endif
 }

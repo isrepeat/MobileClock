@@ -12,6 +12,49 @@
 #include <cmath>
 
 namespace mobileclock::ui {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // API
+    //
+    InputDispatcher::RuntimePanState InputDispatcher::CaptureRuntimePan() const {
+        if (this->gestureAxis != GestureAxis::horizontal || this->panElement == nullptr) {
+            return {};
+        }
+        return {this->panElement->Id(), this->panElement->DataContext(), this->touchDownX,
+            this->touchDownY, this->lastTouchX, this->lastTouchY, true};
+    }
+
+    void InputDispatcher::RestoreRuntimePan(xaml::Element& root, const RuntimePanState& state) {
+        if (!state.active) {
+            return;
+        }
+        const auto find = [&state](auto&& self, xaml::Element& element) -> xaml::Element* {
+            if (element.Id() == state.id && element.DataContext() == state.dataContext) {
+                return &element;
+            }
+            for (const auto& child : element.Children()) {
+                if (auto* result = self(self, *child)) {
+                    return result;
+                }
+            }
+            return nullptr;
+        };
+        auto* element = find(find, root);
+        auto* target = element == nullptr ? nullptr : IGestureTarget::Find(*element);
+        if (target == nullptr) {
+            return;
+        }
+        this->inputRoot = &root;
+        this->panElement = element;
+        this->panTarget = target;
+        this->touchDownX = state.downX;
+        this->touchDownY = state.downY;
+        this->lastTouchX = state.currentX;
+        this->lastTouchY = state.currentY;
+        this->gestureAxis = GestureAxis::horizontal;
+        this->panElement->SetRenderOffsetX(state.currentX - state.downX);
+    }
+#endif
     //
     // API
     //

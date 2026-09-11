@@ -104,6 +104,12 @@ internal static class NativeRuntime {
         [MarshalAs(UnmanagedType.LPUTF8Str)] string page,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string json);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int mc_reload_markup(
+        IntPtr session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string page,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string markup,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string sourcePath);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_resize")]
     public static extern int mc_resize(IntPtr session, int width, int height);
 
@@ -367,6 +373,7 @@ internal static class NativeRuntime {
     public static string GetLastError() {
         return Marshal.PtrToStringUTF8(NativeRuntime.xr_last_error()) ?? "Unknown XamlRuntime error.";
     }
+
 
     public static string GetElementId(IntPtr element) {
         return Marshal.PtrToStringUTF8(NativeRuntime.xr_element_id(element)) ?? string.Empty;

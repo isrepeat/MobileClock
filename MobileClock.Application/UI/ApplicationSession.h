@@ -25,6 +25,7 @@ namespace mobileclock::ui {
         void SetStatus(std::string value);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
+        bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
 #endif
         void PointerDown(float x, float y);
         void PointerMove(float x, float y);

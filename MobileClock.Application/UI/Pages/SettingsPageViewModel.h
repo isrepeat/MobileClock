@@ -1,4 +1,7 @@
 #pragma once
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
+#endif
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 
@@ -51,6 +54,8 @@ namespace mobileclock::ui {
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool Deserialize(std::string_view json, std::string& error) override;
+        xaml::runtime::RuntimeBindingContext RuntimeContext();
+        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 #endif
 
     private:
@@ -59,6 +64,9 @@ namespace mobileclock::ui {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+#endif
         xaml::Element::Command navigateToMainCommand;
         xaml::Element::Command shareLogsCommand;
         xaml::Element::Command exportLogsCommand;

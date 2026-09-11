@@ -279,7 +279,7 @@ add_library(mobileclock_application STATIC
     ${mobileclock_application_resource_files}
     ${mobileclock_page_xaml_source}
 )
-if (NOT ANDROID AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (NOT ANDROID)
     target_sources(mobileclock_application PRIVATE
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared/JsonParser/JsonParser.cpp"
     )

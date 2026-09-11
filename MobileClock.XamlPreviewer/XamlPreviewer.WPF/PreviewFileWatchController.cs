@@ -11,6 +11,7 @@ internal sealed class PreviewFileWatchController : IDisposable {
     private FileSystemWatcher? scenarioWatcher;
     private FileSystemWatcher? xamlDirectoryWatcher;
     private FileSystemWatcher? settingsWatcher;
+    private FileSystemWatcher? controlsWatcher;
     private bool isDisposed;
 
     public PreviewFileWatchController(Dispatcher dispatcher, Action refresh) {
@@ -27,6 +28,9 @@ internal sealed class PreviewFileWatchController : IDisposable {
         this.ReplaceWatcher(ref this.scenarioWatcher, this.CreateFileWatcher(scenarioPath));
         this.ReplaceWatcher(ref this.settingsWatcher, this.CreateFileWatcher(settingsPath));
         this.ReplaceWatcher(ref this.xamlDirectoryWatcher, this.CreateDirectoryWatcher(xamlDirectory));
+        var projectRoot = Directory.GetParent(xamlDirectory)?.Parent?.FullName;
+        this.ReplaceWatcher(ref this.controlsWatcher, projectRoot is null ? null
+            : this.CreateDirectoryWatcher(Path.Combine(projectRoot, "MobileClock.UI", "Controls")));
     }
 
     public void Dispose() {
@@ -39,6 +43,7 @@ internal sealed class PreviewFileWatchController : IDisposable {
         this.DisposeWatcher(ref this.scenarioWatcher);
         this.DisposeWatcher(ref this.xamlDirectoryWatcher);
         this.DisposeWatcher(ref this.settingsWatcher);
+        this.DisposeWatcher(ref this.controlsWatcher);
     }
 
     private void ReplaceWatcher(ref FileSystemWatcher? target, FileSystemWatcher? replacement) {
@@ -76,10 +81,11 @@ internal sealed class PreviewFileWatchController : IDisposable {
         }
         var watcher = new FileSystemWatcher(directory, "*.xaml") {
             IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
             EnableRaisingEvents = true,
         };
         watcher.Created += this.FileChanged;
+        watcher.Changed += this.FileChanged;
         watcher.Deleted += this.FileChanged;
         watcher.Renamed += this.FileRenamed;
         return watcher;

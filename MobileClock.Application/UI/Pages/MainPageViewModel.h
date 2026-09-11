@@ -1,4 +1,7 @@
 #pragma once
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
+#endif
 #include <XamlRuntime/ObservableCollection.h>
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
@@ -30,6 +33,7 @@ namespace mobileclock::ui {
             const std::string& Time() const;
             const std::string& Repeat() const;
             bool IsEnabled() const;
+            void SetIsEnabled(bool value);
             xaml::Element::Command AlarmBlockCommand() const;
             xaml::Element::Command ToggleAlarmCommand() const;
             void SetToggleAlarmCommand(xaml::Element::Command value);
@@ -83,6 +87,8 @@ namespace mobileclock::ui {
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool Deserialize(std::string_view json, std::string& error) override;
+        xaml::runtime::RuntimeBindingContext RuntimeContext();
+        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 #endif
 
     private:
@@ -102,6 +108,9 @@ namespace mobileclock::ui {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+#endif
         xaml::Element::Command createAlarmCommand;
         xaml::Element::Command navigateToSettingsCommand;
         xaml::Element::Command toggleAlarmCommand;

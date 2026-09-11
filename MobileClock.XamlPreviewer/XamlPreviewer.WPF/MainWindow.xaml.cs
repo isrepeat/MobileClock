@@ -290,6 +290,11 @@ public partial class MainWindow : Window {
     }
 
     private void ShowPreviewError(Exception exception) {
+        if (this.nativeApplicationSession is not null) {
+            this.statusPresenter.Error(exception.Message);
+            this.animationTimer.Start();
+            return;
+        }
         this.ClearFolderPickerPreview();
         this.previewLayer.Children.Add(new Border {
             Background = PreviewBrushes.Parse("#1F1717"),
@@ -917,7 +922,7 @@ public partial class MainWindow : Window {
             return;
         }
         try {
-            bool previewChanged = false;
+            bool previewChanged = true;
             this.RefreshPageNames();
             if (this.markupPath is not null && File.Exists(this.markupPath)) {
                 var markup = File.ReadAllText(this.markupPath);
@@ -1277,6 +1282,17 @@ public partial class MainWindow : Window {
             var scenario = this.GetSelectedScenarioJson();
             if (scenario is not null) {
                 this.nativeApplicationSession.ApplyPreviewScenario(this.GetNativeApplicationPageName(), scenario);
+            }
+            var pagePath = this.GetSelectedPageMarkupPath();
+            if (pagePath is not null) {
+                this.nativeApplicationSession.LoadRuntimeMarkup(
+                    this.GetNativeApplicationPageName(), File.ReadAllText(pagePath), pagePath);
+            }
+            if (this.ControlPicker.ItemsSource is IEnumerable<MarkupNavigationTarget> controls) {
+                foreach (var control in controls.Where(control => control.Name != "Page")) {
+                    this.nativeApplicationSession.LoadRuntimeMarkup(
+                        this.GetNativeApplicationPageName(), File.ReadAllText(control.Path), control.Path);
+                }
             }
             this.nativeApplicationSession.UpdateAndRender();
             this.animationTimer.Start();

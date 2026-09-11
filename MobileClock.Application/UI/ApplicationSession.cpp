@@ -34,6 +34,11 @@ namespace mobileclock::ui {
     bool ApplicationSession::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
         return this->pageManager.ApplyPreviewScenario(page, json, error);
     }
+
+    bool ApplicationSession::ReloadMarkup(std::string_view page, std::string_view markup,
+        std::string_view sourcePath, std::string& diagnostics) {
+        return this->pageManager.ReloadMarkup(page, markup, sourcePath, diagnostics);
+    }
 #endif
 
     void ApplicationSession::PointerDown(float x, float y) {

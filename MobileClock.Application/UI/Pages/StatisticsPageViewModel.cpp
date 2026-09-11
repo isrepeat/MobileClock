@@ -47,12 +47,20 @@ namespace mobileclock::ui {
 
     void StatisticsPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        this->runtimeBindings.reset();
+#endif
         this->page = xaml::generated::StatisticsPage::Create(*this, this->bindings);
         xaml::layout(*this->page, availableSize);
     }
 
     void StatisticsPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        if (this->runtimeBindings) {
+            this->runtimeBindings->UpdateSource(element);
+        }
+#endif
         element.ExecuteCommand();
     }
 
@@ -107,4 +115,40 @@ namespace mobileclock::ui {
             }
         }
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // API
+    //
+    xaml::runtime::RuntimeBindingContext StatisticsPageViewModel::RuntimeContext() {
+        auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
+        registry->AddText("Title", [this]() { return this->Title(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::title) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddText("Summary", [this]() { return this->Summary(); },
+            [this](std::function<void()> changed) {
+                return this->Subscribe([changed](Property property) {
+                    if (property == Property::summary) {
+                        changed();
+                    }
+                });
+            });
+        registry->AddCommand("NavigateToMainCommand", this->NavigateToMainCommand());
+        xaml::runtime::RuntimeBindingContext result{registry, "StatisticsPageViewModel", {}};
+
+        return result;
+    }
+
+    void StatisticsPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+        this->bindings.Clear();
+        this->runtimeBindings.reset();
+        this->page = std::move(result.root);
+        this->runtimeBindings = std::move(result.bindings);
+    }
+#endif
 }

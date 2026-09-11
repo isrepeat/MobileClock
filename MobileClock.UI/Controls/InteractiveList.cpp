@@ -1,6 +1,7 @@
 #include "MobileClock.UI/Controls/InteractiveList.h"
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #include <Helpers.Logging/Logging.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -57,6 +58,80 @@ namespace mobileclock::ui::controls::_details {
 
 }
 namespace mobileclock::ui::controls {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // IRuntimeReloadableControl
+    //
+    std::string_view InteractiveList::RuntimeClassName() const {
+        return "mobileclock::ui::controls::InteractiveList";
+    }
+
+    bool InteractiveList::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
+        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        try {
+            const auto& content = templateNode.name == "UserControl" ? templateNode.children.at(0) : templateNode;
+            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(content, context,
+                {this->Bounds().width, this->Bounds().height});
+            xaml::Element* const newList = _details::FindElement(*result.root, "interactiveListItems");
+            xaml::Element* const newScroll = _details::FindElement(*result.root, "interactiveListScrollViewer");
+              if (newList == nullptr || newScroll == nullptr || newList->Type() != xaml::ElementType::listView
+                  || newScroll->Type() != xaml::ElementType::scrollViewer) {
+                throw std::invalid_argument("InteractiveList requires interactiveListItems and interactiveListScrollViewer");
+              }
+              // Прокрутка хранится у старого ScrollViewer, который будет уничтожен
+              // вместе с шаблоном, поэтому переносим её до ReplaceContent.
+              if (const auto* scroll = this->FindElement("interactiveListScrollViewer")) {
+                newScroll->SetHorizontalOffset(scroll->HorizontalOffset());
+                newScroll->SetVerticalOffset(scroll->VerticalOffset());
+            }
+            if (context.prepareTree) {
+                context.prepareTree(*result.root);
+            }
+              if (context.beforeCommit) {
+                  context.beforeCommit();
+              }
+              // Содержимое и подписки меняются только после успешного построения,
+              // валидации обязательных элементов и подготовки анимаций.
+              this->ReplaceContent(std::move(result.root));
+            this->runtimeBindings = std::move(result.bindings);
+            diagnostics.clear();
+            return true;
+        } catch (const std::exception& error) {
+            diagnostics = error.what();
+            return false;
+        }
+    }
+
+    //
+    // API
+    //
+    void InteractiveList::PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
+        std::vector<xaml::UserControl*> oldControls;
+        std::vector<xaml::UserControl*> newControls;
+        const auto collect = [](auto&& self, xaml::Element& node, std::vector<xaml::UserControl*>& controls) -> void {
+            if (auto* control = dynamic_cast<xaml::UserControl*>(&node)) {
+                controls.push_back(control);
+                return;
+            }
+            for (const auto& child : node.Children()) {
+                self(self, *child, controls);
+            }
+        };
+        collect(collect, previous, oldControls);
+        collect(collect, replacement, newControls);
+        for (auto* next : newControls) {
+            const auto found = std::find_if(oldControls.begin(), oldControls.end(), [next](const auto* old) {
+                return old != nullptr && old->Id() == next->Id() && typeid(*old) == typeid(*next);
+            });
+            if (found != oldControls.end()) {
+                (*found)->CopyLayoutFrom(*next);
+                bindings.RetargetRuntimeElement(*next, **found);
+                (*found)->SwapTreePosition(*next);
+                *found = nullptr;
+            }
+        }
+    }
+#endif
     //
     // API
     //

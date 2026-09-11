@@ -401,6 +401,40 @@ int mc_apply_preview_scenario(mc_session* session, const char* page, const char*
     }
 }
 
+int mc_reload_markup(mc_session* session, const char* page, const char* markup, const char* sourcePath) {
+    try {
+        xaml::bridge::lastError.clear();
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        if (session == nullptr || page == nullptr || markup == nullptr || sourcePath == nullptr) {
+            throw std::invalid_argument("Session, page, markup and source path are required");
+        }
+        const std::string selectedId = session->selectedElement == nullptr ? "" : session->selectedElement->Id();
+        const void* selectedContext = session->selectedElement == nullptr ? nullptr : session->selectedElement->DataContext();
+        if (!session->session.ReloadMarkup(page, markup, sourcePath, xaml::bridge::lastError)) {
+            return 0;
+        }
+        // The old tree has been released. Resolve selection without dereferencing cached pointers.
+        session->inspectionElement = nullptr;
+        session->selectedElement = nullptr;
+        const auto restore = [&selectedId, selectedContext, session](auto&& self, xaml::Element& element) -> void {
+            if (!selectedId.empty() && element.Id() == selectedId && element.DataContext() == selectedContext) {
+                mobileclock::preview::_details::SetSelectedWireframe(*session, element);
+            }
+            for (const auto& child : element.Children()) {
+                self(self, *child);
+            }
+        };
+        restore(restore, session->session.Root());
+        return 1;
+#else
+        xaml::bridge::lastError = "Runtime markup is available only in XamlPreviewer";
+        return 0;
+#endif
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
 int mc_resize(mc_session* session, int width, int height) {
     try {
         xaml::bridge::lastError.clear();

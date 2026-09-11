@@ -22,7 +22,7 @@
         <UseDebugLibraries>true</UseDebugLibraries>
         <PlatformToolset>v145</PlatformToolset>
     </PropertyGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ItemDefinitionGroup>
         <ClCompile>
             <PreprocessorDefinitions>MOBILECLOCK_XAML_PREVIEWER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
         </ClCompile>
