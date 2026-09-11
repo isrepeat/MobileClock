@@ -62,6 +62,7 @@
                             gridColumn="2"
                             verticalAlignment="Center"
                             horizontalAlignment="Right"
+                            command="{Binding NavigateToSettingsCommand}"
                             orientation="Vertical">
                     <Border width="8"
                             height="8"

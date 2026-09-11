@@ -21,6 +21,15 @@ internal struct NativeRect {
     public float Height;
 }
 
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+internal struct NativeInspectionResult {
+    public int Line;
+    public int Column;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)]
+    public string SourcePath;
+    public NativeRect Bounds;
+}
+
 [StructLayout(LayoutKind.Sequential)]
 internal struct NativeColor {
     public float Red;
@@ -115,6 +124,30 @@ internal static class NativeRuntime {
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_cursor_kind")]
     public static extern int mc_cursor_kind(IntPtr session, float x, float y);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_inspect")]
+    public static extern int mc_inspect(IntPtr session, float x, float y, out NativeInspectionResult result);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_set_inspection_wireframe")]
+    public static extern int mc_set_inspection_wireframe(
+        IntPtr session,
+        float thickness,
+        int lineStyle,
+        NativeColor color,
+        NativeColor marginColor,
+        NativeColor paddingColor);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_clear_inspection_wireframe")]
+    public static extern int mc_clear_inspection_wireframe(IntPtr session);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_select_inspection_element")]
+    public static extern int mc_select_inspection_element(
+        IntPtr session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string sourcePath,
+        int line,
+        int column);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_pin_inspection_element")]
+    public static extern int mc_pin_inspection_element(IntPtr session);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_update")]
     public static extern int mc_update(IntPtr session);

@@ -1,6 +1,7 @@
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Search;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -23,6 +24,15 @@ namespace XamlPreviewer;
 /// WPF редактирует файлы и показывает кадры; дерево, ввод и отрисовка принадлежат native ApplicationSession.
 /// </summary>
 public partial class MainWindow : Window {
+    private sealed class MarkupNavigationTarget {
+        public required string Name { get; init; }
+        public required string Path { get; init; }
+
+        public override string ToString() {
+            return this.Name;
+        }
+    }
+
     private const string NativeBridgeLibraryName = "XamlPreviewer.NativeBridge.dll";
     private const double SearchPanelOverlayHeight = 84.0;
     private readonly DispatcherTimer renderTimer;
@@ -37,6 +47,7 @@ public partial class MainWindow : Window {
     private readonly PreviewViewportController previewViewportController;
     private readonly Grid previewLayer = new();
     private bool updatingPreviewControls;
+    private bool updatingControlPicker;
     private bool settingsPersistenceReady;
     private MobileClockSession? nativeApplicationSession;
     private bool isClosing;
@@ -77,6 +88,7 @@ public partial class MainWindow : Window {
         this.markupSearchPanel.IsVisibleChanged += this.MarkupSearchPanelLayoutChanged;
         this.markupEditorController = new MarkupEditorController(this.MarkupEditor);
         this.markupEditorController.FoldingStateChanged += this.MarkupEditorFoldingStateChanged;
+        this.MarkupEditor.TextArea.Caret.PositionChanged += this.MarkupEditorCaretPositionChanged;
         this.xamlCompletionController = new XamlCompletionController(this.MarkupEditor);
         this.folderPickerController = new FolderPickerController(
             this.FolderPickerPanel,
@@ -112,6 +124,8 @@ public partial class MainWindow : Window {
         this.StateChanged += this.WindowStateChanged;
         this.PreviewKeyDown += this.WindowPreviewKeyDown;
         this.PreviewKeyUp += this.WindowPreviewKeyUp;
+        this.Deactivated += (_, _) => this.UpdateElementInspection();
+        this.Activated += (_, _) => this.UpdateElementInspection();
     }
 
     private void WindowLoaded(object sender, RoutedEventArgs eventArgs) {
@@ -183,6 +197,16 @@ public partial class MainWindow : Window {
             "x64",
             "XamlPreviewer.NativeBridge",
             NativeBridgeLibraryName);
+    }
+
+    private static string? FindRestartScript() {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent) {
+            var scriptPath = Path.Combine(directory.FullName, "Scripts", "run-xaml-previewer-debug.bat");
+            if (File.Exists(scriptPath)) {
+                return scriptPath;
+            }
+        }
+        return null;
     }
 
     private static bool FilesAreEqual(string firstPath, string secondPath) {
@@ -302,6 +326,7 @@ public partial class MainWindow : Window {
     private void SaveButtonClick(object sender, RoutedEventArgs eventArgs) {
         if (this.editorMode == EditorMode.Settings) {
             this.settings = PreviewerSettings.Parse(this.SettingsEditor.Text, this.settings.FilePath);
+            this.ApplyElementInspectionHighlightSettings();
             this.ConfigureMouseWheelScrolling();
             this.ApplyEditorScale();
             this.ApplySettingsToPreviewControls();
@@ -373,6 +398,34 @@ public partial class MainWindow : Window {
         this.ShowNativeApplicationPreview();
     }
 
+    private void RebuildAndRestartButtonClick(object sender, RoutedEventArgs eventArgs) {
+        if (this.isMarkupDirty || this.isScenarioDirty || this.isSettingsDirty) {
+            this.statusPresenter.Information("Сохраните изменения перед пересборкой previewer.");
+            return;
+        }
+        var scriptPath = MainWindow.FindRestartScript();
+        if (scriptPath is null) {
+            this.statusPresenter.Error("Не найден Scripts\\run-xaml-previewer-debug.bat.");
+            return;
+        }
+        Process.Start(new ProcessStartInfo {
+            FileName = scriptPath,
+            Arguments = Environment.ProcessId.ToString(),
+            WorkingDirectory = Path.GetDirectoryName(scriptPath),
+            UseShellExecute = true,
+        });
+        this.Close();
+    }
+
+    private void ElementSelectionButtonClick(object sender, RoutedEventArgs eventArgs) {
+        this.UpdateElementInspection();
+        this.SelectElementFromMarkupEditor();
+    }
+
+    private void ElementSelectionWireframeOptionClick(object sender, RoutedEventArgs eventArgs) {
+        this.ApplyElementInspectionHighlightSettings();
+    }
+
     private void AnimationSpeedPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
         if (this.updatingPreviewControls || this.AnimationSpeedPicker.SelectedItem is not AnimationSpeed speed) {
             return;
@@ -426,10 +479,58 @@ public partial class MainWindow : Window {
     }
 
     private void WindowPreviewKeyDown(object sender, KeyEventArgs eventArgs) {
+        if (this.ElementSelectionButton.IsChecked == true) {
+            return;
+        }
+        var key = eventArgs.Key == Key.System ? eventArgs.SystemKey : eventArgs.Key;
+        if (key is Key.LeftAlt or Key.RightAlt) {
+            this.UpdateElementInspection();
+        }
     }
 
     private void WindowPreviewKeyUp(object sender, KeyEventArgs eventArgs) {
+        if (this.ElementSelectionButton.IsChecked != true) {
+            var key = eventArgs.Key == Key.System ? eventArgs.SystemKey : eventArgs.Key;
+            if (key is Key.LeftAlt or Key.RightAlt) {
+                this.UpdateElementInspection();
+            }
+        }
         this.previewViewportController.HandleKeyUp(eventArgs);
+    }
+
+    private void UpdateElementInspection() {
+        var isElementSelectionEnabled = this.ElementSelectionButton.IsChecked == true;
+        var isEnabled = this.editorMode == EditorMode.Xaml
+            && (isElementSelectionEnabled
+                || (this.IsActive
+                    && (Keyboard.IsKeyDown(Key.LeftAlt)
+                        || Keyboard.IsKeyDown(Key.RightAlt))));
+        this.nativeApplicationSession?.SetElementInspectionEnabled(isEnabled, isElementSelectionEnabled && isEnabled);
+    }
+
+    private void PreviewElementSelected(NativeInspectionResult inspection) {
+        if (string.IsNullOrWhiteSpace(inspection.SourcePath) || !File.Exists(inspection.SourcePath)) {
+            return;
+        }
+        this.SelectControlMarkup(inspection.SourcePath);
+        if (inspection.Line < 1 || inspection.Line > this.MarkupEditor.Document.LineCount) {
+            return;
+        }
+        var line = this.MarkupEditor.Document.GetLineByNumber(inspection.Line);
+        var column = Math.Clamp(inspection.Column - 1, 0, line.Length);
+        this.MarkupEditor.CaretOffset = line.Offset + column;
+        this.MarkupEditor.Select(this.MarkupEditor.CaretOffset, 0);
+        this.MarkupEditor.ScrollTo(inspection.Line, inspection.Column);
+        this.MarkupEditor.Focus();
+    }
+
+    private void ApplyElementInspectionHighlightSettings() {
+        this.nativeApplicationSession?.SetElementInspectionWireframe(
+            this.settings.ElementInspectionHighlightColor,
+            this.settings.ElementInspectionHighlightThickness,
+            this.settings.ElementInspectionHighlightLineStyle,
+            this.ElementSelectionMarginCheckBox.IsChecked == true,
+            this.ElementSelectionPaddingCheckBox.IsChecked == true);
     }
 
     private void ExpandAllFoldingsButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -502,10 +603,18 @@ public partial class MainWindow : Window {
 
     private void PagePickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
         if (this.PagePicker.SelectedItem is string pageName) {
+            this.RefreshControlNames();
             this.LoadMarkup(Path.Combine(this.settings.XamlDirectory, pageName));
         }
 
         this.ShowNativeApplicationPreview();
+    }
+
+    private void ControlPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
+        if (this.updatingControlPicker || this.ControlPicker.SelectedItem is not MarkupNavigationTarget target) {
+            return;
+        }
+        this.SelectControlMarkup(target.Path);
     }
 
     private void ScenarioPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
@@ -532,6 +641,44 @@ public partial class MainWindow : Window {
 
             this.UpdateDocumentState();
         }
+    }
+
+    private void SelectElementFromMarkupEditor() {
+        if (this.ElementSelectionButton.IsChecked != true) {
+            return;
+        }
+        var tagOffset = this.FindNearestOpeningTagOffset(this.MarkupEditor.CaretOffset);
+        if (tagOffset is null) {
+            return;
+        }
+        if (this.markupPath is null) {
+            return;
+        }
+        var position = this.MarkupEditor.Document.GetLocation(tagOffset.Value);
+        this.nativeApplicationSession?.SelectElementInspection(
+            Path.GetFullPath(this.markupPath).Replace('\\', '/'),
+            position.Line,
+            position.Column);
+    }
+
+    private int? FindNearestOpeningTagOffset(int offset) {
+        var text = this.MarkupEditor.Document.Text;
+        for (var tagOffset = Math.Min(offset, text.Length - 1); tagOffset >= 0;) {
+            tagOffset = text.LastIndexOf('<', tagOffset);
+            if (tagOffset < 0) {
+                return null;
+            }
+            if (tagOffset + 1 < text.Length
+                && text[tagOffset + 1] is not '/' and not '?' and not '!') {
+                return tagOffset;
+            }
+            --tagOffset;
+        }
+        return null;
+    }
+
+    private void MarkupEditorCaretPositionChanged(object? sender, EventArgs eventArgs) {
+        this.SelectElementFromMarkupEditor();
     }
 
     private void EditorPreviewKeyDown(object sender, KeyEventArgs eventArgs) {
@@ -637,6 +784,7 @@ public partial class MainWindow : Window {
             this.suppressFoldingStatePersistence = false;
         }
         this.isMarkupDirty = false;
+        this.SelectControlPicker(path);
         this.RefreshScenarioNames();
         this.ConfigureWatchers();
         this.UpdateDocumentState();
@@ -660,6 +808,7 @@ public partial class MainWindow : Window {
                 .ToArray()
             : [];
         if (this.PagePicker.Items.Cast<string>().SequenceEqual(pages)) {
+            this.RefreshControlNames();
             return;
         }
         this.PagePicker.ItemsSource = pages;
@@ -668,10 +817,91 @@ public partial class MainWindow : Window {
             : pages.Contains("Pages/MainPage.xaml")
                 ? "Pages/MainPage.xaml"
                 : pages.FirstOrDefault();
+        this.RefreshControlNames();
+    }
+
+    private string? GetSelectedPageMarkupPath() {
+        return this.PagePicker.SelectedItem is string pageName
+            ? Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, pageName))
+            : null;
+    }
+
+    private void RefreshControlNames() {
+        var pagePath = this.GetSelectedPageMarkupPath();
+        if (pagePath is null || !File.Exists(pagePath)) {
+            this.ControlPicker.ItemsSource = null;
+            return;
+        }
+        var projectRoot = Directory.GetParent(this.settings.XamlDirectory)?.Parent?.FullName;
+        var controlsDirectory = projectRoot is null ? null : Path.Combine(projectRoot, "MobileClock.UI", "Controls");
+        var controlPaths = controlsDirectory is not null && Directory.Exists(controlsDirectory)
+            ? Directory.GetFiles(controlsDirectory, "*.xaml", SearchOption.AllDirectories)
+                .ToDictionary(Path.GetFileNameWithoutExtension, StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+        var controls = new List<MarkupNavigationTarget> {
+            new() { Name = "Page", Path = pagePath },
+        };
+        var visitedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { pagePath };
+        var pathsToInspect = new Queue<string>();
+        pathsToInspect.Enqueue(pagePath);
+        var controlPattern = new Regex("<\\w+:(?<name>[A-Za-z][A-Za-z0-9]*)\\b", RegexOptions.CultureInvariant);
+        while (pathsToInspect.TryDequeue(out var sourcePath)) {
+            foreach (Match match in controlPattern.Matches(File.ReadAllText(sourcePath))) {
+                var name = match.Groups["name"].Value;
+                if (!controlPaths.TryGetValue(name, out var controlPath)
+                    || !visitedPaths.Add(controlPath)) {
+                    continue;
+                }
+                controls.Add(new() { Name = name, Path = controlPath });
+                pathsToInspect.Enqueue(controlPath);
+            }
+        }
+        this.updatingControlPicker = true;
+        try {
+            this.ControlPicker.ItemsSource = controls.OrderBy(target => target.Name == "Page" ? 0 : 1)
+                .ThenBy(target => target.Name, StringComparer.Ordinal)
+                .ToArray();
+            this.SelectControlPicker(this.markupPath ?? pagePath);
+        }
+        finally {
+            this.updatingControlPicker = false;
+        }
+    }
+
+    private void SelectControlMarkup(string path) {
+        this.SelectControlPicker(path);
+        if (this.markupPath is null || !MainWindow.PathsAreEqual(this.markupPath, path)) {
+            this.LoadMarkup(path);
+        }
+    }
+
+    private void SelectControlPicker(string path) {
+        if (this.ControlPicker.ItemsSource is not IEnumerable<MarkupNavigationTarget> targets) {
+            return;
+        }
+        var target = targets.FirstOrDefault(item => MainWindow.PathsAreEqual(item.Path, path));
+        if (target is null || ReferenceEquals(this.ControlPicker.SelectedItem, target)) {
+            return;
+        }
+        this.updatingControlPicker = true;
+        try {
+            this.ControlPicker.SelectedItem = target;
+        }
+        finally {
+            this.updatingControlPicker = false;
+        }
+    }
+
+    private static bool PathsAreEqual(string first, string second) {
+        return string.Equals(
+            Path.GetFullPath(first),
+            Path.GetFullPath(second),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private void LoadSettings() {
         this.settings = PreviewerSettings.LoadDebug();
+        this.ApplyElementInspectionHighlightSettings();
     }
 
     private void ConfigureWatchers() {
@@ -715,6 +945,7 @@ public partial class MainWindow : Window {
                 if (!this.isSettingsDirty
                     && !string.Equals(settingsJson, this.SettingsEditor.Text, StringComparison.Ordinal)) {
                     this.settings = PreviewerSettings.Parse(settingsJson, this.settings.FilePath);
+                    this.ApplyElementInspectionHighlightSettings();
                     this.updatingEditors = true;
                     this.SettingsEditor.Text = settingsJson;
                     this.updatingEditors = false;
@@ -841,6 +1072,7 @@ public partial class MainWindow : Window {
         this.OpenButton.IsEnabled = this.editorMode == EditorMode.Xaml;
         this.UpdateScenarioToggle();
         this.UpdateDocumentState();
+        this.UpdateElementInspection();
     }
 
     private void UpdateDocumentState() {
@@ -957,17 +1189,18 @@ public partial class MainWindow : Window {
         this.ScenarioPicker.SelectedItem = null;
         this.ScenarioPicker.Visibility = Visibility.Collapsed;
         this.ScenarioLabel.Visibility = Visibility.Collapsed;
-        if (this.markupPath is null) {
+        var pagePath = this.GetSelectedPageMarkupPath();
+        if (pagePath is null || !File.Exists(pagePath)) {
             this.ClearScenarioMode();
             return;
         }
         const string pattern = "<\\?mobileclock-preview-scenario\\s+path=\\\"(?<path>[^\\\"]+)\\\"\\s*\\?>";
-        var match = Regex.Match(File.ReadAllText(this.markupPath), pattern, RegexOptions.CultureInvariant);
+        var match = Regex.Match(File.ReadAllText(pagePath), pattern, RegexOptions.CultureInvariant);
         if (!match.Success) {
             this.ClearScenarioMode();
             return;
         }
-        var candidate = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(this.markupPath)!, match.Groups["path"].Value));
+        var candidate = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(pagePath)!, match.Groups["path"].Value));
         if (!File.Exists(candidate)) {
             this.ClearScenarioMode();
             this.statusPresenter.Information($"Файл сценариев не найден: {candidate}");
@@ -1034,9 +1267,12 @@ public partial class MainWindow : Window {
                     previewSize.Width,
                     previewSize.Height);
                 this.nativeApplicationSession.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
+                this.nativeApplicationSession.ElementSelected += this.PreviewElementSelected;
                 this.previewLayer.Children.Clear();
                 this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);
+                this.ApplyElementInspectionHighlightSettings();
             }
+            this.UpdateElementInspection();
             this.nativeApplicationSession.LoadPage(this.GetNativeApplicationPageName());
             var scenario = this.GetSelectedScenarioJson();
             if (scenario is not null) {

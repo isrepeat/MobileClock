@@ -62,6 +62,24 @@ namespace xaml::bridge::_details {
         return nullptr;
     }
 
+    Element* FindElementAtSource(
+        Element& element,
+        std::string_view sourcePath,
+        int line,
+        int column) {
+        if (element.SourcePath() == sourcePath
+            && element.SourceLine() == line
+            && element.SourceColumn() == column) {
+            return &element;
+        }
+        for (const auto& child : element.Children()) {
+            if (Element* const candidate = FindElementAtSource(*child, sourcePath, line, column)) {
+                return candidate;
+            }
+        }
+        return nullptr;
+    }
+
     // Нужен previewer-у для выбора любого видимого элемента под указателем.
     // В отличие от xaml::HitTest не требует, чтобы элемент был enabled или interactive.
     Element* HitTestVisual(Element& element, float x, float y, float offsetX = 0.0f, float offsetY = 0.0f) {
@@ -278,7 +296,48 @@ struct mc_session {
     mobileclock::ui::ApplicationSession session;
     int width;
     int height;
+    xaml::Element* inspectionElement = nullptr;
+    xaml::Element* selectedElement = nullptr;
+    xaml::attr::Wireframe inspectionWireframe{
+        3.0f,
+        xaml::attr::WireframeLineStyle::solid,
+        {0.878f, 0.322f, 0.322f, 1.0f},
+    };
 };
+
+namespace mobileclock::preview::_details {
+    void ClearInspectionWireframe(mc_session& session) {
+        if (session.inspectionElement != nullptr) {
+            session.inspectionElement->ClearInspectionWireframe();
+            session.inspectionElement = nullptr;
+        }
+    }
+
+    void ClearSelectedWireframe(mc_session& session) {
+        if (session.selectedElement != nullptr) {
+            session.selectedElement->ClearSelectedWireframe();
+            session.selectedElement = nullptr;
+        }
+    }
+
+    void SetInspectionWireframe(mc_session& session, xaml::Element& element) {
+        if (session.inspectionElement != &element) {
+            ClearInspectionWireframe(session);
+            session.inspectionElement = &element;
+        }
+        element.SetInspectionWireframe(session.inspectionWireframe);
+    }
+
+    void SetSelectedWireframe(mc_session& session, xaml::Element& element) {
+        if (session.selectedElement != &element) {
+            ClearSelectedWireframe(session);
+            session.selectedElement = &element;
+        }
+        xaml::attr::Wireframe wireframe = session.inspectionWireframe;
+        wireframe.color = {0.30f, 0.64f, 1.0f, 1.0f};
+        element.SetSelectedWireframe(wireframe);
+    }
+}
 
 const char* xr_last_error(void) {
     return xaml::bridge::lastError.c_str();
@@ -301,7 +360,12 @@ void mc_destroy_session(mc_session* session) {
 int mc_load_page(mc_session* session, const char* page) {
     try {
         xaml::bridge::lastError.clear();
-        if (session == nullptr || page == nullptr || !session->session.LoadPage(page)) {
+        if (session == nullptr || page == nullptr) {
+            throw std::invalid_argument("Session and page are required");
+        }
+        mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        mobileclock::preview::_details::ClearSelectedWireframe(*session);
+        if (!session->session.LoadPage(page)) {
             throw std::invalid_argument("Unknown MobileClock page");
         }
         return 1;
@@ -315,8 +379,12 @@ int mc_apply_preview_scenario(mc_session* session, const char* page, const char*
     try {
         xaml::bridge::lastError.clear();
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-        if (session == nullptr || page == nullptr || json == nullptr
-            || !session->session.ApplyPreviewScenario(page, json, xaml::bridge::lastError)) {
+        if (session == nullptr || page == nullptr || json == nullptr) {
+            throw std::invalid_argument("Session, page and scenario are required");
+        }
+        mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        mobileclock::preview::_details::ClearSelectedWireframe(*session);
+        if (!session->session.ApplyPreviewScenario(page, json, xaml::bridge::lastError)) {
             if (xaml::bridge::lastError.empty()) {
                 xaml::bridge::lastError = "Preview scenario was not applied";
             }
@@ -341,6 +409,7 @@ int mc_resize(mc_session* session, int width, int height) {
         }
         session->width = width;
         session->height = height;
+        mobileclock::preview::_details::ClearInspectionWireframe(*session);
         session->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
         return 1;
     } catch (const std::exception& error) {
@@ -428,6 +497,106 @@ int mc_cursor_kind(mc_session* session, float x, float y) {
         }
     }
     return 0;
+}
+
+int mc_inspect(
+    mc_session* session,
+    float x,
+    float y,
+    mc_inspection_result* result) {
+    if (session == nullptr || result == nullptr) {
+        return 0;
+    }
+    xaml::Element* element = xaml::HitTestVisual(session->session.Root(), x, y);
+    while (element != nullptr && element->SourceLine() <= 0) {
+        element = element->Parent();
+    }
+    if (element == nullptr) {
+        mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        return 0;
+    }
+    mobileclock::preview::_details::SetInspectionWireframe(*session, *element);
+    const xaml::Rect bounds = element->Bounds();
+    *result = {
+        element->SourceLine(),
+        element->SourceColumn(),
+    };
+    std::strncpy(result->sourcePath, element->SourcePath().c_str(), sizeof(result->sourcePath) - 1);
+    result->sourcePath[sizeof(result->sourcePath) - 1] = '\0';
+    result->bounds = {bounds.x, bounds.y, bounds.width, bounds.height};
+    return 1;
+}
+
+int mc_set_inspection_wireframe(
+    mc_session* session,
+    float thickness,
+    int lineStyle,
+    xr_color color,
+    xr_color marginColor,
+    xr_color paddingColor) {
+    if (session == nullptr || thickness <= 0.0f || (lineStyle != 0 && lineStyle != 1)) {
+        return 0;
+    }
+    session->inspectionWireframe = {
+        thickness,
+        lineStyle == 0 ? xaml::attr::WireframeLineStyle::solid : xaml::attr::WireframeLineStyle::dashed,
+        {color.red, color.green, color.blue, color.alpha},
+        {marginColor.red, marginColor.green, marginColor.blue, marginColor.alpha},
+        {paddingColor.red, paddingColor.green, paddingColor.blue, paddingColor.alpha},
+    };
+    if (session->inspectionElement != nullptr) {
+        session->inspectionElement->SetInspectionWireframe(session->inspectionWireframe);
+    }
+    return 1;
+}
+
+int mc_clear_inspection_wireframe(mc_session* session) {
+    if (session == nullptr) {
+        return 0;
+    }
+    mobileclock::preview::_details::ClearInspectionWireframe(*session);
+    return 1;
+}
+
+int mc_select_inspection_element(mc_session* session, const char* sourcePath, int line, int column) {
+    if (session == nullptr || sourcePath == nullptr || line <= 0 || column <= 0) {
+        return 0;
+    }
+    LOG_INFO(
+        "XamlPreviewer.Inspection",
+        "Source selection requested at {}:{} in {}",
+        line,
+        column,
+        sourcePath);
+    mobileclock::preview::_details::ClearSelectedWireframe(*session);
+    xaml::Element* const element = xaml::bridge::_details::FindElementAtSource(
+        session->session.Root(),
+        sourcePath,
+        line,
+        column);
+    if (element == nullptr) {
+        LOG_INFO("XamlPreviewer.Inspection", "Source selection found no element");
+        return 0;
+    }
+    mobileclock::preview::_details::SetSelectedWireframe(*session, *element);
+    const xaml::Rect& bounds = element->Bounds();
+    LOG_INFO(
+        "XamlPreviewer.Inspection",
+        "Source selection resolved to {}:{} id='{}' bounds=({}, {}, {}, {})",
+        element->SourceLine(),
+        element->SourceColumn(),
+        element->Id(),
+        bounds.x,
+        bounds.y,
+        bounds.width,
+        bounds.height);
+    return 1;
+}
+
+int mc_pin_inspection_element(mc_session* session) {
+    if (session == nullptr || session->inspectionElement == nullptr) return 0;
+    mobileclock::preview::_details::SetSelectedWireframe(*session, *session->inspectionElement);
+    return 1;
 }
 
 int mc_update(mc_session* session) {

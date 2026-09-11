@@ -43,6 +43,9 @@ internal sealed class PreviewerSettings {
     public bool IsPreviewLandscape { get; set; }
     public double AnimationPlaybackRate { get; set; } = 1.0;
     public double[] AnimationPlaybackRates { get; set; } = [0.1, 0.25, 0.5, 1.0, 2.0, 4.0];
+    public string ElementInspectionHighlightColor { get; set; } = "#E05252";
+    public double ElementInspectionHighlightThickness { get; set; } = 3.0;
+    public string ElementInspectionHighlightLineStyle { get; set; } = "solid";
     public DevicePreset[] PreviewResolutions { get; set; } = [
         new() { Name = "Redmi 15C", Width = 720, Height = 1600 },
         new() { Name = "HD+", Width = 720, Height = 1280 },
@@ -67,6 +70,7 @@ internal sealed class PreviewerSettings {
         settings.CollapsedMarkupFoldingOffsets ??= [];
         settings.ValidateAnimationSpeeds();
         settings.ValidateResolutions();
+        settings.ValidateElementInspectionHighlight();
         return settings;
     }
 
@@ -77,6 +81,7 @@ internal sealed class PreviewerSettings {
         settings.CollapsedMarkupFoldingOffsets ??= [];
         settings.ValidateAnimationSpeeds();
         settings.ValidateResolutions();
+        settings.ValidateElementInspectionHighlight();
         return settings;
     }
 
@@ -96,6 +101,25 @@ internal sealed class PreviewerSettings {
         this.AnimationPlaybackRates = this.AnimationPlaybackRates.Distinct().ToArray();
         if (!this.AnimationPlaybackRates.Contains(this.AnimationPlaybackRate)) {
             this.AnimationPlaybackRate = this.AnimationPlaybackRates[0];
+        }
+    }
+
+    private void ValidateElementInspectionHighlight() {
+        if (string.IsNullOrWhiteSpace(this.ElementInspectionHighlightColor)) {
+            throw new InvalidDataException("ElementInspectionHighlightColor должен содержать цвет.");
+        }
+        try {
+            _ = PreviewBrushes.Parse(this.ElementInspectionHighlightColor);
+        }
+        catch (Exception exception) {
+            throw new InvalidDataException("ElementInspectionHighlightColor содержит некорректный цвет.", exception);
+        }
+        if (!double.IsFinite(this.ElementInspectionHighlightThickness)
+            || this.ElementInspectionHighlightThickness <= 0.0) {
+            throw new InvalidDataException("ElementInspectionHighlightThickness должен быть положительным конечным числом.");
+        }
+        if (this.ElementInspectionHighlightLineStyle is not "solid" and not "dashed") {
+            throw new InvalidDataException("ElementInspectionHighlightLineStyle должен быть solid или dashed.");
         }
     }
 

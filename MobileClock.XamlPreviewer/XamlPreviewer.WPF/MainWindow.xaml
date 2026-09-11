@@ -331,6 +331,64 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="WireframeCheckBoxStyle"
+               TargetType="CheckBox">
+            <Setter Property="Foreground"
+                    Value="#E6E6E6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="Box"
+                                    Width="14"
+                                    Height="14"
+                                    Margin="0 0 6 0"
+                                    VerticalAlignment="Center"
+                                    Background="#151515"
+                                    BorderBrush="#6B6B6B"
+                                    BorderThickness="1">
+                                <TextBlock x:Name="Checkmark"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="#D5BD7D"
+                                           Text="✓"
+                                           Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Setter TargetName="Box"
+                                        Property="BorderBrush"
+                                        Value="#A89756" />
+                            </Trigger>
+                            <Trigger Property="IsChecked"
+                                     Value="True">
+                                <Setter TargetName="Box"
+                                        Property="Background"
+                                        Value="#342F1C" />
+                                <Setter TargetName="Box"
+                                        Property="BorderBrush"
+                                        Value="#D5BD7D" />
+                                <Setter TargetName="Checkmark"
+                                        Property="Visibility"
+                                        Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled"
+                                     Value="False">
+                                <Setter Property="Opacity"
+                                        Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="EditorSwitchToggleButtonStyle"
                TargetType="ToggleButton">
             <Setter Property="Padding"
@@ -777,9 +835,14 @@
                     Content="Сохранить" />
             <Button x:Name="ResetSessionButton"
                     Width="110"
-                    Margin="0 0 16 0"
+                    Margin="0 0 8 0"
                     Click="ResetSessionButtonClick"
                     Content="Перезапустить" />
+            <Button x:Name="RebuildAndRestartButton"
+                    Width="170"
+                    Margin="0 0 16 0"
+                    Click="RebuildAndRestartButtonClick"
+                    Content="Собрать и открыть" />
             <Button Width="30"
                     Click="EditorZoomOutButtonClick"
                     Content="−" />
@@ -800,6 +863,14 @@
                       Width="180"
                       Margin="0 0 16 0"
                       SelectionChanged="PagePickerSelectionChanged" />
+            <TextBlock Margin="0 0 8 0"
+                       VerticalAlignment="Center"
+                       Foreground="#DDDDDD"
+                       Text="Контролы:" />
+            <ComboBox x:Name="ControlPicker"
+                      Width="150"
+                      Margin="0 0 16 0"
+                      SelectionChanged="ControlPickerSelectionChanged" />
             <TextBlock x:Name="ScenarioLabel"
                        Margin="0 0 8 0"
                        VerticalAlignment="Center"
@@ -989,6 +1060,7 @@
                               SelectionChanged="AnimationSpeedPickerSelectionChanged" />
                     <ToggleButton x:Name="PreviewOrientationToggle"
                                   Width="190"
+                                  Margin="0 0 8 0"
                                   Style="{StaticResource EditorSwitchToggleButtonStyle}"
                                   Click="PreviewOrientationToggleClick">
                         <StackPanel Orientation="Horizontal">
@@ -1001,6 +1073,21 @@
                                        Text="Альбомная" />
                         </StackPanel>
                     </ToggleButton>
+                    <ToggleButton x:Name="ElementSelectionButton"
+                                  Width="150"
+                                  Margin="0 0 8 0"
+                                  Style="{StaticResource EditorModeToggleButtonStyle}"
+                                  Click="ElementSelectionButtonClick"
+                                  Content="Выбор элемента" />
+                    <CheckBox x:Name="ElementSelectionMarginCheckBox"
+                              Margin="0 0 8 0"
+                              Style="{StaticResource WireframeCheckBoxStyle}"
+                              Click="ElementSelectionWireframeOptionClick"
+                              Content="Margin" />
+                    <CheckBox x:Name="ElementSelectionPaddingCheckBox"
+                              Style="{StaticResource WireframeCheckBoxStyle}"
+                              Click="ElementSelectionWireframeOptionClick"
+                              Content="Padding" />
                 </WrapPanel>
                 <Border Grid.Row="1"
                         Background="#101010"

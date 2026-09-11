@@ -14,6 +14,10 @@ internal sealed class MobileClockSession : IDisposable {
     private readonly Image image;
     private IntPtr session;
     private bool hasPointerCapture;
+    private bool isElementInspectionEnabled;
+    private bool useDefaultCursorForElementInspection;
+
+    public event Action<NativeInspectionResult>? ElementSelected;
 
     public MobileClockSession(string resourcesDirectory, int width, int height) {
         this.renderer = new AnglePreviewRenderer(resourcesDirectory, width, height);
@@ -54,6 +58,43 @@ internal sealed class MobileClockSession : IDisposable {
         NativeRuntime.Ensure(NativeRuntime.mc_set_animation_playback_rate(this.session, (float)value) != 0);
     }
 
+    public void SetElementInspectionEnabled(bool value, bool useDefaultCursor) {
+        this.isElementInspectionEnabled = value;
+        this.useDefaultCursorForElementInspection = value && useDefaultCursor;
+        this.image.Cursor = this.useDefaultCursorForElementInspection ? Cursors.Arrow : null;
+        if (!value) {
+            NativeRuntime.Ensure(NativeRuntime.mc_clear_inspection_wireframe(this.session) != 0);
+            this.Render();
+        }
+    }
+
+    public void SetElementInspectionWireframe(string color, double thickness, string lineStyle, bool renderMargin, bool renderPadding) {
+        if (ColorConverter.ConvertFromString(color) is not Color parsedColor) {
+            throw new InvalidOperationException("Не удалось разобрать цвет подсветки элемента.");
+        }
+        NativeRuntime.Ensure(NativeRuntime.mc_set_inspection_wireframe(
+            this.session,
+            (float)thickness,
+            lineStyle == "solid" ? 0 : 1,
+            new NativeColor {
+                Red = parsedColor.R / 255.0f,
+                Green = parsedColor.G / 255.0f,
+                Blue = parsedColor.B / 255.0f,
+                Alpha = parsedColor.A / 255.0f,
+            },
+            renderMargin ? new NativeColor { Red = 0.0f, Green = 1.0f, Blue = 0.0f, Alpha = 1.0f } : default,
+            renderPadding ? new NativeColor { Red = 0.0f, Green = 0.478f, Blue = 1.0f, Alpha = 1.0f } : default) != 0);
+        this.Render();
+    }
+
+    public bool SelectElementInspection(string sourcePath, int line, int column) {
+        var isSelected = NativeRuntime.mc_select_inspection_element(this.session, sourcePath, line, column) != 0;
+        if (isSelected) {
+            this.Render();
+        }
+        return isSelected;
+    }
+
     public void ApplyPreviewScenario(string page, string json) {
         NativeRuntime.Ensure(NativeRuntime.mc_apply_preview_scenario(this.session, page, json) != 0);
         this.Render();
@@ -83,6 +124,15 @@ internal sealed class MobileClockSession : IDisposable {
 
     private void ImageMouseLeftButtonDown(object sender, MouseButtonEventArgs eventArgs) {
         var point = eventArgs.GetPosition(this.image);
+        if (this.isElementInspectionEnabled) {
+            if (this.TryInspect(point, out var inspection)) {
+                NativeRuntime.Ensure(NativeRuntime.mc_pin_inspection_element(this.session) != 0);
+                this.Render();
+                this.ElementSelected?.Invoke(inspection);
+            }
+            eventArgs.Handled = true;
+            return;
+        }
         NativeRuntime.Ensure(NativeRuntime.mc_pointer_down(
             this.session,
             this.ScaleX(point.X),
@@ -115,6 +165,13 @@ internal sealed class MobileClockSession : IDisposable {
 
     private void ImageMouseMove(object sender, MouseEventArgs eventArgs) {
         var point = eventArgs.GetPosition(this.image);
+        if (this.isElementInspectionEnabled) {
+            if (this.useDefaultCursorForElementInspection) {
+                this.image.Cursor = Cursors.Arrow;
+            }
+            this.TryInspect(point, out _);
+            return;
+        }
         if (!this.hasPointerCapture) {
             this.SetCursor(this.CursorKind(point));
             return;
@@ -128,6 +185,18 @@ internal sealed class MobileClockSession : IDisposable {
 
     private void ImageMouseLeave(object sender, MouseEventArgs eventArgs) {
         this.image.Cursor = null;
+        NativeRuntime.Ensure(NativeRuntime.mc_clear_inspection_wireframe(this.session) != 0);
+        this.Render();
+    }
+
+    private bool TryInspect(Point point, out NativeInspectionResult result) {
+        if (this.image.ActualWidth <= 0.0 || this.image.ActualHeight <= 0.0) {
+            result = default;
+            return false;
+        }
+        var isInspected = NativeRuntime.mc_inspect(this.session, this.ScaleX(point.X), this.ScaleY(point.Y), out result) != 0;
+        this.Render();
+        return isInspected;
     }
 
     private void Render() {

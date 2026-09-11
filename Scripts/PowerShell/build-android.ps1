@@ -17,23 +17,6 @@ $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $androidHostRoot = Join-Path $projectRoot 'MobileClock.AndroidHost'
 $applicationRoot = Join-Path $projectRoot 'MobileClock.Application'
 $uiRoot = Join-Path $projectRoot 'MobileClock.UI'
-$xamlCompilerRoot = Join-Path $projectRoot 'UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlCompiler'
-$xamlCompilerBuild = Join-Path $projectRoot 'Build\MobileClock.Application\xaml-compiler'
-$xamlCompiler = Join-Path $xamlCompilerBuild 'Debug\XamlCompiler.exe'
-$xamlSourceRoots = @(
-    @{
-        Source = Join-Path $applicationRoot 'UI'
-        Generated = Join-Path $projectRoot '!Generated\MobileClock.Application\Xaml'
-    },
-    @{
-        Source = $uiRoot
-        Generated = Join-Path $projectRoot '!Generated\MobileClock.UI\Xaml'
-    }
-)
-$xamlIgnoreConfigurationPath = Join-Path $applicationRoot 'UI\XamlCompilerIgnore.json'
-$xamlIgnoreConfiguration = Get-Content -LiteralPath $xamlIgnoreConfigurationPath -Raw | ConvertFrom-Json
-$xamlIgnoredDirectories = @($xamlIgnoreConfiguration.directories)
-$xamlIgnoredFileSuffixes = @($xamlIgnoreConfiguration.fileSuffixes)
 $gradleRoot = Join-Path $projectRoot 'Build\Gradle'
 $gradleWrapper = Join-Path $gradleRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
@@ -60,36 +43,7 @@ if (Test-Path $visualStudioCmake) {
     $cmake = (Get-Command cmake -ErrorAction Stop).Source
 }
 
-Write-Host '==> Building XamlCompiler host tool'
-Invoke-Checked $cmake @('--fresh', '-S', $xamlCompilerRoot, '-B', $xamlCompilerBuild, '-G', 'Visual Studio 18 2026', '-A', 'x64')
-Invoke-Checked $cmake @('--build', $xamlCompilerBuild, '--config', 'Debug')
-if (-not (Test-Path $xamlCompiler)) {
-    throw "XamlCompiler build completed but did not produce $xamlCompiler"
-}
-
-foreach ($xamlSourceRoot in $xamlSourceRoots) {
-    Get-ChildItem -LiteralPath $xamlSourceRoot.Source -Filter '*.xaml' -File -Recurse | ForEach-Object {
-        # Windows PowerShell 5.1 работает на .NET Framework, где ещё нет
-        # System.IO.Path.GetRelativePath. Все найденные файлы гарантированно
-        # находятся внутри $xamlSourceRoot, поэтому достаточно убрать этот префикс.
-        $relativePath = $_.FullName.Substring($xamlSourceRoot.Source.Length).TrimStart('\', '/')
-        $generatedPath = Join-Path $xamlSourceRoot.Generated ($relativePath + '.cpp')
-        $compilerArguments = @(
-            $_.FullName,
-            $generatedPath,
-            '--control-include-prefix',
-            'MobileClock.UI/Controls'
-        )
-        foreach ($directory in $xamlIgnoredDirectories) {
-            $compilerArguments += '--ignore-directory', $directory
-        }
-        foreach ($suffix in $xamlIgnoredFileSuffixes) {
-            $compilerArguments += '--ignore-file-suffix', $suffix
-        }
-        Write-Host "==> Compiling $($_.Name) into native UI classes"
-        Invoke-Checked $xamlCompiler $compilerArguments
-    }
-}
+& (Join-Path $PSScriptRoot 'generate-xaml.ps1')
 
 Push-Location $projectRoot
 try {

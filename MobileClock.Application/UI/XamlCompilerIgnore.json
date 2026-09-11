@@ -1,7 +1,6 @@
 {
     "directories": [
-        "backup",
-        "Examples"
+        "backup"
     ],
     "fileSuffixes": [
         "_old"

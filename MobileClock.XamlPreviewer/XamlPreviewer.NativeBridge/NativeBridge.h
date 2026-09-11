@@ -23,6 +23,13 @@ typedef struct xr_rect {
     float height;
 } xr_rect;
 
+typedef struct mc_inspection_result {
+    int line;
+    int column;
+    char sourcePath[1024];
+    xr_rect bounds;
+} mc_inspection_result;
+
 typedef struct xr_color {
     float red;
     float green;
@@ -72,6 +79,25 @@ XAML_RUNTIME_BRIDGE_API int mc_pointer_move(mc_session* session, float x, float 
 XAML_RUNTIME_BRIDGE_API int mc_pointer_up(mc_session* session, float x, float y);
 XAML_RUNTIME_BRIDGE_API int mc_pointer_cancel(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_cursor_kind(mc_session* session, float x, float y);
+XAML_RUNTIME_BRIDGE_API int mc_inspect(
+    mc_session* session,
+    float x,
+    float y,
+    mc_inspection_result* result);
+XAML_RUNTIME_BRIDGE_API int mc_set_inspection_wireframe(
+    mc_session* session,
+    float thickness,
+    int lineStyle,
+    xr_color color,
+    xr_color marginColor,
+    xr_color paddingColor);
+XAML_RUNTIME_BRIDGE_API int mc_clear_inspection_wireframe(mc_session* session);
+XAML_RUNTIME_BRIDGE_API int mc_select_inspection_element(
+    mc_session* session,
+    const char* sourcePath,
+    int line,
+    int column);
+XAML_RUNTIME_BRIDGE_API int mc_pin_inspection_element(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_update(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_render_angle_surface(
     mc_session* session,
