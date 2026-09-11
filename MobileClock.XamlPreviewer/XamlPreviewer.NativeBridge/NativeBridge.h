@@ -91,7 +91,15 @@ XAML_RUNTIME_BRIDGE_API int mc_set_inspection_wireframe(
     xr_color color,
     xr_color marginColor,
     xr_color paddingColor);
+XAML_RUNTIME_BRIDGE_API int mc_set_selected_wireframe(
+    mc_session* session,
+    float thickness,
+    int lineStyle,
+    xr_color color,
+    xr_color marginColor,
+    xr_color paddingColor);
 XAML_RUNTIME_BRIDGE_API int mc_clear_inspection_wireframe(mc_session* session);
+XAML_RUNTIME_BRIDGE_API int mc_clear_selected_inspection_element(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_select_inspection_element(
     mc_session* session,
     const char* sourcePath,

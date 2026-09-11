@@ -22,6 +22,7 @@ internal sealed class MobileClockSession : IDisposable {
     private bool useDefaultCursorForElementInspection;
 
     public event Action<NativeInspectionResult>? ElementSelected;
+    public event Action? RuntimeMarkupReloaded;
 
     public MobileClockSession(string resourcesDirectory, int width, int height) {
         this.renderer = new AnglePreviewRenderer(resourcesDirectory, width, height);
@@ -73,6 +74,7 @@ internal sealed class MobileClockSession : IDisposable {
         }
         this.markups[sourcePath] = markup;
         this.Render();
+        this.RuntimeMarkupReloaded?.Invoke();
     }
 
     public void SetAnimationPlaybackRate(double value) {
@@ -85,26 +87,32 @@ internal sealed class MobileClockSession : IDisposable {
         this.image.Cursor = this.useDefaultCursorForElementInspection ? Cursors.Arrow : null;
         if (!value) {
             NativeRuntime.Ensure(NativeRuntime.mc_clear_inspection_wireframe(this.session) != 0);
+            // Закреплённая голубая рамка принадлежит режиму выбора так же, как
+            // временная рамка наведения, поэтому при выходе очищаем обе.
+            NativeRuntime.Ensure(NativeRuntime.mc_clear_selected_inspection_element(this.session) != 0);
             this.Render();
         }
     }
 
-    public void SetElementInspectionWireframe(string color, double thickness, string lineStyle, bool renderMargin, bool renderPadding) {
-        if (ColorConverter.ConvertFromString(color) is not Color parsedColor) {
-            throw new InvalidOperationException("Не удалось разобрать цвет подсветки элемента.");
-        }
+    public void SetElementInspectionWireframes(
+        ElementInspectionWireframeSettings hovered,
+        ElementInspectionWireframeSettings active,
+        bool renderMargin,
+        bool renderPadding) {
         NativeRuntime.Ensure(NativeRuntime.mc_set_inspection_wireframe(
             this.session,
-            (float)thickness,
-            lineStyle == "solid" ? 0 : 1,
-            new NativeColor {
-                Red = parsedColor.R / 255.0f,
-                Green = parsedColor.G / 255.0f,
-                Blue = parsedColor.B / 255.0f,
-                Alpha = parsedColor.A / 255.0f,
-            },
-            renderMargin ? new NativeColor { Red = 0.0f, Green = 1.0f, Blue = 0.0f, Alpha = 1.0f } : default,
-            renderPadding ? new NativeColor { Red = 0.0f, Green = 0.478f, Blue = 1.0f, Alpha = 1.0f } : default) != 0);
+            (float)hovered.LineThickness,
+            hovered.LineStyle == "solid" ? 0 : 1,
+            ParseColor(hovered.LineColor),
+            renderMargin ? ParseColor(hovered.MarginColor) : default,
+            renderPadding ? ParseColor(hovered.PaddingColor) : default) != 0);
+        NativeRuntime.Ensure(NativeRuntime.mc_set_selected_wireframe(
+            this.session,
+            (float)active.LineThickness,
+            active.LineStyle == "solid" ? 0 : 1,
+            ParseColor(active.LineColor),
+            renderMargin ? ParseColor(active.MarginColor) : default,
+            renderPadding ? ParseColor(active.PaddingColor) : default) != 0);
         this.Render();
     }
 
@@ -229,6 +237,19 @@ internal sealed class MobileClockSession : IDisposable {
     private void Render() {
         this.image.Source = this.renderer.RenderMobileClockSession(this.session);
     }
+
+    private static NativeColor ParseColor(string color) {
+        if (ColorConverter.ConvertFromString(color) is not Color parsedColor) {
+            throw new InvalidOperationException("Не удалось разобрать цвет подсветки элемента.");
+        }
+        return new NativeColor {
+            Red = parsedColor.R / 255.0f,
+            Green = parsedColor.G / 255.0f,
+            Blue = parsedColor.B / 255.0f,
+            Alpha = parsedColor.A / 255.0f,
+        };
+    }
+
     private float ScaleX(double value) {
         return (float)(value / this.image.ActualWidth * this.renderer.Width);
     }

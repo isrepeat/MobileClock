@@ -21,12 +21,22 @@
 #include <stdexcept>
 #include <cstring>
 #include <chrono>
+#include <cctype>
 #include <memory>
 #include <string>
 #include <vector>
 #include <cmath>
 
 namespace xaml::bridge::_details {
+    bool SameSourcePath(std::string_view left, std::string_view right) {
+        const std::string normalizedLeft = std::filesystem::path(left).lexically_normal().generic_string();
+        const std::string normalizedRight = std::filesystem::path(right).lexically_normal().generic_string();
+        return normalizedLeft.size() == normalizedRight.size()
+            && std::equal(normalizedLeft.begin(), normalizedLeft.end(), normalizedRight.begin(), [](char first, char second) {
+                return std::tolower(static_cast<unsigned char>(first)) == std::tolower(static_cast<unsigned char>(second));
+            });
+    }
+
     Element* FindElement(Element& element, std::string_view id) {
         if (element.Id() == id) {
             return &element;
@@ -67,7 +77,9 @@ namespace xaml::bridge::_details {
         std::string_view sourcePath,
         int line,
         int column) {
-        if (element.SourcePath() == sourcePath
+        // Редактор передаёт путь со слешами '/', а generated XAML на Windows
+        // может хранить '\\'. Сопоставляем нормализованные пути без учёта регистра.
+        if (SameSourcePath(element.SourcePath(), sourcePath)
             && element.SourceLine() == line
             && element.SourceColumn() == column) {
             return &element;
@@ -303,6 +315,11 @@ struct mc_session {
         xaml::attr::WireframeLineStyle::solid,
         {0.878f, 0.322f, 0.322f, 1.0f},
     };
+    xaml::attr::Wireframe selectedWireframe{
+        3.0f,
+        xaml::attr::WireframeLineStyle::solid,
+        {0.30f, 0.64f, 1.0f, 1.0f},
+    };
 };
 
 namespace mobileclock::preview::_details {
@@ -333,9 +350,7 @@ namespace mobileclock::preview::_details {
             ClearSelectedWireframe(session);
             session.selectedElement = &element;
         }
-        xaml::attr::Wireframe wireframe = session.inspectionWireframe;
-        wireframe.color = {0.30f, 0.64f, 1.0f, 1.0f};
-        element.SetSelectedWireframe(wireframe);
+        element.SetSelectedWireframe(session.selectedWireframe);
     }
 }
 
@@ -408,23 +423,13 @@ int mc_reload_markup(mc_session* session, const char* page, const char* markup, 
         if (session == nullptr || page == nullptr || markup == nullptr || sourcePath == nullptr) {
             throw std::invalid_argument("Session, page, markup and source path are required");
         }
-        const std::string selectedId = session->selectedElement == nullptr ? "" : session->selectedElement->Id();
-        const void* selectedContext = session->selectedElement == nullptr ? nullptr : session->selectedElement->DataContext();
         if (!session->session.ReloadMarkup(page, markup, sourcePath, xaml::bridge::lastError)) {
             return 0;
         }
-        // The old tree has been released. Resolve selection without dereferencing cached pointers.
+        // Старое дерево освобождено. WPF повторно выбирает элемент из текущей
+        // позиции caret после уведомления об успешной перезагрузке.
         session->inspectionElement = nullptr;
         session->selectedElement = nullptr;
-        const auto restore = [&selectedId, selectedContext, session](auto&& self, xaml::Element& element) -> void {
-            if (!selectedId.empty() && element.Id() == selectedId && element.DataContext() == selectedContext) {
-                mobileclock::preview::_details::SetSelectedWireframe(*session, element);
-            }
-            for (const auto& child : element.Children()) {
-                self(self, *child);
-            }
-        };
-        restore(restore, session->session.Root());
         return 1;
 #else
         xaml::bridge::lastError = "Runtime markup is available only in XamlPreviewer";
@@ -584,11 +589,42 @@ int mc_set_inspection_wireframe(
     return 1;
 }
 
+int mc_set_selected_wireframe(
+    mc_session* session,
+    float thickness,
+    int lineStyle,
+    xr_color color,
+    xr_color marginColor,
+    xr_color paddingColor) {
+    if (session == nullptr || thickness <= 0.0f || (lineStyle != 0 && lineStyle != 1)) {
+        return 0;
+    }
+    session->selectedWireframe = {
+        thickness,
+        lineStyle == 0 ? xaml::attr::WireframeLineStyle::solid : xaml::attr::WireframeLineStyle::dashed,
+        {color.red, color.green, color.blue, color.alpha},
+        {marginColor.red, marginColor.green, marginColor.blue, marginColor.alpha},
+        {paddingColor.red, paddingColor.green, paddingColor.blue, paddingColor.alpha},
+    };
+    if (session->selectedElement != nullptr) {
+        session->selectedElement->SetSelectedWireframe(session->selectedWireframe);
+    }
+    return 1;
+}
+
 int mc_clear_inspection_wireframe(mc_session* session) {
     if (session == nullptr) {
         return 0;
     }
     mobileclock::preview::_details::ClearInspectionWireframe(*session);
+    return 1;
+}
+
+int mc_clear_selected_inspection_element(mc_session* session) {
+    if (session == nullptr) {
+        return 0;
+    }
+    mobileclock::preview::_details::ClearSelectedWireframe(*session);
     return 1;
 }
 
@@ -602,7 +638,6 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
         line,
         column,
         sourcePath);
-    mobileclock::preview::_details::ClearSelectedWireframe(*session);
     xaml::Element* const element = xaml::bridge::_details::FindElementAtSource(
         session->session.Root(),
         sourcePath,
@@ -612,6 +647,9 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
         LOG_INFO("XamlPreviewer.Inspection", "Source selection found no element");
         return 0;
     }
+    // Не стираем текущий выбор, пока новая позиция редактора не сопоставлена
+    // с элементом preview: перевод фокуса после клика меняет caret.
+    mobileclock::preview::_details::ClearSelectedWireframe(*session);
     mobileclock::preview::_details::SetSelectedWireframe(*session, *element);
     const xaml::Rect& bounds = element->Bounds();
     LOG_INFO(

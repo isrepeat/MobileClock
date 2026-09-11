@@ -15,6 +15,14 @@ internal sealed class DevicePreset {
     }
 }
 
+internal sealed class ElementInspectionWireframeSettings {
+    public string LineColor { get; set; } = "#E05252";
+    public double LineThickness { get; set; } = 3.0;
+    public string LineStyle { get; set; } = "solid";
+    public string MarginColor { get; set; } = "#6F4B72";
+    public string PaddingColor { get; set; } = "#5E4289DE";
+}
+
 internal sealed class PreviewerSettings {
     private const string DefaultResourcesDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\Resources";
     private const string DefaultXamlDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\UI";
@@ -43,9 +51,10 @@ internal sealed class PreviewerSettings {
     public bool IsPreviewLandscape { get; set; }
     public double AnimationPlaybackRate { get; set; } = 1.0;
     public double[] AnimationPlaybackRates { get; set; } = [0.1, 0.25, 0.5, 1.0, 2.0, 4.0];
-    public string ElementInspectionHighlightColor { get; set; } = "#E05252";
-    public double ElementInspectionHighlightThickness { get; set; } = 3.0;
-    public string ElementInspectionHighlightLineStyle { get; set; } = "solid";
+    public ElementInspectionWireframeSettings HoveredElementInspectionWireframe { get; set; } = new();
+    public ElementInspectionWireframeSettings ActiveElementInspectionWireframe { get; set; } = new() {
+        LineColor = "#4DA3FF",
+    };
     public DevicePreset[] PreviewResolutions { get; set; } = [
         new() { Name = "Redmi 15C", Width = 720, Height = 1600 },
         new() { Name = "HD+", Width = 720, Height = 1280 },
@@ -105,21 +114,38 @@ internal sealed class PreviewerSettings {
     }
 
     private void ValidateElementInspectionHighlight() {
-        if (string.IsNullOrWhiteSpace(this.ElementInspectionHighlightColor)) {
-            throw new InvalidDataException("ElementInspectionHighlightColor должен содержать цвет.");
+        ValidateElementInspectionWireframe(
+            this.HoveredElementInspectionWireframe,
+            nameof(this.HoveredElementInspectionWireframe));
+        ValidateElementInspectionWireframe(
+            this.ActiveElementInspectionWireframe,
+            nameof(this.ActiveElementInspectionWireframe));
+    }
+
+    private static void ValidateElementInspectionWireframe(ElementInspectionWireframeSettings? wireframe, string name) {
+        if (wireframe is null) {
+            throw new InvalidDataException($"{name} должен содержать объект настроек.");
+        }
+        ValidateColor(wireframe.LineColor, $"{name}.LineColor");
+        ValidateColor(wireframe.MarginColor, $"{name}.MarginColor");
+        ValidateColor(wireframe.PaddingColor, $"{name}.PaddingColor");
+        if (!double.IsFinite(wireframe.LineThickness) || wireframe.LineThickness <= 0.0) {
+            throw new InvalidDataException($"{name}.LineThickness должен быть положительным конечным числом.");
+        }
+        if (wireframe.LineStyle is not "solid" and not "dashed") {
+            throw new InvalidDataException($"{name}.LineStyle должен быть solid или dashed.");
+        }
+    }
+
+    private static void ValidateColor(string? color, string name) {
+        if (string.IsNullOrWhiteSpace(color)) {
+            throw new InvalidDataException($"{name} должен содержать цвет.");
         }
         try {
-            _ = PreviewBrushes.Parse(this.ElementInspectionHighlightColor);
+            _ = PreviewBrushes.Parse(color);
         }
         catch (Exception exception) {
-            throw new InvalidDataException("ElementInspectionHighlightColor содержит некорректный цвет.", exception);
-        }
-        if (!double.IsFinite(this.ElementInspectionHighlightThickness)
-            || this.ElementInspectionHighlightThickness <= 0.0) {
-            throw new InvalidDataException("ElementInspectionHighlightThickness должен быть положительным конечным числом.");
-        }
-        if (this.ElementInspectionHighlightLineStyle is not "solid" and not "dashed") {
-            throw new InvalidDataException("ElementInspectionHighlightLineStyle должен быть solid или dashed.");
+            throw new InvalidDataException($"{name} содержит некорректный цвет.", exception);
         }
     }
 

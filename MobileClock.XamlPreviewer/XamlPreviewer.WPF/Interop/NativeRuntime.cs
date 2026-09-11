@@ -143,8 +143,20 @@ internal static class NativeRuntime {
         NativeColor marginColor,
         NativeColor paddingColor);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_set_selected_wireframe")]
+    public static extern int mc_set_selected_wireframe(
+        IntPtr session,
+        float thickness,
+        int lineStyle,
+        NativeColor color,
+        NativeColor marginColor,
+        NativeColor paddingColor);
+
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_clear_inspection_wireframe")]
     public static extern int mc_clear_inspection_wireframe(IntPtr session);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_clear_selected_inspection_element")]
+    public static extern int mc_clear_selected_inspection_element(IntPtr session);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_select_inspection_element")]
     public static extern int mc_select_inspection_element(

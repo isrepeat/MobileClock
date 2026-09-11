@@ -53,9 +53,11 @@ public partial class MainWindow : Window {
     private bool isClosing;
     private PreviewerSettings settings = null!;
     private string? markupPath;
+    private string? markupFileText;
     private bool isMarkupDirty;
     private bool isSettingsDirty;
     private bool isScenarioDirty;
+    private bool updatingElementSelection;
     private bool updatingEditors;
     private bool suppressFoldingStatePersistence;
     private EditorMode editorMode;
@@ -375,11 +377,34 @@ public partial class MainWindow : Window {
             return;
         }
 
-        File.WriteAllText(this.markupPath, this.markupEditorController.Text.TrimEnd());
+        if (this.isMarkupDirty && this.IsMarkupModifiedExternally() && !this.ConfirmMarkupOverwrite()) {
+            this.statusPresenter.Information("Сохранение отменено: исходный XAML был изменён извне.");
+            return;
+        }
+        var markup = this.markupEditorController.Text.TrimEnd();
+        File.WriteAllText(this.markupPath, markup);
+        this.markupFileText = markup;
         this.isMarkupDirty = false;
         this.RefreshScenarioNames();
         this.UpdateDocumentState();
         this.statusPresenter.Success($"Сохранено: {this.markupPath}");
+    }
+
+    private bool IsMarkupModifiedExternally() {
+        return this.markupPath is not null
+            && this.markupFileText is not null
+            && (!File.Exists(this.markupPath)
+                || !string.Equals(
+                    File.ReadAllText(this.markupPath),
+                    this.markupFileText,
+                    StringComparison.Ordinal));
+    }
+
+    private bool ConfirmMarkupOverwrite() {
+        var dialog = new ExternalMarkupConflictDialog(this.markupPath!) {
+            Owner = this,
+        };
+        return dialog.ShowDialog() == true;
     }
 
     private void DevicePresetPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
@@ -505,35 +530,46 @@ public partial class MainWindow : Window {
 
     private void UpdateElementInspection() {
         var isElementSelectionEnabled = this.ElementSelectionButton.IsChecked == true;
-        var isEnabled = this.editorMode == EditorMode.Xaml
-            && (isElementSelectionEnabled
+        var isEnabled = this.IsElementSelectionActive();
+        this.nativeApplicationSession?.SetElementInspectionEnabled(isEnabled, isElementSelectionEnabled && isEnabled);
+    }
+
+    private bool IsElementSelectionActive() {
+        return this.editorMode == EditorMode.Xaml
+            && (this.ElementSelectionButton.IsChecked == true
                 || (this.IsActive
                     && (Keyboard.IsKeyDown(Key.LeftAlt)
                         || Keyboard.IsKeyDown(Key.RightAlt))));
-        this.nativeApplicationSession?.SetElementInspectionEnabled(isEnabled, isElementSelectionEnabled && isEnabled);
     }
 
     private void PreviewElementSelected(NativeInspectionResult inspection) {
         if (string.IsNullOrWhiteSpace(inspection.SourcePath) || !File.Exists(inspection.SourcePath)) {
             return;
         }
-        this.SelectControlMarkup(inspection.SourcePath);
-        if (inspection.Line < 1 || inspection.Line > this.MarkupEditor.Document.LineCount) {
-            return;
+        // Клик в preview уже закрепил конкретный визуальный экземпляр. Перемещение
+        // caret нужно только для навигации; оно не должно выбирать первый экземпляр
+        // того же тега в повторяющемся ItemTemplate.
+        this.updatingElementSelection = true;
+        try {
+            this.SelectControlMarkup(inspection.SourcePath);
+            if (inspection.Line < 1 || inspection.Line > this.MarkupEditor.Document.LineCount) {
+                return;
+            }
+            var line = this.MarkupEditor.Document.GetLineByNumber(inspection.Line);
+            var column = Math.Clamp(inspection.Column - 1, 0, line.Length);
+            this.MarkupEditor.CaretOffset = line.Offset + column;
+            this.MarkupEditor.Select(this.MarkupEditor.CaretOffset, 0);
+            this.MarkupEditor.ScrollTo(inspection.Line, inspection.Column);
+            this.MarkupEditor.Focus();
+        } finally {
+            this.updatingElementSelection = false;
         }
-        var line = this.MarkupEditor.Document.GetLineByNumber(inspection.Line);
-        var column = Math.Clamp(inspection.Column - 1, 0, line.Length);
-        this.MarkupEditor.CaretOffset = line.Offset + column;
-        this.MarkupEditor.Select(this.MarkupEditor.CaretOffset, 0);
-        this.MarkupEditor.ScrollTo(inspection.Line, inspection.Column);
-        this.MarkupEditor.Focus();
     }
 
     private void ApplyElementInspectionHighlightSettings() {
-        this.nativeApplicationSession?.SetElementInspectionWireframe(
-            this.settings.ElementInspectionHighlightColor,
-            this.settings.ElementInspectionHighlightThickness,
-            this.settings.ElementInspectionHighlightLineStyle,
+        this.nativeApplicationSession?.SetElementInspectionWireframes(
+            this.settings.HoveredElementInspectionWireframe,
+            this.settings.ActiveElementInspectionWireframe,
             this.ElementSelectionMarginCheckBox.IsChecked == true,
             this.ElementSelectionPaddingCheckBox.IsChecked == true);
     }
@@ -649,7 +685,7 @@ public partial class MainWindow : Window {
     }
 
     private void SelectElementFromMarkupEditor() {
-        if (this.ElementSelectionButton.IsChecked != true) {
+        if (!this.IsElementSelectionActive()) {
             return;
         }
         var tagOffset = this.FindNearestOpeningTagOffset(this.MarkupEditor.CaretOffset);
@@ -683,6 +719,9 @@ public partial class MainWindow : Window {
     }
 
     private void MarkupEditorCaretPositionChanged(object? sender, EventArgs eventArgs) {
+        if (this.updatingElementSelection) {
+            return;
+        }
         this.SelectElementFromMarkupEditor();
     }
 
@@ -781,7 +820,9 @@ public partial class MainWindow : Window {
         this.suppressFoldingStatePersistence = true;
         this.updatingEditors = true;
         try {
-            this.markupEditorController.SetText(File.ReadAllText(this.markupPath));
+            var markup = File.ReadAllText(this.markupPath);
+            this.markupEditorController.SetText(markup);
+            this.markupFileText = markup;
             this.markupEditorController.SetFoldedOffsets(this.GetCollapsedMarkupFoldings());
         }
         finally {
@@ -926,11 +967,13 @@ public partial class MainWindow : Window {
             this.RefreshPageNames();
             if (this.markupPath is not null && File.Exists(this.markupPath)) {
                 var markup = File.ReadAllText(this.markupPath);
-                if (!this.isMarkupDirty
-                    && !string.Equals(markup, this.markupEditorController.Text, StringComparison.Ordinal)) {
-                    this.updatingEditors = true;
-                    this.markupEditorController.SetText(markup);
-                    this.updatingEditors = false;
+                if (!this.isMarkupDirty) {
+                    if (!string.Equals(markup, this.markupEditorController.Text, StringComparison.Ordinal)) {
+                        this.updatingEditors = true;
+                        this.markupEditorController.SetText(markup);
+                        this.updatingEditors = false;
+                    }
+                    this.markupFileText = markup;
                     this.isMarkupDirty = false;
                     this.RefreshScenarioNames();
                     this.ConfigureWatchers();
@@ -1081,6 +1124,8 @@ public partial class MainWindow : Window {
     }
 
     private void UpdateDocumentState() {
+        this.XamlModeText.Text = this.isMarkupDirty ? "XAML *" : "XAML";
+        this.ScenarioModeText.Text = this.isScenarioDirty ? "Сценарии *" : "Сценарии";
         this.SettingsButton.Content = this.isSettingsDirty ? "Настройки *" : "Настройки";
         this.ScenarioButton.ToolTip = this.isScenarioDirty ? "Сценарии изменены" : null;
         this.SaveButton.IsEnabled = this.editorMode switch {
@@ -1273,6 +1318,7 @@ public partial class MainWindow : Window {
                     previewSize.Height);
                 this.nativeApplicationSession.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
                 this.nativeApplicationSession.ElementSelected += this.PreviewElementSelected;
+                this.nativeApplicationSession.RuntimeMarkupReloaded += this.SelectElementFromMarkupEditor;
                 this.previewLayer.Children.Clear();
                 this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);
                 this.ApplyElementInspectionHighlightSettings();
