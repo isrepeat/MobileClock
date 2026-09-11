@@ -3,6 +3,7 @@
 #include <XamlRuntime/RenderEngine.h>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #include <JsonParser/JsonParser.h>
 #endif
 
@@ -122,23 +123,10 @@ namespace mobileclock::ui {
     //
     xaml::runtime::RuntimeBindingContext StatisticsPageViewModel::RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
-        registry->AddText("Title", [this]() { return this->Title(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::title) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddText("Summary", [this]() { return this->Summary(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::summary) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddCommand("NavigateToMainCommand", this->NavigateToMainCommand());
+        xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
+        publisher.Text("Title", Property::title, &StatisticsPageViewModel::Title);
+        publisher.Text("Summary", Property::summary, &StatisticsPageViewModel::Summary);
+        publisher.Command("NavigateToMainCommand", &StatisticsPageViewModel::NavigateToMainCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "StatisticsPageViewModel", {}};
 
         return result;

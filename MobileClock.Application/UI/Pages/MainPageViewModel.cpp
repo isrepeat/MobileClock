@@ -10,6 +10,7 @@
 #include <XamlRuntime/Animation.h>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #include <JsonParser/JsonParser.h>
 #endif
 
@@ -334,52 +335,23 @@ namespace mobileclock::ui {
     //
     xaml::runtime::RuntimeBindingContext MainPageViewModel::RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
-        registry->AddText("Status", [this]() { return this->Status(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::status) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddText("ClockText", [this]() { return this->ClockText(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::clockText) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddText("PackageVersion", [this]() { return this->PackageVersion(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::packageVersion) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddCommand("CreateAlarmCommand", this->CreateAlarmCommand());
-        registry->AddCommand("NavigateToSettingsCommand", this->NavigateToSettingsCommand());
-        registry->AddCommand("ToggleAlarmCommand", this->ToggleAlarmCommand());
-        registry->AddCommand("UpdateApplicationCommand", this->UpdateApplicationCommand());
-        registry->AddCommand("UploadScreenshotCommand", this->UploadScreenshotCommand());
-        registry->AddCommand("ToggleAlarmActionsMenuCommand", this->ToggleAlarmActionsMenuCommand());
+        xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
+        publisher.Text("Status", Property::status, &MainPageViewModel::Status);
+        publisher.Text("ClockText", Property::clockText, &MainPageViewModel::ClockText);
+        publisher.Text("PackageVersion", Property::packageVersion, &MainPageViewModel::PackageVersion);
+        publisher.Command("CreateAlarmCommand", &MainPageViewModel::CreateAlarmCommand);
+        publisher.Command("NavigateToSettingsCommand", &MainPageViewModel::NavigateToSettingsCommand);
+        publisher.Command("ToggleAlarmCommand", &MainPageViewModel::ToggleAlarmCommand);
+        publisher.Command("UpdateApplicationCommand", &MainPageViewModel::UpdateApplicationCommand);
+        publisher.Command("UploadScreenshotCommand", &MainPageViewModel::UploadScreenshotCommand);
+        publisher.Command("ToggleAlarmActionsMenuCommand", &MainPageViewModel::ToggleAlarmActionsMenuCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "MainPageViewModel", {}};
-        registry->AddBoolean("IsAlarmActionsMenuVisible", [this]() { return this->IsAlarmActionsMenuVisible(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::isAlarmActionsMenuVisible) {
-                        changed();
-                    }
-                });
-            }, [this](bool value) { this->SetIsAlarmActionsMenuVisible(value); });
+        publisher.Boolean("IsAlarmActionsMenuVisible", Property::isAlarmActionsMenuVisible,
+            &MainPageViewModel::IsAlarmActionsMenuVisible, &MainPageViewModel::SetIsAlarmActionsMenuVisible);
         xaml::runtime::RuntimeCollectionDescriptor collection;
-        collection.count = [this]() { return this->alarms.size(); };
-        collection.at = [this](size_t index) -> const void* {
-            auto iterator = this->alarms.begin();
-            std::advance(iterator, index);
-            return &*iterator;
-        };
+        // collection.count и collection.at пока не подключены RuntimeTreeBuilder.
+        // Текущий путь через collection.bind вызывает SetItemsSource, который сам
+        // получает размер коллекции и элементы из this->alarms.
         collection.itemBindings = [](const void* value) {
             const auto* alarm = static_cast<const Alarm*>(value);
             auto item = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
@@ -398,6 +370,7 @@ namespace mobileclock::ui {
         collection.bind = [this](xaml::Element& element, xaml::Element::ItemTemplate itemTemplate) {
             element.SetItemsSource(this->alarms, std::move(itemTemplate));
         };
+        // Если в runtime-XAML встретится {Binding Alarms} в itemsSource, используй этот RuntimeCollectionDescriptor.
         registry->AddCollection("Alarms", collection);
         registry->AddCollection("ItemsSource", collection);
         result.controls["InteractiveList"] = [this](xaml::BindingScope& scope) {

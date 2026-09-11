@@ -3,6 +3,7 @@
 #include <XamlRuntime/RenderEngine.h>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #include <JsonParser/JsonParser.h>
 #endif
 
@@ -130,25 +131,12 @@ namespace mobileclock::ui {
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     xaml::runtime::RuntimeBindingContext SettingsPageViewModel::RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
-        registry->AddText("Theme", [this]() { return this->Theme(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::theme) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddText("Sound", [this]() { return this->Sound(); },
-            [this](std::function<void()> changed) {
-                return this->Subscribe([changed](Property property) {
-                    if (property == Property::sound) {
-                        changed();
-                    }
-                });
-            });
-        registry->AddCommand("NavigateToMainCommand", this->NavigateToMainCommand());
-        registry->AddCommand("ShareLogsCommand", this->ShareLogsCommand());
-        registry->AddCommand("ExportLogsCommand", this->ExportLogsCommand());
+        xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
+        publisher.Text("Theme", Property::theme, &SettingsPageViewModel::Theme);
+        publisher.Text("Sound", Property::sound, &SettingsPageViewModel::Sound);
+        publisher.Command("NavigateToMainCommand", &SettingsPageViewModel::NavigateToMainCommand);
+        publisher.Command("ShareLogsCommand", &SettingsPageViewModel::ShareLogsCommand);
+        publisher.Command("ExportLogsCommand", &SettingsPageViewModel::ExportLogsCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "SettingsPageViewModel", {}};
 
         return result;
