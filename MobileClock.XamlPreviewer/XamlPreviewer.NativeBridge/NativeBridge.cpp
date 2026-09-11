@@ -309,7 +309,9 @@ struct mc_session {
     int width;
     int height;
     xaml::Element* inspectionElement = nullptr;
+    std::weak_ptr<void> inspectionElementLifetime;
     xaml::Element* selectedElement = nullptr;
+    std::weak_ptr<void> selectedElementLifetime;
     xaml::attr::Wireframe inspectionWireframe{
         3.0f,
         xaml::attr::WireframeLineStyle::solid,
@@ -324,23 +326,26 @@ struct mc_session {
 
 namespace mobileclock::preview::_details {
     void ClearInspectionWireframe(mc_session& session) {
-        if (session.inspectionElement != nullptr) {
+        if (session.inspectionElement != nullptr && !session.inspectionElementLifetime.expired()) {
             session.inspectionElement->ClearInspectionWireframe();
-            session.inspectionElement = nullptr;
         }
+        session.inspectionElement = nullptr;
+        session.inspectionElementLifetime.reset();
     }
 
     void ClearSelectedWireframe(mc_session& session) {
-        if (session.selectedElement != nullptr) {
+        if (session.selectedElement != nullptr && !session.selectedElementLifetime.expired()) {
             session.selectedElement->ClearSelectedWireframe();
-            session.selectedElement = nullptr;
         }
+        session.selectedElement = nullptr;
+        session.selectedElementLifetime.reset();
     }
 
     void SetInspectionWireframe(mc_session& session, xaml::Element& element) {
         if (session.inspectionElement != &element) {
             ClearInspectionWireframe(session);
             session.inspectionElement = &element;
+            session.inspectionElementLifetime = element.LifetimeToken();
         }
         element.SetInspectionWireframe(session.inspectionWireframe);
     }
@@ -349,6 +354,7 @@ namespace mobileclock::preview::_details {
         if (session.selectedElement != &element) {
             ClearSelectedWireframe(session);
             session.selectedElement = &element;
+            session.selectedElementLifetime = element.LifetimeToken();
         }
         element.SetSelectedWireframe(session.selectedWireframe);
     }
@@ -586,7 +592,11 @@ int mc_set_inspection_wireframe(
         {paddingColor.red, paddingColor.green, paddingColor.blue, paddingColor.alpha},
     };
     if (session->inspectionElement != nullptr) {
-        session->inspectionElement->SetInspectionWireframe(session->inspectionWireframe);
+        if (session->inspectionElementLifetime.expired()) {
+            mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        } else {
+            session->inspectionElement->SetInspectionWireframe(session->inspectionWireframe);
+        }
     }
     return 1;
 }
@@ -609,7 +619,11 @@ int mc_set_selected_wireframe(
         {paddingColor.red, paddingColor.green, paddingColor.blue, paddingColor.alpha},
     };
     if (session->selectedElement != nullptr) {
-        session->selectedElement->SetSelectedWireframe(session->selectedWireframe);
+        if (session->selectedElementLifetime.expired()) {
+            mobileclock::preview::_details::ClearSelectedWireframe(*session);
+        } else {
+            session->selectedElement->SetSelectedWireframe(session->selectedWireframe);
+        }
     }
     return 1;
 }
@@ -668,7 +682,13 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
 }
 
 int mc_pin_inspection_element(mc_session* session) {
-    if (session == nullptr || session->inspectionElement == nullptr) return 0;
+    if (session == nullptr || session->inspectionElement == nullptr) {
+        return 0;
+    }
+    if (session->inspectionElementLifetime.expired()) {
+        mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        return 0;
+    }
     mobileclock::preview::_details::SetSelectedWireframe(*session, *session->inspectionElement);
     return 1;
 }

@@ -330,21 +330,17 @@ namespace mobileclock::ui::controls {
             return;
         }
         if (scrollViewer != nullptr) {
-            if (state.isAtBottom) {
-                const float offsetY = scrollViewer->VerticalOffset() - state.verticalOffset;
-                for (const std::unique_ptr<xaml::Element>& item : list->Children()) {
-                    item->SetRenderOffsetY(offsetY);
-                    animations.Animate(*item, xaml::AnimatedProperty::renderOffsetY, offsetY, 0.0f, duration);
-                }
-                return;
+            if (!state.isAtBottom) {
+                animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
             }
-            animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
         }
         const auto& items = list->Children();
-        const size_t count = std::min(items.size(), state.previousBounds.size() - state.removedIndex - 1);
+        const size_t count = std::min(items.size(), state.previousBounds.size() - 1);
         for (size_t index = 0; index < count; ++index) {
-            xaml::Element& item = *items[state.removedIndex + index];
-            const float offsetY = state.previousBounds[state.removedIndex + index + 1].y - item.Bounds().y;
+            xaml::Element& item = *items[index];
+            const size_t previousIndex = index < state.removedIndex ? index : index + 1;
+            const float offsetY = state.previousBounds[previousIndex].y - item.Bounds().y
+                + (scrollViewer == nullptr ? 0.0f : scrollViewer->VerticalOffset() - state.verticalOffset);
             item.SetRenderOffsetY(offsetY);
             animations.Animate(item, xaml::AnimatedProperty::renderOffsetY, offsetY, 0.0f, duration);
         }
