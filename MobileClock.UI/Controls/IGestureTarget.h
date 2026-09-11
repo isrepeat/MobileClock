@@ -25,6 +25,7 @@ namespace mobileclock::ui {
         static void Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
 
         virtual bool CanHandlePan(const xaml::Element& element) const = 0;
+        virtual bool IsVerticalPan() const;
         virtual xaml::Element* FindScrollViewer(const xaml::Element& element) const = 0;
         virtual void BeginPan(const PanState& state) = 0;
         virtual void UpdatePan(const PanState& state) = 0;

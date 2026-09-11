@@ -38,6 +38,7 @@ namespace mobileclock::ui {
             none,
             vertical,
             horizontal,
+            verticalPan,
         };
 
     private:

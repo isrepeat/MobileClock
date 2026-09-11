@@ -234,6 +234,9 @@ if (ANDROID)
 endif()
 
 set(mobileclock_ui_control_files
+    ../MobileClock.UI/Controls/AlarmActionsMenu.cpp
+    ../MobileClock.UI/Controls/AlarmActionsMenu.h
+    ../MobileClock.UI/Controls/AlarmActionsMenu.xaml
     ../MobileClock.UI/Controls/IGestureTarget.cpp
     ../MobileClock.UI/Controls/InteractiveList.cpp
     ../MobileClock.UI/Controls/InteractiveList.h

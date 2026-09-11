@@ -67,7 +67,7 @@ namespace mobileclock::ui {
             return;
         }
         // The hit-tested element is captured for the complete pointer sequence.
-        // It can move outside the cursor before the horizontal pan completes.
+        // It can move outside the cursor before the pan completes.
         xaml::Element* const target = xaml::HitTest(root, x, y);
         this->inputRoot = &root;
         this->panElement = target;
@@ -88,7 +88,7 @@ namespace mobileclock::ui {
         this->lastTouchX = x;
         this->lastTouchY = y;
         this->gestureAxis = GestureAxis::none;
-        // IGestureTarget owns application-specific horizontal pans. Disable the
+        // IGestureTarget owns application-specific pans. Disable the
         // generic runtime pan recognizer so it cannot apply a second offset.
         this->interactionController.SetPanTargetPredicate([](const xaml::Element&) {
             return false;
@@ -111,20 +111,25 @@ namespace mobileclock::ui {
         // scrolling. It also cancels tap recognition for this pointer sequence.
         if (this->gestureAxis == GestureAxis::none
             && this->scrollViewer != nullptr
+            && (this->panTarget == nullptr || !this->panTarget->IsVerticalPan())
             && std::abs(verticalDistance) > std::abs(horizontalDistance)
             && std::abs(verticalDistance) >= gestureThreshold) {
             this->gestureAxis = GestureAxis::vertical;
             this->scrollController.Begin(*this->scrollViewer);
             this->interactionController.Cancel();
         }
-        // A registered target receives every horizontal pan phase and therefore
+        // A registered target receives every pan phase on its chosen axis and
         // controls its own live visual state instead of the runtime doing so.
         if (this->gestureAxis == GestureAxis::none
             && this->panTarget != nullptr
             && this->panElement != nullptr
-            && std::abs(horizontalDistance) > std::abs(verticalDistance)
-            && std::abs(horizontalDistance) >= gestureThreshold) {
-            this->gestureAxis = GestureAxis::horizontal;
+            && (this->panTarget->IsVerticalPan()
+                ? std::abs(verticalDistance) > std::abs(horizontalDistance)
+                    && std::abs(verticalDistance) >= gestureThreshold
+                : std::abs(horizontalDistance) > std::abs(verticalDistance)
+                    && std::abs(horizontalDistance) >= gestureThreshold)) {
+            this->gestureAxis = this->panTarget->IsVerticalPan()
+                ? GestureAxis::verticalPan : GestureAxis::horizontal;
             this->interactionController.Cancel();
             this->panTarget->BeginPan({
                 *this->inputRoot,
@@ -142,7 +147,7 @@ namespace mobileclock::ui {
             this->lastTouchY = y;
             return wasScrolled;
         }
-        if (this->gestureAxis == GestureAxis::horizontal) {
+        if (this->gestureAxis == GestureAxis::horizontal || this->gestureAxis == GestureAxis::verticalPan) {
             this->panTarget->UpdatePan({
                 *this->inputRoot,
                 *this->panElement,
@@ -175,7 +180,7 @@ namespace mobileclock::ui {
             return nullptr;
         }
         // EndPan decides whether to commit the gesture or animate the target back.
-        if (this->gestureAxis == GestureAxis::horizontal) {
+        if (this->gestureAxis == GestureAxis::horizontal || this->gestureAxis == GestureAxis::verticalPan) {
             const bool wasHandled = this->panTarget->EndPan({
                 *this->inputRoot,
                 *this->panElement,
@@ -211,7 +216,7 @@ namespace mobileclock::ui {
     void InputDispatcher::Cancel() {
         // Android can cancel a pointer sequence without PointerUp, for example
         // when the surface loses the gesture to another system interaction.
-        if (this->gestureAxis == GestureAxis::horizontal
+        if ((this->gestureAxis == GestureAxis::horizontal || this->gestureAxis == GestureAxis::verticalPan)
             && this->panTarget != nullptr
             && this->panElement != nullptr) {
             this->panTarget->CancelPan(*this->panElement);

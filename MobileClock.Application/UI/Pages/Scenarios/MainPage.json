@@ -1,13 +1,5 @@
 {
   "Шкала будильников": {
-    "IsAlarmActionsMenuVisible": false,
-    "$visualStates": [
-      {
-        "host": "alarmActionsHost",
-        "group": "AlarmActionsPanelStates",
-        "state": "Collapsed"
-      }
-    ],
     "Status": "Обновление запущено",
     "Alarms": [
       {
@@ -64,23 +56,6 @@
           "path": "Alarms"
         }
       },
-      "alarmActionsMenu": {
-        "tap": {
-          "type": "toggle",
-          "path": "IsAlarmActionsMenuVisible",
-          "visualStateHost": "alarmActionsHost",
-          "visualStateGroup": "AlarmActionsPanelStates",
-          "visualStateTrue": "Expanded",
-          "visualStateFalse": "Collapsed"
-        }
-      },
-      "alarmActionsHandle": {
-        "tap": {
-          "type": "toggle",
-          "path": "IsAlarmActionsMenuVisible",
-          "previewElement": "alarmActionsPanel"
-        }
-      },
       "updateApplicationButton": {
         "tap": {
           "type": "set",
@@ -98,14 +73,6 @@
     }
   },
   "Раннее утро": {
-    "IsAlarmActionsMenuVisible": false,
-    "$visualStates": [
-      {
-        "host": "alarmActionsHost",
-        "group": "AlarmActionsPanelStates",
-        "state": "Collapsed"
-      }
-    ],
     "Status": "Готово к обновлению",
     "Alarms": [
       {
@@ -142,23 +109,6 @@
           "path": "Alarms"
         }
       },
-      "alarmActionsMenu": {
-        "tap": {
-          "type": "toggle",
-          "path": "IsAlarmActionsMenuVisible",
-          "visualStateHost": "alarmActionsHost",
-          "visualStateGroup": "AlarmActionsPanelStates",
-          "visualStateTrue": "Expanded",
-          "visualStateFalse": "Collapsed"
-        }
-      },
-      "alarmActionsHandle": {
-        "tap": {
-          "type": "toggle",
-          "path": "IsAlarmActionsMenuVisible",
-          "previewElement": "alarmActionsPanel"
-        }
-      },
       "updateApplicationButton": {
         "tap": {
           "type": "set",
@@ -176,14 +126,6 @@
     }
   },
   "Выходные": {
-    "IsAlarmActionsMenuVisible": false,
-    "$visualStates": [
-      {
-        "host": "alarmActionsHost",
-        "group": "AlarmActionsPanelStates",
-        "state": "Collapsed"
-      }
-    ],
     "Status": "Готово к обновлению",
     "Alarms": [
       {
@@ -213,23 +155,6 @@
         "pan": {
           "type": "removeAt",
           "path": "Alarms"
-        }
-      },
-      "alarmActionsMenu": {
-        "tap": {
-          "type": "toggle",
-          "path": "IsAlarmActionsMenuVisible",
-          "visualStateHost": "alarmActionsHost",
-          "visualStateGroup": "AlarmActionsPanelStates",
-          "visualStateTrue": "Expanded",
-          "visualStateFalse": "Collapsed"
-        }
-      },
-      "alarmActionsHandle": {
-        "tap": {
-          "type": "toggle",
-          "path": "IsAlarmActionsMenuVisible",
-          "previewElement": "alarmActionsPanel"
         }
       },
       "updateApplicationButton": {

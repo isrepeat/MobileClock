@@ -76,9 +76,6 @@ xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
 
 publisher.Text("Status", Property::status, &MainPageViewModel::Status);
 publisher.Command("CreateAlarmCommand", &MainPageViewModel::CreateAlarmCommand);
-publisher.Boolean("IsAlarmActionsMenuVisible", Property::isAlarmActionsMenuVisible,
-    &MainPageViewModel::IsAlarmActionsMenuVisible,
-    &MainPageViewModel::SetIsAlarmActionsMenuVisible);
 ```
 
 Эти строки позволяют использовать в XAML:
@@ -86,7 +83,6 @@ publisher.Boolean("IsAlarmActionsMenuVisible", Property::isAlarmActionsMenuVisib
 ```xml
 <TextBlock text="{Binding Status}" />
 <Button command="{Binding CreateAlarmCommand}" />
-<ToggleSwitch isOn="{Binding IsAlarmActionsMenuVisible, Mode=TwoWay}" />
 ```
 
 `Text` вызывает getter при создании дерева и при соответствующем `NotifyPropertyChanged`. `Command` назначает обработчик кнопке. `Boolean` добавляет getter, подписку и, при переданном setter-е, обратную запись от `ToggleSwitch` в ViewModel.
@@ -133,18 +129,11 @@ result.controls["InteractiveList"] = [this](xaml::BindingScope& scope) {
 
 ## prepareTree и состояние UI
 
-`prepareTree` синхронизирует новое дерево с состоянием уже работающей ViewModel. Например, после замены страницы нужно сразу вернуть панели действий будильника корректный visual state:
+`prepareTree` позволяет синхронизировать новое дерево с состоянием ViewModel до замены страницы.
 
-```cpp
-result.prepareTree = [this](xaml::Element& root) {
-    if (auto* host = _details::FindElement(root, "alarmActionsHost")) {
-        xaml::VisualStateManager::GoToState(*host, "AlarmActionsPanelStates",
-            this->IsAlarmActionsMenuVisible() ? "Expanded" : "Collapsed", false);
-    }
-};
-```
+Состояние нижнего меню принадлежит контролу `AlarmActionsMenu`, а не `MainPageViewModel`. Контрол хранит `IsExpanded`, обрабатывает вертикальный pan ручки и применяет состояния `AlarmActionsPanelStates` из своего шаблона. При полной перезагрузке страницы `AlarmActionsMenu::PreserveState` переносит состояние в новый контрол по его `id`. При замене шаблона состояние сохраняет сам контрол. В обоих случаях оно применяется без анимации.
 
-Последний аргумент `false` устанавливает состояние без анимации, поэтому Hot Reload не проигрывает переход при каждом сохранении файла.
+Разметка меню находится в `MobileClock.UI/Controls/AlarmActionsMenu.xaml`. Команды его содержимого получают привязки к ViewModel страницы через `Create` и runtime-фабрику контрола.
 
 ## Использование и проверка
 

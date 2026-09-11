@@ -1,13 +1,13 @@
 #include "UI/Pages/MainPageViewModel.h"
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include "MobileClock.UI/Controls/AlarmActionsMenu.h"
 #include "MobileClock.UI/Controls/InteractiveList.h"
 #include "MobileClock.UI/Controls/TimelineTabs.h"
 #endif
 
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
-#include <XamlRuntime/Animation.h>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
@@ -35,10 +35,9 @@ namespace mobileclock::ui::_details {
 
     struct MainPagePreviewScenario final {
         std::optional<std::string> Status = "Готово к проверке обновлений";
-        std::optional<bool> IsAlarmActionsMenuVisible = false;
         std::optional<std::vector<PreviewAlarm>> Alarms = std::vector<PreviewAlarm>{};
 
-        JS_OBJECT(JS_MEMBER(Status), JS_MEMBER(IsAlarmActionsMenuVisible), JS_MEMBER(Alarms));
+        JS_OBJECT(JS_MEMBER(Status), JS_MEMBER(Alarms));
     };
 #endif
 
@@ -48,18 +47,6 @@ namespace mobileclock::ui::_details {
 #else
         return localtime_r(&value, &result) != nullptr;
 #endif
-    }
-
-    xaml::Element* FindElement(xaml::Element& element, std::string_view id) {
-        if (element.Id() == id) {
-            return &element;
-        }
-        for (const auto& child : element.Children()) {
-            if (xaml::Element* const found = FindElement(*child, id)) {
-                return found;
-            }
-        }
-        return nullptr;
     }
 
 }
@@ -82,9 +69,6 @@ namespace mobileclock::ui {
         })
         , uploadScreenshotCommand([&context]() {
             context.actions.UploadScreenshot();
-        })
-        , toggleAlarmActionsMenuCommand([this]() {
-            this->SetIsAlarmActionsMenuVisible(!this->IsAlarmActionsMenuVisible());
         }) {
         for (Alarm& alarm : this->alarms) {
             alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
@@ -125,6 +109,31 @@ namespace mobileclock::ui {
         this->toggleAlarmCommand = std::move(value);
     }
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // ISerializable
+    //
+    bool MainPageViewModel::Deserialize(std::string_view json, std::string& error) {
+        _details::MainPagePreviewScenario scenario;
+        JS::ParseContext context(json.data(), json.size());
+        if (context.parseTo(scenario) != JS::Error::NoError) {
+            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
+            return false;
+        }
+        if (scenario.Alarms) {
+            this->alarms.Clear();
+            for (const _details::PreviewAlarm& alarmValue : *scenario.Alarms) {
+                Alarm& alarm = this->alarms.EmplaceBack(alarmValue.Time, alarmValue.Repeat, alarmValue.IsEnabled);
+                alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+            }
+        }
+        if (scenario.Status) {
+            this->SetStatus(std::move(*scenario.Status));
+        }
+        return true;
+    }
+#endif
+
     //
     // API
     //
@@ -152,21 +161,6 @@ namespace mobileclock::ui {
         return this->alarms;
     }
 
-    bool MainPageViewModel::IsAlarmActionsMenuVisible() const {
-        return this->isAlarmActionsMenuVisible;
-    }
-
-    void MainPageViewModel::SetIsAlarmActionsMenuVisible(bool value) {
-        if (this->isAlarmActionsMenuVisible == value) {
-            return;
-        }
-        this->isAlarmActionsMenuVisible = value;
-        this->NotifyPropertyChanged(Property::isAlarmActionsMenuVisible);
-        if (this->page) {
-            this->ApplyAlarmActionsPanelState(true);
-        }
-    }
-
     xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {
         return this->createAlarmCommand;
     }
@@ -187,10 +181,6 @@ namespace mobileclock::ui {
         return this->uploadScreenshotCommand;
     }
 
-    xaml::Element::Command MainPageViewModel::ToggleAlarmActionsMenuCommand() const {
-        return this->toggleAlarmActionsMenuCommand;
-    }
-
     void MainPageViewModel::SetStatus(std::string value) {
         if (this->status == value) {
             return;
@@ -206,7 +196,6 @@ namespace mobileclock::ui {
         this->runtimeBindings.reset();
 #endif
         this->page = xaml::generated::MainPage::Create(*this, this->bindings);
-        this->ApplyAlarmActionsPanelState(false);
         xaml::layout(*this->page, availableSize);
     }
 
@@ -264,69 +253,12 @@ namespace mobileclock::ui {
         return *this->page;
     }
 
-    //
-    // Internal
-    //
-    void MainPageViewModel::ApplyAlarmActionsPanelState(bool useTransitions) {
-        xaml::Element* const host = _details::FindElement(*this->page, "alarmActionsHost");
-        if (host == nullptr) {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-            if (this->runtimeBindings) {
-                return;
-            }
-#endif
-            throw std::runtime_error("Alarm actions visual-state host was not found");
-        }
-        const char* const stateName = this->isAlarmActionsMenuVisible ? "Expanded" : "Collapsed";
-        if (!xaml::VisualStateManager::GoToState(*host, "AlarmActionsPanelStates", stateName, useTransitions)) {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-            if (this->runtimeBindings) {
-                return;
-            }
-#endif
-            throw std::runtime_error("Alarm actions visual state was not found");
-        }
-    }
-
     MainPageViewModel::Unsubscribe MainPageViewModel::Subscribe(PropertyChangedHandler handler) {
         this->propertyChangedHandlers.push_back(std::move(handler));
         const size_t index = this->propertyChangedHandlers.size() - 1;
         return [this, index]() {
             this->propertyChangedHandlers[index] = nullptr;
         };
-    }
-
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool MainPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::MainPagePreviewScenario scenario;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
-            return false;
-        }
-        if (scenario.Alarms) {
-            this->alarms.Clear();
-            for (const _details::PreviewAlarm& alarmValue : *scenario.Alarms) {
-                Alarm& alarm = this->alarms.EmplaceBack(alarmValue.Time, alarmValue.Repeat, alarmValue.IsEnabled);
-                alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
-            }
-        }
-        if (scenario.Status) {
-            this->SetStatus(std::move(*scenario.Status));
-        }
-        if (scenario.IsAlarmActionsMenuVisible) {
-            this->SetIsAlarmActionsMenuVisible(*scenario.IsAlarmActionsMenuVisible);
-        }
-        return true;
-    }
-#endif
-
-    void MainPageViewModel::NotifyPropertyChanged(Property property) {
-        for (const PropertyChangedHandler& handler : this->propertyChangedHandlers) {
-            if (handler) {
-                handler(property);
-            }
-        }
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -344,10 +276,7 @@ namespace mobileclock::ui {
         publisher.Command("ToggleAlarmCommand", &MainPageViewModel::ToggleAlarmCommand);
         publisher.Command("UpdateApplicationCommand", &MainPageViewModel::UpdateApplicationCommand);
         publisher.Command("UploadScreenshotCommand", &MainPageViewModel::UploadScreenshotCommand);
-        publisher.Command("ToggleAlarmActionsMenuCommand", &MainPageViewModel::ToggleAlarmActionsMenuCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "MainPageViewModel", {}};
-        publisher.Boolean("IsAlarmActionsMenuVisible", Property::isAlarmActionsMenuVisible,
-            &MainPageViewModel::IsAlarmActionsMenuVisible, &MainPageViewModel::SetIsAlarmActionsMenuVisible);
         xaml::runtime::RuntimeCollectionDescriptor collection;
         // collection.count и collection.at пока не подключены RuntimeTreeBuilder.
         // Текущий путь через collection.bind вызывает SetItemsSource, который сам
@@ -379,16 +308,14 @@ namespace mobileclock::ui {
         result.controls["TimelineTabs"] = [this](xaml::BindingScope& scope) {
             return controls::TimelineTabs::Create(*this, scope);
         };
-        result.prepareTree = [this](xaml::Element& root) {
-            if (auto* host = _details::FindElement(root, "alarmActionsHost")) {
-                xaml::VisualStateManager::GoToState(*host, "AlarmActionsPanelStates",
-                    this->IsAlarmActionsMenuVisible() ? "Expanded" : "Collapsed", false);
-            }
+        result.controls["AlarmActionsMenu"] = [this](xaml::BindingScope& scope) {
+            return controls::AlarmActionsMenu::Create(*this, scope);
         };
         return result;
     }
 
     void MainPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+        controls::AlarmActionsMenu::PreserveState(*this->page, *result.root);
         controls::InteractiveList::PreserveInstances(*this->page, *result.root, *result.bindings);
         this->bindings.Clear();
         this->runtimeBindings.reset();
@@ -396,4 +323,15 @@ namespace mobileclock::ui {
         this->runtimeBindings = std::move(result.bindings);
     }
 #endif
+
+    //
+    // Internal
+    //
+    void MainPageViewModel::NotifyPropertyChanged(Property property) {
+        for (const PropertyChangedHandler& handler : this->propertyChangedHandlers) {
+            if (handler) {
+                handler(property);
+            }
+        }
+    }
 }

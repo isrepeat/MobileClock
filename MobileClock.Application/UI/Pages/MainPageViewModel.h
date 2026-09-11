@@ -50,7 +50,6 @@ namespace mobileclock::ui {
             clockText,
             packageVersion,
             status,
-            isAlarmActionsMenuVisible,
         };
 
         using PropertyChangedHandler = std::function<void(Property)>;
@@ -62,20 +61,25 @@ namespace mobileclock::ui {
         MainPageViewModel(const MainPageViewModel&) = delete;
         MainPageViewModel& operator=(const MainPageViewModel&) = delete;
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        //
+        // ISerializable
+        //
+        bool Deserialize(std::string_view json, std::string& error) override;
+#endif
+
+
         const std::string& ClockText() const;
         void SetClockText(std::string value);
         const std::string& PackageVersion() const;
         const std::string& Status() const;
         const xaml::ObservableCollection<Alarm>& Alarms() const;
-        bool IsAlarmActionsMenuVisible() const;
-        void SetIsAlarmActionsMenuVisible(bool value);
 
         xaml::Element::Command CreateAlarmCommand() const;
         xaml::Element::Command NavigateToSettingsCommand() const;
         xaml::Element::Command ToggleAlarmCommand() const;
         xaml::Element::Command UpdateApplicationCommand() const;
         xaml::Element::Command UploadScreenshotCommand() const;
-        xaml::Element::Command ToggleAlarmActionsMenuCommand() const;
         void SetStatus(std::string value);
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
@@ -86,20 +90,17 @@ namespace mobileclock::ui {
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-        bool Deserialize(std::string_view json, std::string& error) override;
         xaml::runtime::RuntimeBindingContext RuntimeContext();
         void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 #endif
 
     private:
-        void ApplyAlarmActionsPanelState(bool useTransitions);
         void NotifyPropertyChanged(Property property);
 
     private:
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
-        bool isAlarmActionsMenuVisible = false;
         xaml::ObservableCollection<Alarm> alarms{
             {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
             {"06:18", "Сб, Вс", false},
@@ -116,6 +117,5 @@ namespace mobileclock::ui {
         xaml::Element::Command toggleAlarmCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
-        xaml::Element::Command toggleAlarmActionsMenuCommand;
     };
 }

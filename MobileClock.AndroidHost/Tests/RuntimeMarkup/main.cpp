@@ -1,5 +1,6 @@
 #include <XamlRuntime/RuntimeMarkup/RuntimeReloadTransaction.h>
 #include <XamlRuntime/RuntimeMarkup/XamlParser.h>
+#include <XamlRuntime/Input.h>
 
 #include "MobileClock.UI/Controls/InteractiveList.h"
 #include "UI/ApplicationSession.h"
@@ -94,12 +95,28 @@ int main(int argc, char** argv) {
         Check(control != nullptr, "MainPage native list");
         Check(session.ReloadMarkup("MainPage", mainMarkup, mainPath, diagnostics), diagnostics);
         Check(List(session.Root()) == control, "InteractiveList identity must survive reload");
+        auto* moreButton = Find(session.Root(), "timelineMoreIcon");
+        Check(moreButton && moreButton->Type() == xaml::ElementType::button, "More action must be a Button");
+        Check(moreButton->Children().size() == 1, "Button must retain its icon content");
+        const auto& icon = *moreButton->Children().front();
+        Check(icon.Type() == xaml::ElementType::svgImage, "Button content must be SVG");
+        const auto buttonBounds = moreButton->Bounds();
+        const auto iconBounds = icon.Bounds();
+        Check(buttonBounds.width == 60 && buttonBounds.height == 60, "Button hit area must be 60x60");
+        Check(iconBounds.width == 40 && iconBounds.height == 40, "SVG content must be measured");
+        Check(iconBounds.x - buttonBounds.x == 10 && iconBounds.y - buttonBounds.y == 10,
+            "SVG must be centered inside the button");
+        Check(xaml::HitTest(session.Root(), buttonBounds.x + 1, buttonBounds.y + 1) == moreButton,
+            "Button must receive input outside the icon");
+        Check(xaml::HitTest(session.Root(), buttonBounds.x + 30, buttonBounds.y + 30) == moreButton,
+            "Icon must not intercept button input");
         auto* previous = &session.Root();
         const std::string start = "<Page xmlns='urn:mobileclock:xaml'>";
         for (const auto& broken : {start + "<Grid></Page>",
             start + "<TextBlock text='{Binding UpcommingAlarms}'/></Page>",
             start + "<TextBlock bad='1'/></Page>",
             start + "<Border><TextBlock/><TextBlock/></Border></Page>",
+            start + "<Button><SvgImage/><SvgImage/></Button></Page>",
             start + "<TextBlock text='1' text='2'/></Page>",
             start + "<Unknown/></Page>"}) {
             Check(!session.ReloadMarkup("MainPage", broken, "broken.xaml", diagnostics), "Bad markup accepted");

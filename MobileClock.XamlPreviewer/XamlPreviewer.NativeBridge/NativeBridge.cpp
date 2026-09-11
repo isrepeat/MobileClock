@@ -423,13 +423,15 @@ int mc_reload_markup(mc_session* session, const char* page, const char* markup, 
         if (session == nullptr || page == nullptr || markup == nullptr || sourcePath == nullptr) {
             throw std::invalid_argument("Session, page, markup and source path are required");
         }
+        // Снимаем рамки, пока ссылки указывают на живые элементы: reload
+        // переносит состояние выделения и может сохранить native-контролы.
+        mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        mobileclock::preview::_details::ClearSelectedWireframe(*session);
         if (!session->session.ReloadMarkup(page, markup, sourcePath, xaml::bridge::lastError)) {
             return 0;
         }
-        // Старое дерево освобождено. WPF повторно выбирает элемент из текущей
-        // позиции caret после уведомления об успешной перезагрузке.
-        session->inspectionElement = nullptr;
-        session->selectedElement = nullptr;
+        // WPF повторно выбирает элемент из текущей позиции caret
+        // после уведомления об успешной перезагрузке.
         return 1;
 #else
         xaml::bridge::lastError = "Runtime markup is available only in XamlPreviewer";

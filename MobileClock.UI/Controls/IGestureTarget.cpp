@@ -42,6 +42,10 @@ namespace mobileclock::ui {
         }
     }
 
+    bool IGestureTarget::IsVerticalPan() const {
+        return false;
+    }
+
     void IGestureTarget::RegisterGestureTarget() {
         _details::gestureTargets.push_back(this);
     }

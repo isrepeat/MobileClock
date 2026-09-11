@@ -16,140 +16,138 @@
                 borderThickness="1"
                 verticalAlignment="Stretch"
                 horizontalAlignment="Stretch"/>
-        <Grid id="alarmActionsHost"
+        <Grid id="timelineHost"
               verticalAlignment="Stretch"
               horizontalAlignment="Stretch">
             <Grid id="timelineContent"
                   verticalAlignment="Stretch"
                   horizontalAlignment="Stretch"
                   margin="40 40 70 70">
-            <rowDefinitions>
-                <rowDefinition height="7%"/>
-                <rowDefinition height="3%"/>
-                <rowDefinition height="*"/>
-                <rowDefinition height="20%"/>
-            </rowDefinitions>
-            <Grid id="timelineToolbar"
-                  gridRow="0"
-                  verticalAlignment="Top"
-                  horizontalAlignment="Stretch"
-                  margin="10 20 14 0">
-                <columnDefinitions>
-                    <columnDefinition width="Auto"/>
-                    <columnDefinition width="*"/>
-                    <columnDefinition width="Auto"/>
-                </columnDefinitions>
-                <StackPanel id="timelineMenuIcon"
-                            verticalAlignment="Center"
-                            horizontalAlignment="Left"
-                            orientation="Vertical">
-                    <Border width="40"
-                            height="5"
-                            margin="0 0 0 9"
-                            background="#8A8567"
-                            cornerRadius="2"/>
-                    <Border width="40"
-                            height="5"
-                            margin="0 0 0 9"
-                            background="#8A8567"
-                            cornerRadius="2"/>
-                    <Border width="40"
-                            height="5"
-                            background="#8A8567"
-                            cornerRadius="2"/>
-                </StackPanel>
-                <StackPanel id="timelineMoreIcon"
-                            gridColumn="2"
-                            verticalAlignment="Center"
-                            horizontalAlignment="Right"
-                            command="{Binding NavigateToSettingsCommand}"
-                            orientation="Vertical">
-                    <Border width="8"
-                            height="8"
-                            margin="0 0 0 8"
-                            background="#8A8567"
-                            cornerRadius="4"/>
-                    <Border width="8"
-                            height="8"
-                            margin="0 0 0 8"
-                            background="#8A8567"
-                            cornerRadius="4"/>
-                    <Border width="8"
-                            height="8"
-                            background="#8A8567"
-                            cornerRadius="4"/>
-                </StackPanel>
-            </Grid>
-            <controls:TimelineTabs gridRow="1"
-                                   margin="0 0 8 0"/>
-            <Grid id="alarmTimeline"
-                  gridRow="2"
-                  margin="0 0 12 0"
-                  verticalAlignment="Stretch"
-                  horizontalAlignment="Stretch">
-                <Border width="4"
-                        margin="150 0 0 0"
-                        verticalAlignment="Stretch"
-                        horizontalAlignment="Left"
-                        background="#DDB54F"/>
-                <controls:InteractiveList itemsSource="{Binding Alarms}"
-                                    verticalAlignment="Stretch"
-                                    horizontalAlignment="Stretch"/>
-            </Grid>
-            <Grid gridRow="3"
-                  id="timelineFooter"
-                  verticalAlignment="Stretch"
-                  horizontalAlignment="Stretch">
-                <columnDefinitions>
-                    <columnDefinition width="112"/>
-                    <columnDefinition width="80"/>
-                    <columnDefinition width="*"/>
-                </columnDefinitions>
-                <StackPanel verticalAlignment="Top"
-                            horizontalAlignment="Center"
-                            id="timelineTail"
-                            gridColumn="1"
-                            orientation="Vertical">
-                    <Border background="#797047"
-                            height="8"
-                            width="4"
-                            margin="0 0 8 0"
-                            horizontalAlignment="Center"
-                            cornerRadius="2"/>
-                    <Border background="#625E3D"
-                            height="8"
-                            width="4"
-                            margin="0 0 8 0"
-                            horizontalAlignment="Center"
-                            cornerRadius="2"/>
-                    <Border background="#514F35"
-                            height="8"
-                            width="4"
-                            margin="0 0 8 0"
-                            horizontalAlignment="Center"
-                            cornerRadius="2"/>
-                    <Border background="#43452F"
-                            height="8"
-                            width="4"
-                            margin="0 0 8 0"
-                            horizontalAlignment="Center"
-                            cornerRadius="2"/>
-                    <Border cornerRadius="16"
-                            width="32"
-                            height="32"
-                            borderThickness="5"
-                            background="#171813"
-                            margin="0 0 16 0"
-                            id="timelineEnd"
-                            borderBrush="#494B33"/>
-                </StackPanel>
+                <Grid id="timelineLayout"
+                      verticalAlignment="Stretch"
+                      horizontalAlignment="Stretch">
+                    <rowDefinitions>
+                        <rowDefinition height="7%"/>
+                        <rowDefinition height="3%"/>
+                        <rowDefinition height="*"/>
+                        <rowDefinition height="20%"/>
+                    </rowDefinitions>
+                    <Grid id="timelineToolbar"
+                          gridRow="0"
+                          verticalAlignment="Top"
+                          horizontalAlignment="Stretch"
+                          margin="0 0 35 0">
+                        <columnDefinitions>
+                            <columnDefinition width="Auto"/>
+                            <columnDefinition width="*"/>
+                            <columnDefinition width="Auto"/>
+                        </columnDefinitions>
+                        <Button id="timelineMenuIcon"
+                                width="60"
+                                height="60"
+                                verticalAlignment="Center"
+                                horizontalAlignment="Left"
+                                background="#00000000"
+                                borderThickness="0"
+                                padding="0"
+                                contentAlignment="Center">
+                            <SvgImage width="40"
+                                      height="40"
+                                      verticalAlignment="Center"
+                                      horizontalAlignment="Center"
+                                      source="Icons/menu.svg"
+                                      tint="#8A8567"/>
+                        </Button>
+                        <Button id="timelineMoreIcon"
+                                width="60"
+                                height="60"
+                                gridColumn="2"
+                                verticalAlignment="Center"
+                                horizontalAlignment="Right"
+                                command="{Binding NavigateToSettingsCommand}"
+                                background="#00000000"
+                                borderThickness="0"
+                                padding="0"
+                                contentAlignment="Center">
+                            <SvgImage width="40"
+                                      height="40"
+                                      verticalAlignment="Center"
+                                      horizontalAlignment="Center"
+                                      source="Icons/more-vertical.svg"
+                                      tint="#8A8567"/>
+                        </Button>
+                    </Grid>
+                    <controls:TimelineTabs gridRow="1"
+                                           margin="0 0 8 0"/>
+                    <Grid id="alarmTimeline"
+                          gridRow="2"
+                          margin="0 25 12 0"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch">
+                        <Border width="4"
+                                margin="150 0 0 0"
+                                verticalAlignment="Stretch"
+                                horizontalAlignment="Left"
+                                background="#DDB54F"/>
+                        <controls:InteractiveList itemsSource="{Binding Alarms}"
+                                            verticalAlignment="Stretch"
+                                            horizontalAlignment="Stretch"/>
+                    </Grid>
+                    <Grid gridRow="3"
+                          id="timelineFooter"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch">
+                        <columnDefinitions>
+                            <columnDefinition width="112"/>
+                            <columnDefinition width="80"/>
+                            <columnDefinition width="*"/>
+                        </columnDefinitions>
+                        <StackPanel verticalAlignment="Top"
+                                    horizontalAlignment="Center"
+                                    id="timelineTail"
+                                    gridColumn="1"
+                                    orientation="Vertical">
+                            <Border background="#797047"
+                                    height="8"
+                                    width="4"
+                                    margin="0 0 8 0"
+                                    horizontalAlignment="Center"
+                                    cornerRadius="2"/>
+                            <Border background="#625E3D"
+                                    height="8"
+                                    width="4"
+                                    margin="0 0 8 0"
+                                    horizontalAlignment="Center"
+                                    cornerRadius="2"/>
+                            <Border background="#514F35"
+                                    height="8"
+                                    width="4"
+                                    margin="0 0 8 0"
+                                    horizontalAlignment="Center"
+                                    cornerRadius="2"/>
+                            <Border background="#43452F"
+                                    height="8"
+                                    width="4"
+                                    margin="0 0 8 0"
+                                    horizontalAlignment="Center"
+                                    cornerRadius="2"/>
+                            <Border cornerRadius="16"
+                                    width="32"
+                                    height="32"
+                                    borderThickness="5"
+                                    background="#171813"
+                                    margin="0 0 16 0"
+                                    id="timelineEnd"
+                                    borderBrush="#494B33"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
                 <Grid id="addAlarmContainer"
                       width="124"
                       height="124"
-                      margin="0 0 72 8"
+                      margin="0 40 0 150"
                       verticalAlignment="Bottom"
-                      horizontalAlignment="Right"
-                      gridColumn="2">
+                      horizontalAlignment="Right">
                     <Border id="addAlarmButton"
                             command="{Binding CreateAlarmCommand}"
                             background="#E0B64D"
@@ -165,301 +163,9 @@
                               tint="#171813"/>
                 </Grid>
             </Grid>
-            </Grid>
-            <Border id="alarmActionsPanel"
-                    height="70"
-                    verticalAlignment="Bottom"
-                    horizontalAlignment="Stretch"
-                    background="#20211A"
-                    cornerRadius="30">
-                <Grid verticalAlignment="Stretch"
-                      horizontalAlignment="Stretch">
-                    <rowDefinitions>
-                        <rowDefinition height="Auto"/>
-                        <rowDefinition height="*"/>
-                    </rowDefinitions>
-                    <Border id="alarmActionsMenu"
-                            gridRow="0"
-                            height="62"
-                            verticalAlignment="Stretch"
-                            horizontalAlignment="Stretch"
-                            background="#00FF0000"
-                            command="{Binding ToggleAlarmActionsMenuCommand}">
-                        <Border width="80"
-	                            height="12"
-	                            verticalAlignment="Center"
-	                            horizontalAlignment="Center"
-	                            background="#DDB54F"
-	                            cornerRadius="2"/>
-                    </Border>
-                    <Grid id="alarmActionsContent"
-                          gridRow="1"
-                          margin="20 20 0 0"
-                          verticalAlignment="Stretch"
-                          horizontalAlignment="Stretch">
-                        <rowDefinitions>
-                            <rowDefinition height="25"/>
-                            <rowDefinition height="20"/>
-                            <rowDefinition height="108"/>
-                            <rowDefinition height="20"/>
-                            <rowDefinition height="35"/>
-                            <rowDefinition height="78"/>
-                            <rowDefinition height="Auto"/>
-                            <rowDefinition height="*"/>
-                        </rowDefinitions>
-                        <Border gridRow="0"
-                                verticalAlignment="Stretch"
-                                horizontalAlignment="Stretch">
-                            <Grid verticalAlignment="Stretch"
-                                  horizontalAlignment="Stretch">
-                                <columnDefinitions>
-                                    <columnDefinition width="38"/>
-                                    <columnDefinition width="*"/>
-                                    <columnDefinition width="35"/>
-                                </columnDefinitions>
-                                <Border width="20"
-                                        height="20"
-                                        verticalAlignment="Center"
-                                        horizontalAlignment="Left"
-                                        background="#DDB54F"
-                                        cornerRadius="10"/>
-                                <TextBlock gridColumn="1"
-                                           text="Служебные действия"
-                                           fontSize="32"
-                                           margin="0 0 4 0"
-                                           verticalAlignment="Center"
-                                           horizontalAlignment="Left"
-                                           foreground="#DDB54F"/>
-                                <SvgImage gridColumn="2"
-                                          width="28"
-                                          height="28"
-                                          verticalAlignment="Center"
-                                          horizontalAlignment="Center"
-                                          source="Icons/chevron-down.svg"
-                                          tint="#DDB54F"/>
-                            </Grid>
-                        </Border>
-                        <Border id="updateApplicationButton"
-                                gridRow="2"
-                                verticalAlignment="Stretch"
-                                horizontalAlignment="Stretch"
-                                command="{Binding UpdateApplicationCommand}"
-                                renderer="rendererWave"
-                                background="#24251C"
-                                borderBrush="#323327"
-                                borderThickness="1"
-                                cornerRadius="13">
-                            <Border.Storyboards>
-                                <Storyboard trigger="PointerDown">
-                                    <Animation name="animationSoftPulse"
-                                               from="0"
-                                               to="1"
-                                               duration="1000"
-                                               easing="CubicOut"
-                                               intensity="0.95"
-                                               spread="1.5"
-                                               fadeExponent="1.6"/>
-                                    <Animation name="animationWaveOpacity"
-                                               from="0"
-                                               to="1"
-                                               duration="1"
-                                               easing="Linear"/>
-                                </Storyboard>
-                                <Storyboard trigger="PointerUp">
-                                    <Animation name="animationWaveOpacity"
-                                               from="Current"
-                                               to="0"
-                                               duration="280"
-                                               easing="CubicOut"/>
-                                </Storyboard>
-                            </Border.Storyboards>
-                            <Grid height="105"
-                                  verticalAlignment="Stretch"
-                                  horizontalAlignment="Stretch">
-                                <columnDefinitions>
-                                    <columnDefinition width="8"/>
-                                    <columnDefinition width="108"/>
-                                    <columnDefinition width="*"/>
-                                    <columnDefinition width="65"/>
-                                </columnDefinitions>
-                                <Border width="8"
-                                        verticalAlignment="Stretch"
-                                        horizontalAlignment="Left"
-                                        background="#DDB54F"
-                                        cornerRadius="4"/>
-                                <SvgImage gridColumn="1"
-                                          width="48"
-                                          height="48"
-                                          verticalAlignment="Center"
-                                          horizontalAlignment="Center"
-                                          source="Icons/refresh.svg"
-                                          tint="#DDB54F"/>
-                                <Grid gridColumn="2"
-                                      height="70"
-                                      verticalAlignment="Center"
-                                      horizontalAlignment="Stretch">
-                                    <rowDefinitions>
-                                        <rowDefinition height="35"/>
-                                        <rowDefinition height="35"/>
-                                    </rowDefinitions>
-                                    <TextBlock gridRow="0"
-                                               text="Обновить"
-                                               fontSize="35"
-                                               verticalAlignment="Center"
-                                               horizontalAlignment="Left"
-                                               foreground="#F1E8D2"/>
-                                    <TextBlock gridRow="1"
-                                               text="Проверить данные и виджеты"
-                                               fontSize="29"
-                                               verticalAlignment="Center"
-                                               horizontalAlignment="Left"
-                                               foreground="#96947C"/>
-                                </Grid>
-                                <SvgImage gridColumn="3"
-                                          width="34"
-                                          height="34"
-                                          verticalAlignment="Center"
-                                          horizontalAlignment="Center"
-                                          source="Icons/chevron-right.svg"
-                                          tint="#DDB54F"/>
-                            </Grid>
-                        </Border>
-                        <TextBlock gridRow="4"
-                                   text="Резервное"
-                                   fontSize="28"
-                                   verticalAlignment="Center"
-                                   horizontalAlignment="Left"
-                                   foreground="#96947C"/>
-                        <Border id="uploadScreenshotButton"
-                                gridRow="5"
-                                verticalAlignment="Stretch"
-                                horizontalAlignment="Stretch"
-                                command="{Binding UploadScreenshotCommand}"
-                                renderer="rendererWave"
-                                background="#22231B"
-                                borderBrush="#38392C"
-                                borderThickness="1"
-                                cornerRadius="13">
-                            <Border.Storyboards>
-                                <Storyboard trigger="PointerDown">
-                                    <Animation name="animationSoftPulse"
-                                               from="0"
-                                               to="1"
-                                               duration="1000"
-                                               easing="CubicOut"
-                                               intensity="0.75"
-                                               spread="1.35"
-                                               fadeExponent="1.8"/>
-                                    <Animation name="animationWaveOpacity"
-                                               from="0"
-                                               to="1"
-                                               duration="1"
-                                               easing="Linear"/>
-                                </Storyboard>
-                                <Storyboard trigger="PointerUp">
-                                    <Animation name="animationWaveOpacity"
-                                               from="Current"
-                                               to="0"
-                                               duration="280"
-                                               easing="CubicOut"/>
-                                </Storyboard>
-                            </Border.Storyboards>
-                            <Grid height="75"
-                                  verticalAlignment="Stretch"
-                                  horizontalAlignment="Stretch">
-                                <columnDefinitions>
-                                    <columnDefinition width="115"/>
-                                    <columnDefinition width="*"/>
-                                    <columnDefinition width="65"/>
-                                </columnDefinitions>
-                                <SvgImage width="46"
-                                          height="46"
-                                          verticalAlignment="Center"
-                                          horizontalAlignment="Center"
-                                          source="Icons/google-drive.svg"
-                                          tint="#83816A"/>
-                                <TextBlock gridColumn="1"
-                                           text="Сохранить скриншот"
-                                           fontSize="31"
-                                           verticalAlignment="Center"
-                                           horizontalAlignment="Left"
-                                           foreground="#D7D0B8"/>
-                                <SvgImage gridColumn="2"
-                                          width="34"
-                                          height="34"
-                                          verticalAlignment="Center"
-                                          horizontalAlignment="Center"
-                                          source="Icons/chevron-right.svg"
-                                          tint="#77745A"/>
-                            </Grid>
-                        </Border>
-                        <Grid id="alarmActionsStatus"
-                              gridRow="6"
-                              margin="0 0 20 0"
-                              verticalAlignment="Stretch"
-                              horizontalAlignment="Stretch">
-                            <columnDefinitions>
-                                <columnDefinition width="18"/>
-                                <columnDefinition width="*"/>
-                            </columnDefinitions>
-                            <TextBlock gridColumn="1"
-                                       text="{Binding Status}"
-                                       fontSize="32"
-                                       verticalAlignment="Center"
-                                       horizontalAlignment="Left"
-                                       foreground="#AAA78B"/>
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </Border>
-            <VisualStateManager.VisualStateGroups>
-                <VisualStateGroup name="AlarmActionsPanelStates">
-                    <VisualState name="Collapsed">
-                        <Storyboard>
-                            <FloatAnimation targetName="alarmActionsMenu"
-                                            property="height"
-                                            from="Current"
-                                            to="100"
-                                            duration="500"
-                                            easing="CubicOut"/>
-                            <FloatAnimation targetName="alarmActionsPanel"
-                                            property="height"
-                                            from="Current"
-                                            to="100"
-                                            duration="500"
-                                            easing="CubicOut"/>
-                            <FloatAnimation targetName="alarmActionsContent"
-                                            property="opacity"
-                                            from="Current"
-                                            to="0"
-                                            duration="500"
-                                            easing="CubicOut"/>
-                        </Storyboard>
-                    </VisualState>
-                    <VisualState name="Expanded">
-                        <Storyboard>
-                            <FloatAnimation targetName="alarmActionsMenu"
-                                            property="height"
-                                            from="Current"
-                                            to="65"
-                                            duration="500"
-                                            easing="CubicOut"/>
-                            <FloatAnimation targetName="alarmActionsPanel"
-                                            property="height"
-                                            from="Current"
-                                            to="425"
-                                            duration="500"
-                                            easing="CubicOut"/>
-                            <FloatAnimation targetName="alarmActionsContent"
-                                            property="opacity"
-                                            from="0"
-                                            to="1"
-                                            duration="500"
-                                            easing="CubicOut"/>
-                        </Storyboard>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateManager.VisualStateGroups>
+            <controls:AlarmActionsMenu id="alarmActionsMenuControl"
+                                       verticalAlignment="Bottom"
+                                       horizontalAlignment="Stretch"/>
         </Grid>
     </Grid>
 </Page>
