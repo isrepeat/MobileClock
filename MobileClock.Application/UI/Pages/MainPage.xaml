@@ -38,13 +38,16 @@
                           horizontalAlignment="Stretch"
                           margin="0 0 35 0">
                         <columnDefinitions>
+                            <columnDefinition width="5%"/>
                             <columnDefinition width="Auto"/>
                             <columnDefinition width="*"/>
                             <columnDefinition width="Auto"/>
+                            <columnDefinition width="0%"/>
                         </columnDefinitions>
                         <Button id="timelineMenuIcon"
                                 width="60"
                                 height="60"
+                                gridColumn="1"
                                 verticalAlignment="Center"
                                 horizontalAlignment="Left"
                                 background="#00000000"
@@ -61,7 +64,7 @@
                         <Button id="timelineMoreIcon"
                                 width="60"
                                 height="60"
-                                gridColumn="2"
+                                gridColumn="3"
                                 verticalAlignment="Center"
                                 horizontalAlignment="Right"
                                 command="{Binding NavigateToSettingsCommand}"
@@ -78,7 +81,10 @@
                         </Button>
                     </Grid>
                     <controls:TimelineTabs gridRow="1"
-                                           margin="0 0 8 0"/>
+                                           margin="200 0 8 0"
+                                           verticalAlignment="Top"
+                                           horizontalAlignment="Left"
+                                           />
                     <Grid id="alarmTimeline"
                           gridRow="2"
                           margin="0 25 12 0"

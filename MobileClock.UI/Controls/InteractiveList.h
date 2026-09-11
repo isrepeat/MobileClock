@@ -28,6 +28,7 @@ namespace mobileclock::ui::controls {
             float verticalOffset = 0.0f;
             size_t removedIndex = 0;
             bool isPresent = false;
+            bool isAtBottom = false;
         };
 
         InteractiveList() = default;

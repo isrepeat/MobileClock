@@ -11,6 +11,7 @@
 
 namespace mobileclock::ui::controls::_details {
     constexpr float PanCompletionThreshold = 180.0f;
+    constexpr float ScrollPositionTolerance = 1.0f;
 
     bool Contains(const xaml::Element& root, const xaml::Element& element) {
         if (&root == &element) {
@@ -274,6 +275,14 @@ namespace mobileclock::ui::controls {
                 state.isPresent = true;
             }
         }
+        const float maximumVerticalOffset = std::max(0.0f,
+            state.scrollExtent.height - scrollViewer->Viewport().height);
+        const float bottomActivationRange = state.previousBounds.empty()
+            ? 0.0f
+            : state.previousBounds.back().height;
+        state.isAtBottom = maximumVerticalOffset > 0.0f
+            && maximumVerticalOffset - state.verticalOffset
+                <= bottomActivationRange + _details::ScrollPositionTolerance;
         return state;
     }
 
@@ -298,7 +307,11 @@ namespace mobileclock::ui::controls {
         if (scrollViewer == nullptr) {
             return;
         }
-        scrollViewer->HoldScrollExtent(state.scrollExtent);
+        if (state.isAtBottom) {
+            scrollViewer->ReleaseScrollExtent();
+        } else {
+            scrollViewer->HoldScrollExtent(state.scrollExtent);
+        }
         scrollViewer->SetHorizontalOffset(state.horizontalOffset);
         scrollViewer->SetVerticalOffset(state.verticalOffset);
         const xaml::Rect bounds = pageRoot.Bounds();
@@ -317,6 +330,14 @@ namespace mobileclock::ui::controls {
             return;
         }
         if (scrollViewer != nullptr) {
+            if (state.isAtBottom) {
+                const float offsetY = scrollViewer->VerticalOffset() - state.verticalOffset;
+                for (const std::unique_ptr<xaml::Element>& item : list->Children()) {
+                    item->SetRenderOffsetY(offsetY);
+                    animations.Animate(*item, xaml::AnimatedProperty::renderOffsetY, offsetY, 0.0f, duration);
+                }
+                return;
+            }
             animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
         }
         const auto& items = list->Children();

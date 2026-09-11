@@ -5,10 +5,11 @@
           verticalAlignment="Stretch"
           horizontalAlignment="Stretch">
         <Border id="alarmActionsPanel"
-                height="70"
+                height="60"
+                margin="0 0 0 100"
                 verticalAlignment="Bottom"
                 horizontalAlignment="Stretch"
-                background="#20211A"
+                background="#00000000"
                 cornerRadius="30">
             <Grid verticalAlignment="Stretch"
                   horizontalAlignment="Stretch">
@@ -18,18 +19,17 @@
                 </rowDefinitions>
                 <Button id="alarmActionsMenu"
                         gridRow="0"
-                        height="62"
-                        verticalAlignment="Stretch"
-                        horizontalAlignment="Stretch"
+                        verticalAlignment="Center"
+                        horizontalAlignment="Center"
                         background="#00000000"
                         borderThickness="0"
-                        padding="0">
-                    <Border width="80"
-                            height="12"
-                            verticalAlignment="Center"
-                            horizontalAlignment="Center"
-                            background="#DDB54F"
-                            cornerRadius="2"/>
+                        command="{Binding OpenMenuCommand}">
+                    <SvgImage width="150"
+                              height="60"
+                              verticalAlignment="Center"
+                              horizontalAlignment="Center"
+                              source="Icons/more-horizontal.svg"
+                              tint="#DDB54F"/>
                 </Button>
                 <Grid id="alarmActionsContent"
                       gridRow="1"
@@ -254,17 +254,28 @@
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup name="AlarmActionsPanelStates">
                 <VisualState name="Collapsed">
+                    <Setters>
+                        <Setter targetName="alarmActionsMenu"
+                                property="width"
+                                value="Auto"/>
+                        <Setter targetName="alarmActionsMenu"
+                                property="horizontalAlignment"
+                                value="Center"/>
+                        <Setter targetName="alarmActionsPanel"
+                                property="background"
+                                value="#00000000"/>
+                    </Setters>
                     <Storyboard>
                         <FloatAnimation targetName="alarmActionsMenu"
                                         property="height"
                                         from="Current"
-                                        to="100"
+                                        to="60"
                                         duration="500"
                                         easing="CubicOut"/>
                         <FloatAnimation targetName="alarmActionsPanel"
                                         property="height"
                                         from="Current"
-                                        to="100"
+                                        to="60"
                                         duration="500"
                                         easing="CubicOut"/>
                         <FloatAnimation targetName="alarmActionsContent"
@@ -276,11 +287,22 @@
                     </Storyboard>
                 </VisualState>
                 <VisualState name="Expanded">
+                    <Setters>
+                        <Setter targetName="alarmActionsMenu"
+                                property="width"
+                                value="Auto"/>
+                        <Setter targetName="alarmActionsMenu"
+                                property="horizontalAlignment"
+                                value="Stretch"/>
+                        <Setter targetName="alarmActionsPanel"
+                                property="background"
+                                value="#20211A"/>
+                    </Setters>
                     <Storyboard>
                         <FloatAnimation targetName="alarmActionsMenu"
                                         property="height"
                                         from="Current"
-                                        to="65"
+                                        to="60"
                                         duration="500"
                                         easing="CubicOut"/>
                         <FloatAnimation targetName="alarmActionsPanel"

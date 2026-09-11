@@ -8,7 +8,11 @@
 #include "MobileClock.UI/Controls/IGestureTarget.h"
 
 #include <string_view>
+#include <functional>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mobileclock::ui::controls {
     class AlarmActionsMenu final : public xaml::UserControl, public IGestureTarget
@@ -17,8 +21,15 @@ namespace mobileclock::ui::controls {
 #endif
     {
     public:
+        enum class Property {
+            status,
+        };
+
+        using PropertyChangedHandler = std::function<void(Property)>;
+        using Unsubscribe = std::function<void()>;
+
         AlarmActionsMenu() = default;
-        ~AlarmActionsMenu() override = default;
+        ~AlarmActionsMenu() override;
 
     private:
         //
@@ -56,19 +67,37 @@ namespace mobileclock::ui::controls {
         template<typename TViewModel>
         static std::unique_ptr<AlarmActionsMenu> Create(TViewModel& viewModel, xaml::BindingScope& bindings) {
             auto control = std::make_unique<AlarmActionsMenu>();
+            control->status = viewModel.Status();
+            control->updateApplicationCommand = viewModel.UpdateApplicationCommand();
+            control->uploadScreenshotCommand = viewModel.UploadScreenshotCommand();
+            control->openMenuCommand = [menu = control.get()]() {
+                if (!menu->isExpanded) {
+                    menu->SetIsExpanded(true);
+                }
+            };
+            control->parentUnsubscribe = viewModel.Subscribe([menu = control.get(), &viewModel](auto) {
+                menu->SetStatus(viewModel.Status());
+            });
             control->InitializeComponent(
-                xaml::generated::AlarmActionsMenuXaml::BuildContent(viewModel, bindings));
+                xaml::generated::AlarmActionsMenuXaml::BuildContent(*control, bindings));
             return control;
         }
 
+        const std::string& Status() const;
+        xaml::Element::Command OpenMenuCommand() const;
+        xaml::Element::Command UpdateApplicationCommand() const;
+        xaml::Element::Command UploadScreenshotCommand() const;
         bool IsExpanded() const;
         void SetIsExpanded(bool value);
+        Unsubscribe Subscribe(PropertyChangedHandler handler);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         static void PreserveState(const xaml::Element& previous, xaml::Element& replacement);
 #endif
 
     private:
         xaml::Element* FindElement(std::string_view id) const;
+        void SetStatus(std::string value);
+        void NotifyPropertyChanged(Property property);
         void ApplyState(bool useTransitions);
         float StateValue(const char* state, const char* target, xaml::AnimatedProperty property) const;
         void SetDragProgress(float progress);
@@ -76,6 +105,12 @@ namespace mobileclock::ui::controls {
     private:
         bool isExpanded = false;
         float panStartHeight = 0.0f;
+        std::string status;
+        std::vector<PropertyChangedHandler> propertyChangedHandlers;
+        Unsubscribe parentUnsubscribe;
+        xaml::Element::Command openMenuCommand;
+        xaml::Element::Command updateApplicationCommand;
+        xaml::Element::Command uploadScreenshotCommand;
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         std::unique_ptr<xaml::BindingScope> runtimeBindings;
 #endif
