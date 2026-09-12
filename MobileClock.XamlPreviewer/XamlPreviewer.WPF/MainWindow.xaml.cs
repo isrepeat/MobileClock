@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using PreviewRenderer = XamlPreviewer.PreviewBrushes;
 
@@ -63,6 +64,7 @@ public partial class MainWindow : Window {
     private bool updatingElementSelection;
     private bool updatingEditors;
     private bool suppressFoldingStatePersistence;
+    private int navigationGraphAnimationGeneration;
     private EditorMode editorMode;
     private string? scenarioPath;
     private string? scenarioFileText;
@@ -455,6 +457,17 @@ public partial class MainWindow : Window {
             UseShellExecute = true,
         });
         this.Close();
+    }
+
+    private void NavigationGraphToggleButtonClick(object sender, RoutedEventArgs eventArgs) {
+        if (this.updatingPreviewControls) {
+            return;
+        }
+
+        this.settings.IsNavigationGraphVisible = this.NavigationGraphToggleButton.IsChecked == true;
+        this.UpdateNavigationGraphVisibility(true);
+        this.SyncSettingsEditor();
+        this.PersistSettings();
     }
 
     private void ElementSelectionButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -1194,6 +1207,7 @@ public partial class MainWindow : Window {
                 preset => preset.Width == this.settings.PreviewWidth
                     && preset.Height == this.settings.PreviewHeight);
             this.PreviewOrientationToggle.IsChecked = this.settings.IsPreviewLandscape;
+            this.NavigationGraphToggleButton.IsChecked = this.settings.IsNavigationGraphVisible;
             var speeds = this.settings.AnimationPlaybackRates.Select(rate => new AnimationSpeed {
                 Name = rate.ToString("G", System.Globalization.CultureInfo.InvariantCulture) + "×",
                 Rate = rate,
@@ -1206,7 +1220,72 @@ public partial class MainWindow : Window {
             this.updatingPreviewControls = false;
         }
         this.UpdatePreviewOrientationToggle();
+        this.UpdateNavigationGraphVisibility();
         this.ApplyPreviewLayout();
+    }
+
+    private void UpdateNavigationGraphVisibility(bool animate = false) {
+        const double navigationGraphWidth = 430.0;
+        var targetWidth = this.settings.IsNavigationGraphVisible ? navigationGraphWidth : 0.0;
+        if (!animate) {
+            this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
+            if (this.settings.IsNavigationGraphVisible) {
+                this.ConfigureNavigationGraphLayout(navigationGraphWidth);
+            } else {
+                this.ConfigureEditorPreviewLayout();
+            }
+            return;
+        }
+
+        ++this.navigationGraphAnimationGeneration;
+        var generation = this.navigationGraphAnimationGeneration;
+        var sourceWidth = this.NavigationGraphPanel.Visibility == Visibility.Visible
+            ? this.NavigationGraphColumn.ActualWidth
+            : 0.0;
+        if (this.settings.IsNavigationGraphVisible) {
+            this.ConfigureNavigationGraphLayout(sourceWidth);
+        }
+        var animation = new GridLengthAnimation {
+            From = new GridLength(sourceWidth),
+            To = new GridLength(targetWidth),
+            Duration = TimeSpan.FromMilliseconds(220.0),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
+        };
+        animation.Completed += (_, _) => {
+            if (generation != this.navigationGraphAnimationGeneration) {
+                return;
+            }
+            this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
+            if (this.settings.IsNavigationGraphVisible) {
+                this.ConfigureNavigationGraphLayout(navigationGraphWidth);
+            } else {
+                this.ConfigureEditorPreviewLayout();
+            }
+        };
+        this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
+    }
+
+    private void ConfigureNavigationGraphLayout(double graphWidth) {
+        Grid.SetColumn(this.PreviewPanel, 4);
+        Grid.SetColumn(this.NavigationPreviewSplitter, 3);
+        this.EditorNavigationSplitter.Visibility = Visibility.Visible;
+        this.NavigationGraphPanel.Visibility = Visibility.Visible;
+        this.NavigationPreviewSplitter.Visibility = Visibility.Visible;
+        this.EditorNavigationSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
+        this.NavigationGraphColumn.Width = new GridLength(graphWidth);
+        this.NavigationPreviewSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
+        this.PreviewColumn.Width = new GridLength(1.0, GridUnitType.Star);
+    }
+
+    private void ConfigureEditorPreviewLayout() {
+        Grid.SetColumn(this.PreviewPanel, 2);
+        this.EditorNavigationSplitter.Visibility = Visibility.Visible;
+        this.NavigationGraphPanel.Visibility = Visibility.Collapsed;
+        this.NavigationPreviewSplitter.Visibility = Visibility.Collapsed;
+        this.EditorNavigationSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
+        this.NavigationGraphColumn.Width = new GridLength(1.0, GridUnitType.Star);
+        this.NavigationPreviewSplitterColumn.Width = new GridLength(0.0);
+        this.PreviewColumn.Width = new GridLength(0.0);
     }
 
     private void UpdatePreviewOrientationToggle() {

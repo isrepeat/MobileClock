@@ -59,14 +59,18 @@
                        foreground="#EAE8DC"
                        text="Новый будильник"/>
         </Grid>
-        <ScrollViewer id="formScrollViewer"
-                      gridRow="1"
-                      verticalAlignment="Stretch"
-                      horizontalAlignment="Stretch"
-                      verticalScrollBarVisibility="Hidden">
-            <StackPanel horizontalAlignment="Stretch"
-                        orientation="Vertical">
-                <Grid id="timePicker"
+        <Grid id="formContent"
+              gridRow="1"
+              verticalAlignment="Stretch"
+              horizontalAlignment="Stretch">
+            <rowDefinitions>
+                <rowDefinition height="360"/>
+                <rowDefinition height="76"/>
+                <rowDefinition height="Auto"/>
+                <rowDefinition height="*"/>
+            </rowDefinitions>
+            <Grid id="timePicker"
+                      gridRow="0"
                       height="360"
                       margin="0 0 12 0"
                       horizontalAlignment="Stretch">
@@ -198,12 +202,15 @@
                                foreground="#E0B64D"
                                text=":"/>
                 </Grid>
-                <TextBlock margin="0 0 8 32"
+                <TextBlock gridRow="1"
+                           margin="0 0 8 32"
                            horizontalAlignment="Center"
                            fontSize="24"
                            foreground="#93937E"
                            text="Время будильника"/>
-                <Border padding="24"
+                <Border gridRow="2"
+                        margin="0 0 0 20"
+                        padding="24"
                         horizontalAlignment="Stretch"
                         background="#23251C"
                         cornerRadius="24">
@@ -329,74 +336,71 @@
                                    text="По будням"/>
                     </StackPanel>
                 </Border>
-                <Border margin="0 0 20 0"
+                <Border gridRow="3"
+                        margin="0 0 0 24"
                         padding="24"
-                        horizontalAlignment="Stretch"
-                        background="#23251C"
-                        cornerRadius="24">
-                    <StackPanel horizontalAlignment="Stretch"
-                                orientation="Vertical">
-                        <Grid id="melodyButton"
-                              height="84"
-                              horizontalAlignment="Stretch"
-                              background="#23251C">
-                            <columnDefinitions>
-                                <columnDefinition width="*"/>
-                                <columnDefinition width="40"/>
-                            </columnDefinitions>
-                            <StackPanel verticalAlignment="Center"
-                                        orientation="Vertical">
-                                <TextBlock fontSize="32"
-                                           foreground="#EAE8DC"
-                                           text="Мелодия"/>
-                                <TextBlock id="melodyName"
-                                           margin="0 0 8 0"
-                                           fontSize="24"
-                                           foreground="#93937E"
-                                           text="Рассвет"/>
-                            </StackPanel>
-                            <SvgImage gridColumn="1"
-                                      width="32"
-                                      height="32"
-                                      verticalAlignment="Center"
-                                      source="Icons/chevron-right.svg"
-                                      tint="#93937E"/>
-                        </Grid>
-                        <StackPanel id="melodyChoices"
-                                    horizontalAlignment="Stretch"
-                                    visibility="Collapsed"
-                                    orientation="Vertical"/>
-                    </StackPanel>
-                </Border>
-                <Border height="112"
-                        margin="0 0 20 24"
-                        padding="24"
+                        verticalAlignment="Stretch"
                         horizontalAlignment="Stretch"
                         background="#23251C"
                         cornerRadius="24">
                     <Grid verticalAlignment="Stretch"
                           horizontalAlignment="Stretch">
-                        <columnDefinitions>
-                            <columnDefinition width="*"/>
-                            <columnDefinition width="100"/>
-                        </columnDefinitions>
-                        <TextBlock verticalAlignment="Center"
-                                   fontSize="32"
-                                   foreground="#EAE8DC"
-                                   text="Вибрация"/>
-                        <ToggleSwitch id="vibrationToggle"
-                                      gridColumn="1"
-                                      width="88"
-                                      height="48"
-                                      verticalAlignment="Center"
-                                      foreground="#EAE8DC"
-                                      background="#E0B64D"
-                                      isOn="True"
-                                      borderBrush="#51533D"/>
+                        <rowDefinitions>
+                            <rowDefinition height="Auto"/>
+                            <rowDefinition height="*"/>
+                        </rowDefinitions>
+                        <Button id="melodyButton"
+                                gridRow="0"
+                                height="76"
+                                margin="0 0 0 16"
+                                padding="0"
+                                verticalAlignment="Stretch"
+                                contentAlignment="Center"
+                                horizontalAlignment="Stretch"
+                                background="#00000000"
+                                borderThickness="0">
+                            <StackPanel horizontalAlignment="Stretch"
+                                        orientation="Vertical">
+                                <TextBlock fontSize="32"
+                                           foreground="#EAE8DC"
+                                           text="Мелодия"/>
+                                <TextBlock margin="0 4 0 0"
+                                           fontSize="23"
+                                           foreground="#93937E"
+                                           text="Выберите звук будильника"/>
+                            </StackPanel>
+                        </Button>
+                        <ScrollViewer gridRow="1"
+                                      verticalAlignment="Stretch"
+                                      horizontalAlignment="Stretch"
+                                      verticalScrollBarVisibility="Auto">
+                            <ListView id="melodyChoices"
+                                      verticalAlignment="Stretch"
+                                      horizontalAlignment="Stretch"
+                                      itemsSource="{Binding Melodies}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button height="76"
+                                                padding="0"
+                                                contentAlignment="Center"
+                                                horizontalAlignment="Stretch"
+                                                fontSize="25"
+                                                foreground="#EAE8DC"
+                                                background="#171813"
+                                                borderBrush="#51533D"
+                                                borderThickness="0 1 0 0"
+                                                command="{Binding SelectCommand}">
+                                            <TextBlock verticalAlignment="Center"
+                                                       horizontalAlignment="Left"
+                                                       text="{Binding Name}"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </ScrollViewer>
                     </Grid>
                 </Border>
-            </StackPanel>
-        </ScrollViewer>
+        </Grid>
         <Button id="saveAlarmButton"
                 gridRow="2"
                 margin="0 0 16 0"

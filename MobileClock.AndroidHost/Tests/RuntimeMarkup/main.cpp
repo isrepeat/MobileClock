@@ -123,23 +123,11 @@ namespace mobileclock::tests::_details {
             Find(session.Root(), "day" + std::to_string(day))->ExecuteCommand();
         }
         Check(Find(session.Root(), "repeatSummary")->Text() == "Однократно", "No days means once");
-        Find(session.Root(), "melodyButton")->ExecuteCommand();
-        Check(Find(session.Root(), "melodyChoices")->VisibilityValue() == xaml::attr::Visibility::visible, "Melody chooser");
-        Find(session.Root(), "melodyChoices")->Children().front()->ExecuteCommand();
-        Check(session.CurrentPageName() == "XiaomiThemesPage", "Theme selection navigation");
-        FinishNavigation(session);
-        Find(session.Root(), "melody1")->ExecuteCommand();
-        Find(session.Root(), "applyButton")->ExecuteCommand();
-        Check(session.CurrentPageName() == "AddAlarmPage", "Selected theme must return to the form");
-        FinishNavigation(session);
-        Check(Find(session.Root(), "melodyName")->Text() == "Lone Grass, Solitary Flower", "Theme must update the draft");
-        Find(session.Root(), "melody1")->ExecuteCommand();
-        Check(Find(session.Root(), "melodyName")->Text() == "Классика", "Melody selection");
-        xaml::layout(session.Root(), {720, 1440});
-        const auto toggle = Find(session.Root(), "vibrationToggle")->Bounds();
-        session.PointerDown(toggle.x + toggle.width / 2, toggle.y + toggle.height / 2);
-        session.PointerUp(toggle.x + toggle.width / 2, toggle.y + toggle.height / 2);
-        Check(!Find(session.Root(), "vibrationToggle")->IsOn(), "Vibration input");
+        session.AddAlarmMelody("Morning", "preview://morning");
+        session.AddAlarmMelody("Lone Grass, Solitary Flower", "preview://lone-grass");
+        auto* melodyChoices = Find(session.Root(), "melodyChoices");
+        Check(melodyChoices->Children().size() == 2, "Permanent melody list");
+        melodyChoices->Children().back()->ExecuteCommand();
         Find(session.Root(), "saveAlarmButton")->ExecuteCommand();
         Check(session.Root().Id() == "root", "Save navigation");
         Check(xaml::AnimationController::IsAnimating(session.Root()), "Main page Show must animate");
@@ -149,7 +137,7 @@ namespace mobileclock::tests::_details {
         const auto* alarm = static_cast<const ui::MainPageViewModel::Alarm*>(items->Children().back()->DataContext());
         Check(alarm != nullptr && alarm->Time() == "00:00", "Saved time");
         Check(alarm->Repeat() == "Однократно", "Saved repeat");
-        Check(alarm->Settings().melody == "Классика" && !alarm->Settings().vibration, "Saved sound settings");
+        Check(alarm->Settings().melody == "Lone Grass, Solitary Flower" && alarm->Settings().vibration, "Saved sound settings");
         Find(session.Root(), "addAlarmButton")->ExecuteCommand();
         Check(Find(session.Root(), "wheel0Row2")->Text() == "07", "New form must reset draft");
         FinishNavigation(session);

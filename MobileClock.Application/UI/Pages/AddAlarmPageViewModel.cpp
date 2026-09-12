@@ -1,6 +1,9 @@
 #include "UI/Pages/AddAlarmPageViewModel.h"
 
 #include <XamlRuntime/RenderEngine.h>
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
+#endif
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/AddAlarmPage.xaml.h"
 #include "UI/AppSessionController.h"
@@ -30,9 +33,10 @@ namespace mobileclock::ui::_details {
 }
 
 namespace mobileclock::ui {
-    AddAlarmPageViewModel::Melody::Melody(std::string name, std::string uri)
+    AddAlarmPageViewModel::Melody::Melody(std::string name, std::string uri, xaml::Element::Command selectCommand)
         : name(std::move(name))
-        , uri(std::move(uri)) {
+        , uri(std::move(uri))
+        , selectCommand(std::move(selectCommand)) {
     }
 
     const std::string& AddAlarmPageViewModel::Melody::Name() const {
@@ -41,6 +45,14 @@ namespace mobileclock::ui {
 
     const std::string& AddAlarmPageViewModel::Melody::Uri() const {
         return this->uri;
+    }
+
+    xaml::Element::Command AddAlarmPageViewModel::Melody::SelectCommand() const {
+        return this->selectCommand;
+    }
+
+    void AddAlarmPageViewModel::Melody::SetName(std::string value) {
+        this->name = std::move(value);
     }
 
     AddAlarmPageViewModel::AddAlarmPageViewModel(PageContext& context)
@@ -153,9 +165,6 @@ namespace mobileclock::ui {
     //
     void AddAlarmPageViewModel::Reset() {
         this->settings = AlarmSettings{};
-        if (auto* scroll = this->Find("formScrollViewer")) {
-            scroll->SetVerticalOffset(0.0f);
-        }
         this->dragging = false;
         this->remainder = 0.0f;
         this->saved = false;
@@ -171,11 +180,13 @@ namespace mobileclock::ui {
             return melody.Uri() == uri;
         });
         if (existing == this->melodies.end()) {
-            this->melodies.emplace_back(std::move(name), std::move(uri));
+            const xaml::Element::Command selectCommand = [this, name, uri]() {
+                this->SetMelody(name, uri);
+            };
+            this->melodies.EmplaceBack(std::move(name), std::move(uri), selectCommand);
         } else {
-            *existing = Melody(std::move(name), std::move(uri));
+            existing->SetName(std::move(name));
         }
-        this->RebuildMelodyChoices();
     }
 
     void AddAlarmPageViewModel::SetMelody(std::string name, std::string uri) {
@@ -194,6 +205,10 @@ namespace mobileclock::ui {
         this->settings.melody = std::move(name);
         this->settings.melodyUri = std::move(uri);
         this->Refresh();
+    }
+
+    const xaml::ObservableCollection<AddAlarmPageViewModel::Melody>& AddAlarmPageViewModel::Melodies() const {
+        return this->melodies;
     }
 
     void AddAlarmPageViewModel::ChooseAlarmMelody() {
@@ -233,7 +248,21 @@ namespace mobileclock::ui {
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     xaml::runtime::RuntimeBindingContext AddAlarmPageViewModel::RuntimeContext() {
-        return {std::make_shared<xaml::runtime::RuntimeBindingRegistry>(), "AddAlarmPageViewModel", {}};
+        auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
+        xaml::runtime::RuntimeBindingContext result{registry, "AddAlarmPageViewModel", {}};
+        xaml::runtime::RuntimeCollectionDescriptor collection;
+        collection.itemBindings = [](const void* value) {
+            const auto* melody = static_cast<const Melody*>(value);
+            auto item = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
+            item->AddText("Name", [melody]() { return melody == nullptr ? "" : melody->Name(); });
+            item->AddCommand("SelectCommand", melody == nullptr ? xaml::Element::Command{} : melody->SelectCommand());
+            return item;
+        };
+        collection.bind = [this](xaml::Element& element, xaml::Element::ItemTemplate itemTemplate) {
+            element.SetItemsSource(this->melodies, std::move(itemTemplate));
+        };
+        registry->AddCollection("Melodies", collection);
+        return result;
     }
 
     void AddAlarmPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
@@ -297,18 +326,9 @@ namespace mobileclock::ui {
             });
         }
         connect("melodyButton", [this]() {
-            if (auto* choices = this->Find("melodyChoices")) {
-                choices->SetVisibility(choices->VisibilityValue() == xaml::attr::Visibility::collapsed
-                    ? xaml::attr::Visibility::visible : xaml::attr::Visibility::collapsed);
-            }
-        });
-        connect("vibrationToggle", [this]() {
-            if (auto* toggle = this->Find("vibrationToggle")) {
-                this->settings.vibration = toggle->IsOn();
-            }
+            this->ChooseAlarmMelody();
         });
         this->Refresh();
-        this->RebuildMelodyChoices();
     }
 
     void AddAlarmPageViewModel::OnStorageChange(const StorageChange& change) {
@@ -330,41 +350,6 @@ namespace mobileclock::ui {
         }
     }
 
-    void AddAlarmPageViewModel::RebuildMelodyChoices() {
-        auto* const choices = this->Find("melodyChoices");
-        if (choices == nullptr) {
-            return;
-        }
-        while (!choices->Children().empty()) {
-            choices->RemoveChildImmediately(*choices->Children().back());
-        }
-        const auto addChoice = [this, choices](std::string text, xaml::Element::Command command) {
-            auto choice = std::make_unique<xaml::Element>(xaml::ElementType::button);
-            choice->SetText(std::move(text));
-            choice->SetHeight(64.0f);
-            choice->SetFontSize(25.0f);
-            choice->SetBackground({45.0f / 255, 48.0f / 255, 34.0f / 255, 1.0f});
-            choice->SetForeground({234.0f / 255, 232.0f / 255, 220.0f / 255, 1.0f});
-            choice->SetBorderThickness({0.0f, 0.0f, 0.0f, 0.0f});
-            choice->SetCornerRadius(12.0f);
-            choice->SetMargin({0.0f, 0.0f, 0.0f, 8.0f});
-            choice->SetHorizontalAlignment(xaml::attr::Alignment::stretch);
-            choice->SetCommand(std::move(command));
-            choices->AddChild(std::move(choice));
-        };
-        addChoice("Выбрать в Темах", [this]() {
-            this->ChooseAlarmMelody();
-        });
-        for (const Melody& melody : this->melodies) {
-            addChoice(melody.Name(), [this, name = melody.Name(), uri = melody.Uri()]() {
-                this->SetMelody(name, uri);
-                if (auto* choices = this->Find("melodyChoices")) {
-                    choices->SetVisibility(xaml::attr::Visibility::collapsed);
-                }
-            });
-        }
-    }
-
     void AddAlarmPageViewModel::RemoveMelody(std::string_view uri) {
         const auto melody = std::find_if(this->melodies.begin(), this->melodies.end(), [uri](const Melody& value) {
             return value.Uri() == uri;
@@ -376,8 +361,7 @@ namespace mobileclock::ui {
             this->settings.melody = AlarmSettings{}.melody;
             this->settings.melodyUri.clear();
         }
-        this->melodies.erase(melody);
-        this->RebuildMelodyChoices();
+        this->melodies.Erase(melody);
         this->Refresh();
     }
 
@@ -403,12 +387,6 @@ namespace mobileclock::ui {
             summary->SetText(count == 0 ? "Однократно" : count == 7 ? "Каждый день"
                 : this->settings.days == weekdays ? "По будням"
                 : this->settings.days == weekend ? "По выходным" : "Выбранные дни");
-        }
-        if (auto* melody = this->Find("melodyName")) {
-            melody->SetText(this->settings.melody);
-        }
-        if (auto* toggle = this->Find("vibrationToggle")) {
-            toggle->SetIsOn(this->settings.vibration);
         }
     }
 

@@ -18,6 +18,23 @@
 #include <vector>
 #include <array>
 
+namespace mobileclock::ui::_details {
+    presentation::NavigationDirection NavigationDirectionFor(
+        std::string_view from,
+        std::string_view to) {
+        if (to == MainPageViewModel::PageName) {
+            return presentation::NavigationDirection::backward;
+        }
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        if (from == XiaomiThemesPageViewModel::PageName
+            && to == AddAlarmPageViewModel::PageName) {
+            return presentation::NavigationDirection::backward;
+        }
+#endif
+        return presentation::NavigationDirection::forward;
+    }
+}
+
 namespace mobileclock::ui {
     PageManager::PageManager(AppSessionController& appSessionController, ApplicationStorage& storage)
         : pageContext{static_cast<IPageNavigator&>(*this), appSessionController, storage}
@@ -103,9 +120,9 @@ namespace mobileclock::ui {
             return xaml::AnimationParameters::Create(presentation::PageTransitionData{
                 this->outgoingPage == nullptr ? "" : std::string(this->outgoingPage->Name()),
                 this->currentPage == nullptr ? "" : std::string(this->currentPage->Name()),
-                this->currentPage == &this->pages.GetPage<MainPageViewModel>()
-                    ? presentation::NavigationDirection::backward
-                    : presentation::NavigationDirection::forward,
+                _details::NavigationDirectionFor(
+                    this->outgoingPage == nullptr ? "" : this->outgoingPage->Name(),
+                    this->currentPage == nullptr ? "" : this->currentPage->Name()),
             });
         };
         this->pages.ForEach([&](IPage& page) {
@@ -345,8 +362,9 @@ namespace mobileclock::ui {
                 return xaml::AnimationParameters::Create(presentation::PageTransitionData{
                     this->outgoingPage == nullptr ? "" : std::string(this->outgoingPage->Name()),
                     this->currentPage == nullptr ? "" : std::string(this->currentPage->Name()),
-                    this->currentPage == &this->pages.GetPage<MainPageViewModel>()
-                        ? presentation::NavigationDirection::backward : presentation::NavigationDirection::forward});
+                    _details::NavigationDirectionFor(
+                        this->outgoingPage == nullptr ? "" : this->outgoingPage->Name(),
+                        this->currentPage == nullptr ? "" : this->currentPage->Name())});
             });
             this->animations.Attach(*result.root, registry);
             registry.ValidateTree(*result.root);

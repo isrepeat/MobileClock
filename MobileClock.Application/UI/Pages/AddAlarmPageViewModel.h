@@ -4,6 +4,7 @@
 #endif
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
+#include <XamlRuntime/ObservableCollection.h>
 
 #include "MobileClock.UI/Controls/IGestureTarget.h"
 #include "UI/ISerializable.h"
@@ -26,14 +27,18 @@ namespace mobileclock::ui {
 
         class Melody final {
         public:
-            Melody(std::string name, std::string uri);
+            Melody(std::string name, std::string uri, xaml::Element::Command selectCommand);
 
             const std::string& Name() const;
             const std::string& Uri() const;
+            xaml::Element::Command SelectCommand() const;
+
+            void SetName(std::string value);
 
         private:
             std::string name;
             std::string uri;
+            xaml::Element::Command selectCommand;
         };
 
         explicit AddAlarmPageViewModel(PageContext& context);
@@ -68,6 +73,7 @@ namespace mobileclock::ui {
         const AlarmSettings& Settings() const;
         void AddMelody(std::string name, std::string uri);
         void SetMelody(std::string name, std::string uri);
+        const xaml::ObservableCollection<Melody>& Melodies() const;
         void ChooseAlarmMelody();
         void NavigateToMain();
         void Initialize(xaml::Size availableSize);
@@ -89,7 +95,6 @@ namespace mobileclock::ui {
 
         void ConnectControls();
         void OnStorageChange(const StorageChange& change);
-        void RebuildMelodyChoices();
         void RemoveMelody(std::string_view uri);
         void Refresh();
         void RefreshWheel(int column, float offset);
@@ -100,7 +105,7 @@ namespace mobileclock::ui {
     private:
         PageContext& context;
         AlarmSettings settings;
-        std::vector<Melody> melodies;
+        xaml::ObservableCollection<Melody> melodies;
         ApplicationStorage::Unsubscribe storageSubscription;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
