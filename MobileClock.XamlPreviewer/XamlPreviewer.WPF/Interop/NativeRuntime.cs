@@ -101,6 +101,19 @@ internal static class NativeRuntime {
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_current_page")]
     public static extern int mc_current_page(IntPtr session, [Out] StringBuilder page, int capacity);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_navigate_preview_route")]
+    public static extern int mc_navigate_preview_route(
+        IntPtr session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string target);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_navigate_preview_route_path")]
+    public static extern int mc_navigate_preview_route_path(
+        IntPtr session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string path);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_preview_route_graph")]
+    public static extern int mc_preview_route_graph(IntPtr session, [Out] StringBuilder graph, int capacity);
+
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_apply_preview_scenario")]
     public static extern int mc_apply_preview_scenario(
         IntPtr session,

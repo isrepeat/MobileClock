@@ -146,6 +146,14 @@ namespace mobileclock::ui {
         this->Refresh();
     }
 
+    void AddAlarmPageViewModel::ChooseAlarmMelody() {
+        this->context.actions.ChooseAlarmMelody();
+    }
+
+    void AddAlarmPageViewModel::NavigateToMain() {
+        this->context.navigator.Navigate<MainPageViewModel>();
+    }
+
     void AddAlarmPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -214,7 +222,7 @@ namespace mobileclock::ui {
             }
         };
         connect("backNavigation", [this]() {
-            this->context.navigator.Navigate<MainPageViewModel>();
+            this->NavigateToMain();
         });
         connect("saveAlarmButton", [this]() {
             if (this->saved || !this->context.saveAlarm) {
@@ -276,7 +284,7 @@ namespace mobileclock::ui {
             choices->AddChild(std::move(choice));
         };
         addChoice("Выбрать в Темах", [this]() {
-            this->context.actions.ChooseAlarmMelody();
+            this->ChooseAlarmMelody();
         });
         for (const Melody& melody : this->melodies) {
             addChoice(melody.Name(), [this, name = melody.Name(), uri = melody.Uri()]() {

@@ -48,6 +48,10 @@ namespace mobileclock::ui {
         return this->sound;
     }
 
+    void SettingsPageViewModel::NavigateToMain() {
+        this->navigateToMainCommand();
+    }
+
     xaml::Element::Command SettingsPageViewModel::NavigateToMainCommand() const {
         return this->navigateToMainCommand;
     }

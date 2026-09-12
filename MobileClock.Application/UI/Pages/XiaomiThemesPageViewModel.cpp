@@ -62,6 +62,14 @@ namespace mobileclock::ui {
         this->selectedMelody = 0;
     }
 
+    void XiaomiThemesPageViewModel::ApplySelectedMelody() {
+        if (!this->selectedMelody || !this->context.applyAlarmMelody) {
+            return;
+        }
+        const Melody& melody = this->melodies[*this->selectedMelody];
+        this->context.applyAlarmMelody(melody.Name(), melody.Uri());
+    }
+
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     //
     // ISerializable
@@ -133,11 +141,7 @@ namespace mobileclock::ui {
     void XiaomiThemesPageViewModel::ConnectControls() {
         if (auto* apply = this->Find("applyButton")) {
             apply->SetCommand([this]() {
-                if (!this->selectedMelody || !this->context.applyAlarmMelody) {
-                    return;
-                }
-                const Melody& melody = this->melodies[*this->selectedMelody];
-                this->context.applyAlarmMelody(melody.Name(), melody.Uri());
+                this->ApplySelectedMelody();
             });
         }
         this->RebuildMelodies();

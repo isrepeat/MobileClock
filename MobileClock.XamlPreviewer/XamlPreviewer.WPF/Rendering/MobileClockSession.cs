@@ -8,6 +8,8 @@ using System.Windows.Media;
 
 namespace XamlPreviewer;
 
+internal sealed record PreviewRoute(string Source, string Target);
+
 // Native application mode. It is intentionally separate from editable-XAML mode:
 // WPF hosts the image and input only; MobileClock owns the runtime tree.
 internal sealed class MobileClockSession : IDisposable {
@@ -23,7 +25,6 @@ internal sealed class MobileClockSession : IDisposable {
     private bool useDefaultCursorForElementInspection;
 
     public event Action<NativeInspectionResult>? ElementSelected;
-    public event Action<string>? PageNavigated;
     public event Action? RuntimeMarkupReloaded;
 
     public MobileClockSession(string resourcesDirectory, int width, int height) {
@@ -63,6 +64,23 @@ internal sealed class MobileClockSession : IDisposable {
         NativeRuntime.Ensure(NativeRuntime.mc_load_page(this.session, page) != 0);
         this.loadedPage = page;
 
+        this.Render();
+    }
+
+    public string CurrentPage => this.GetCurrentPage();
+
+    public IReadOnlyList<PreviewRoute> PreviewRoutes => this.GetPreviewRoutes();
+
+    public void NavigatePreviewRoute(string target) {
+        NativeRuntime.Ensure(NativeRuntime.mc_navigate_preview_route(this.session, target) != 0);
+        this.loadedPage = this.GetCurrentPage();
+        this.Render();
+    }
+
+    public void NavigatePreviewRoute(IReadOnlyList<string> path) {
+        NativeRuntime.Ensure(path.Count > 0);
+        NativeRuntime.Ensure(NativeRuntime.mc_navigate_preview_route_path(this.session, string.Join('>', path)) != 0);
+        this.loadedPage = this.GetCurrentPage();
         this.Render();
     }
 
@@ -137,11 +155,7 @@ internal sealed class MobileClockSession : IDisposable {
 
     public void UpdateAndRender() {
         NativeRuntime.Ensure(NativeRuntime.mc_update(this.session) != 0);
-        var currentPage = this.GetCurrentPage();
-        if (!string.IsNullOrEmpty(currentPage) && !string.Equals(this.loadedPage, currentPage, StringComparison.Ordinal)) {
-            this.loadedPage = currentPage;
-            this.PageNavigated?.Invoke(currentPage);
-        }
+        this.loadedPage = this.GetCurrentPage();
         this.Render();
     }
 
@@ -244,6 +258,16 @@ internal sealed class MobileClockSession : IDisposable {
         var page = new StringBuilder(128);
         NativeRuntime.Ensure(NativeRuntime.mc_current_page(this.session, page, page.Capacity) != 0);
         return page.ToString();
+    }
+
+    private IReadOnlyList<PreviewRoute> GetPreviewRoutes() {
+        var graph = new StringBuilder(1024);
+        NativeRuntime.Ensure(NativeRuntime.mc_preview_route_graph(this.session, graph, graph.Capacity) != 0);
+        return graph.ToString().Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(value => value.Split('>', 2))
+            .Where(value => value.Length == 2)
+            .Select(value => new PreviewRoute(value[0], value[1]))
+            .ToArray();
     }
 
     private void Render() {

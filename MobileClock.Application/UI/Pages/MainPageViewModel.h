@@ -80,6 +80,8 @@ namespace mobileclock::ui {
         const xaml::ObservableCollection<Alarm>& Alarms() const;
 
         void AddAlarm(const AlarmSettings& settings);
+        void CreateAlarm();
+        void NavigateToSettings();
         xaml::Element::Command CreateAlarmCommand() const;
         xaml::Element::Command NavigateToSettingsCommand() const;
         xaml::Element::Command ToggleAlarmCommand() const;
@@ -103,6 +105,7 @@ namespace mobileclock::ui {
         void NotifyPropertyChanged(Property property);
 
     private:
+        PageContext& context;
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";

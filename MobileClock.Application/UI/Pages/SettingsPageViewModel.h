@@ -42,6 +42,7 @@ namespace mobileclock::ui {
         const std::string& Theme() const;
         const std::string& Sound() const;
 
+        void NavigateToMain();
         xaml::Element::Command NavigateToMainCommand() const;
         xaml::Element::Command ShareLogsCommand() const;
         xaml::Element::Command ExportLogsCommand() const;

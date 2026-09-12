@@ -47,6 +47,18 @@ namespace mobileclock::ui {
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+    bool ApplicationSession::NavigatePreviewRoute(std::string_view target, std::string& error) {
+        return this->pageManager.NavigatePreviewRoute(target, error);
+    }
+
+    bool ApplicationSession::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
+        return this->pageManager.NavigatePreviewRoute(path, error);
+    }
+
+    std::string ApplicationSession::PreviewRouteGraph() const {
+        return this->pageManager.PreviewRouteGraph();
+    }
+
     bool ApplicationSession::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
         return this->pageManager.ApplyPreviewScenario(page, json, error);
     }

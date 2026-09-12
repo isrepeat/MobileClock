@@ -61,6 +61,8 @@ namespace mobileclock::ui {
         const AlarmSettings& Settings() const;
         void AddMelody(std::string name, std::string uri);
         void SetMelody(std::string name, std::string uri);
+        void ChooseAlarmMelody();
+        void NavigateToMain();
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();

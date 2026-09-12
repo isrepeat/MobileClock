@@ -28,6 +28,9 @@ namespace mobileclock::ui {
         void AddAlarmMelody(std::string name, std::string uri);
         void SetAlarmMelody(std::string name, std::string uri);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+        bool NavigatePreviewRoute(std::string_view target, std::string& error);
+        bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
+        std::string PreviewRouteGraph() const;
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
         bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
 #endif

@@ -45,6 +45,7 @@ namespace mobileclock::ui {
         bool Deserialize(std::string_view json, std::string& error) override;
 #endif
 
+        void ApplySelectedMelody();
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();

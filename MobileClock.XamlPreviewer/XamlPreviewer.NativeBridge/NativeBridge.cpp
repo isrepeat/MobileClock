@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include <format>
 #include <chrono>
 #include <cctype>
 #include <memory>
@@ -279,20 +280,15 @@ namespace mobileclock::preview::_details {
         }
 
         void ProcessPendingActions() {
-            if (!this->isChooseAlarmMelodyRequested) {
-                return;
-            }
-            this->isChooseAlarmMelodyRequested = false;
-            if (this->chooseAlarmMelodyCommand) {
-                this->chooseAlarmMelodyCommand();
-            }
         }
 
         void CreateAlarm() override {
         }
 
         void ChooseAlarmMelody() override {
-            this->isChooseAlarmMelodyRequested = true;
+            if (this->chooseAlarmMelodyCommand) {
+                this->chooseAlarmMelodyCommand();
+            }
         }
 
         void ToggleAlarm() override {
@@ -312,7 +308,6 @@ namespace mobileclock::preview::_details {
 
     private:
         std::function<void()> chooseAlarmMelodyCommand;
-        bool isChooseAlarmMelodyRequested = false;
     };
 }
 
@@ -434,6 +429,111 @@ int mc_current_page(mc_session* session, char* page, int capacity) {
         }
         std::memcpy(page, name.data(), name.size());
         page[name.size()] = static_cast<char>(0);
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
+int mc_navigate_preview_route(mc_session* session, const char* target) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || target == nullptr) {
+            throw std::invalid_argument("Session and target page are required");
+        }
+        LOG_INFO(
+            "XamlPreviewer.Route",
+            "Native route request: current='{}', target='{}'",
+            session->session.CurrentPageName(),
+            target);
+        if (!session->session.NavigatePreviewRoute(target, xaml::bridge::lastError)) {
+            LOG_WARNING("XamlPreviewer.Route", "Native route rejected: {}", xaml::bridge::lastError);
+            return 0;
+        }
+        session->actions.ProcessPendingActions();
+        if (session->session.CurrentPageName() != target) {
+            xaml::bridge::lastError = std::format("Preview route did not reach {}", target);
+            LOG_ERROR(
+                "XamlPreviewer.Route",
+                "Native route failed after pending actions: target='{}', actual='{}'",
+                target,
+                session->session.CurrentPageName());
+            return 0;
+        }
+        LOG_INFO("XamlPreviewer.Route", "Native route completed: active='{}'", session->session.CurrentPageName());
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        LOG_ERROR("XamlPreviewer.Route", "Native route threw: {}", xaml::bridge::lastError);
+        return 0;
+    }
+}
+
+int mc_navigate_preview_route_path(mc_session* session, const char* path) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || path == nullptr) {
+            throw std::invalid_argument("Session and route path are required");
+        }
+        LOG_INFO(
+            "XamlPreviewer.Route",
+            "Native explicit route request: current='{}', path='{}'",
+            session->session.CurrentPageName(),
+            path);
+        std::vector<std::string_view> pages;
+        const std::string_view serialized(path);
+        size_t start = 0;
+        while (start <= serialized.size()) {
+            const size_t separator = serialized.find('>', start);
+            const std::string_view page = serialized.substr(start, separator - start);
+            if (page.empty()) {
+                throw std::invalid_argument("Preview route contains an empty page");
+            }
+            pages.push_back(page);
+            if (separator == std::string_view::npos) {
+                break;
+            }
+            start = separator + 1;
+        }
+        if (!session->session.NavigatePreviewRoute(pages, xaml::bridge::lastError)) {
+            LOG_WARNING("XamlPreviewer.Route", "Native explicit route rejected: {}", xaml::bridge::lastError);
+            return 0;
+        }
+        session->actions.ProcessPendingActions();
+        if (session->session.CurrentPageName() != pages.back()) {
+            xaml::bridge::lastError = std::format("Preview route did not reach {}", pages.back());
+            LOG_ERROR(
+                "XamlPreviewer.Route",
+                "Native explicit route failed after pending actions: target='{}', actual='{}'",
+                pages.back(),
+                session->session.CurrentPageName());
+            return 0;
+        }
+        LOG_INFO(
+            "XamlPreviewer.Route",
+            "Native explicit route completed: active='{}'",
+            session->session.CurrentPageName());
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        LOG_ERROR("XamlPreviewer.Route", "Native explicit route threw: {}", xaml::bridge::lastError);
+        return 0;
+    }
+}
+
+int mc_preview_route_graph(mc_session* session, char* graph, int capacity) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || graph == nullptr || capacity <= 0) {
+            throw std::invalid_argument("Session, graph buffer and positive capacity are required");
+        }
+        const std::string value = session->session.PreviewRouteGraph();
+        if (value.size() >= static_cast<size_t>(capacity)) {
+            throw std::invalid_argument("Preview route graph buffer is too small");
+        }
+        std::memcpy(graph, value.data(), value.size());
+        graph[value.size()] = static_cast<char>(0);
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();

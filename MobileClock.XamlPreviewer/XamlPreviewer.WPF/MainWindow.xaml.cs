@@ -45,11 +45,13 @@ public partial class MainWindow : Window {
     private readonly XamlCompletionController xamlCompletionController;
     private readonly FolderPickerController folderPickerController;
     private readonly PreviewViewportController previewViewportController;
+    private readonly NavigationGraphController navigationGraphController;
     private readonly Grid previewLayer = new();
     private bool updatingPreviewControls;
     private bool updatingControlPicker;
     private bool settingsPersistenceReady;
     private MobileClockSession? nativeApplicationSession;
+    private IReadOnlyList<string>? pendingPreviewRoute;
     private bool isClosing;
     private PreviewerSettings settings = null!;
     private string? markupPath;
@@ -82,6 +84,12 @@ public partial class MainWindow : Window {
     public MainWindow() {
         InitializeComponent();
         this.statusPresenter = new PreviewStatusPresenter(this.StatusText);
+        this.navigationGraphController = new NavigationGraphController(
+            this.NavigationGraph,
+            this.SelectNavigationPageInEditor,
+            this.statusPresenter.Information);
+        this.navigationGraphController.ActivePageChanged += this.NavigationGraphActivePageChanged;
+        this.navigationGraphController.RouteConfirmed += this.NavigationGraphRouteConfirmed;
         this.DeviceSurface.Child = this.previewLayer;
         WindowTheme.EnableDarkTitleBar(this);
         this.markupSearchPanel = MainWindow.ConfigureEditor(this.MarkupEditor, MarkupSyntaxHighlighter.Create());
@@ -289,6 +297,7 @@ public partial class MainWindow : Window {
         this.nativeApplicationSession?.Dispose();
         this.nativeApplicationSession = null;
         this.previewLayer.Children.Clear();
+        this.navigationGraphController.Clear();
     }
 
     private void ShowPreviewError(Exception exception) {
@@ -651,6 +660,23 @@ public partial class MainWindow : Window {
         this.ShowNativeApplicationPreview();
     }
 
+    private void NavigationGraphRouteConfirmed(IReadOnlyList<string> route) {
+        this.pendingPreviewRoute = route;
+        this.ShowNativeApplicationPreview();
+    }
+
+    private void NavigationGraphActivePageChanged(string page) {
+        this.SelectNavigationPageInEditor(page);
+    }
+
+    private void SelectNavigationPageInEditor(string page) {
+        var pagePath = this.PagePicker.Items.Cast<string>().FirstOrDefault(candidate =>
+            string.Equals(Path.GetFileNameWithoutExtension(candidate), page, StringComparison.Ordinal));
+        if (pagePath is not null) {
+            this.PagePicker.SelectedItem = pagePath;
+        }
+    }
+
     private void ControlPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
         if (this.updatingControlPicker || this.ControlPicker.SelectedItem is not MarkupNavigationTarget target) {
             return;
@@ -806,23 +832,13 @@ public partial class MainWindow : Window {
         }
         try {
             this.nativeApplicationSession?.UpdateAndRender();
+            if (this.nativeApplicationSession is not null) {
+                this.navigationGraphController.Synchronize(this.nativeApplicationSession.CurrentPage);
+            }
         }
         catch (Exception exception) {
             this.ShowPreviewError(exception);
         }
-    }
-
-    private void NativeApplicationPageNavigated(string pageName) {
-        this.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
-            if (this.isClosing || this.nativeApplicationSession is null) {
-                return;
-            }
-            var pagePath = this.PagePicker.Items.Cast<string>().FirstOrDefault(candidate =>
-                string.Equals(Path.GetFileNameWithoutExtension(candidate), pageName, StringComparison.Ordinal));
-            if (pagePath is not null && !string.Equals(this.PagePicker.SelectedItem as string, pagePath, StringComparison.Ordinal)) {
-                this.PagePicker.SelectedItem = pagePath;
-            }
-        }));
     }
 
     private void LoadMarkup(string path) {
@@ -1320,9 +1336,10 @@ public partial class MainWindow : Window {
         }
         try {
             var previewSize = this.GetPreviewSize();
-            if (this.nativeApplicationSession is null
+            var isNewSession = this.nativeApplicationSession is null
                 || this.nativeApplicationSession.Width != previewSize.Width
-                || this.nativeApplicationSession.Height != previewSize.Height) {
+                || this.nativeApplicationSession.Height != previewSize.Height;
+            if (isNewSession) {
                 this.animationTimer.Stop();
                 this.nativeApplicationSession?.Dispose();
                 this.nativeApplicationSession = new MobileClockSession(
@@ -1331,32 +1348,45 @@ public partial class MainWindow : Window {
                     previewSize.Height);
                 this.nativeApplicationSession.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
                 this.nativeApplicationSession.ElementSelected += this.PreviewElementSelected;
-                this.nativeApplicationSession.PageNavigated += this.NativeApplicationPageNavigated;
                 this.nativeApplicationSession.RuntimeMarkupReloaded += this.SelectElementFromMarkupEditor;
                 this.previewLayer.Children.Clear();
                 this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);
                 this.ApplyElementInspectionHighlightSettings();
+                this.navigationGraphController.SetRoutes(
+                    this.nativeApplicationSession.PreviewRoutes,
+                    this.nativeApplicationSession.CurrentPage);
             }
             this.UpdateElementInspection();
-            this.nativeApplicationSession.LoadPage(this.GetNativeApplicationPageName());
+            if (isNewSession) {
+                this.nativeApplicationSession.LoadPage("MainPage");
+            }
+            var targetPage = this.GetNativeApplicationPageName();
+            if (this.pendingPreviewRoute is { Count: > 0 } route) {
+                NativeRuntime.xr_log_info($"Preview graph dispatches native route: {string.Join('>', route)}");
+                this.nativeApplicationSession.NavigatePreviewRoute(route);
+                NativeRuntime.xr_log_info($"Preview graph native route completed: {this.nativeApplicationSession.CurrentPage}");
+                this.navigationGraphController.CompleteNavigation(this.nativeApplicationSession.CurrentPage);
+            }
+            this.pendingPreviewRoute = null;
             var scenario = this.GetSelectedScenarioJson();
             if (scenario is not null) {
-                this.nativeApplicationSession.ApplyPreviewScenario(this.GetNativeApplicationPageName(), scenario);
+                this.nativeApplicationSession.ApplyPreviewScenario(targetPage, scenario);
             }
             var pagePath = this.GetSelectedPageMarkupPath();
             if (pagePath is not null) {
                 this.nativeApplicationSession.LoadRuntimeMarkup(
-                    this.GetNativeApplicationPageName(), File.ReadAllText(pagePath), pagePath);
+                    targetPage, File.ReadAllText(pagePath), pagePath);
             }
             if (this.ControlPicker.ItemsSource is IEnumerable<MarkupNavigationTarget> controls) {
                 foreach (var control in controls.Where(control => control.Name != "Page")) {
                     this.nativeApplicationSession.LoadRuntimeMarkup(
-                        this.GetNativeApplicationPageName(), File.ReadAllText(control.Path), control.Path);
+                        targetPage, File.ReadAllText(control.Path), control.Path);
                 }
             }
             this.nativeApplicationSession.UpdateAndRender();
+            this.navigationGraphController.Synchronize(this.nativeApplicationSession.CurrentPage);
             this.animationTimer.Start();
-            this.statusPresenter.Success($"Native app: {this.GetNativeApplicationPageName()}");
+            this.statusPresenter.Success($"Native app: {this.nativeApplicationSession.CurrentPage}");
         }
         catch (Exception exception) {
             this.ShowPreviewError(exception);

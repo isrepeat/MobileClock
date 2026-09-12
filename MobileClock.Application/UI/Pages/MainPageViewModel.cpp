@@ -54,12 +54,13 @@ namespace mobileclock::ui::_details {
 
 namespace mobileclock::ui {
     MainPageViewModel::MainPageViewModel(PageContext& context)
-        : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
-        , createAlarmCommand([&context]() {
-            context.navigator.Navigate<AddAlarmPageViewModel>();
+        : context(context)
+        , packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
+        , createAlarmCommand([this]() {
+            this->CreateAlarm();
         })
-        , navigateToSettingsCommand([&context]() {
-            context.navigator.Navigate<SettingsPageViewModel>();
+        , navigateToSettingsCommand([this]() {
+            this->NavigateToSettings();
         })
         , toggleAlarmCommand([&context]() {
             context.actions.ToggleAlarm();
@@ -192,6 +193,14 @@ namespace mobileclock::ui {
     void MainPageViewModel::AddAlarm(const AlarmSettings& settings) {
         Alarm& alarm = this->alarms.EmplaceBack(settings);
         alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+    }
+
+    void MainPageViewModel::CreateAlarm() {
+        this->context.navigator.Navigate<AddAlarmPageViewModel>();
+    }
+
+    void MainPageViewModel::NavigateToSettings() {
+        this->context.navigator.Navigate<SettingsPageViewModel>();
     }
 
     xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {

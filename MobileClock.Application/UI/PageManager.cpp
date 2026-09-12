@@ -1,5 +1,6 @@
 #include "UI/PageManager.h"
 
+#include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
@@ -10,6 +11,12 @@
 #include "MobileClock.Presentation/AnimationRenderers.h"
 #include "MobileClock.Presentation/PageTransition.h"
 #include "MobileClock.Presentation/Registrations.h"
+
+#include <algorithm>
+#include <array>
+#include <format>
+#include <limits>
+#include <vector>
 
 namespace mobileclock::ui {
     PageManager::PageManager(IApplicationActions& actions)
@@ -111,6 +118,172 @@ namespace mobileclock::ui {
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+    template <typename TSource, typename TTarget, void (TSource::*TTrigger)()>
+    PageManager::PreviewRoute PageManager::MakePreviewRoute() {
+        return {
+            TSource::PageName,
+            TTarget::PageName,
+            [](ApplicationPages& pages) {
+                (pages.Get<TSource>().*TTrigger)();
+            },
+        };
+    }
+
+    std::span<const PageManager::PreviewRoute> PageManager::PreviewRoutes() {
+        static const std::array routes{
+            MakePreviewRoute<MainPageViewModel, AddAlarmPageViewModel, &MainPageViewModel::CreateAlarm>(),
+            MakePreviewRoute<MainPageViewModel, SettingsPageViewModel, &MainPageViewModel::NavigateToSettings>(),
+            MakePreviewRoute<AddAlarmPageViewModel, MainPageViewModel, &AddAlarmPageViewModel::NavigateToMain>(),
+            MakePreviewRoute<AddAlarmPageViewModel, XiaomiThemesPageViewModel, &AddAlarmPageViewModel::ChooseAlarmMelody>(),
+            MakePreviewRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, &XiaomiThemesPageViewModel::ApplySelectedMelody>(),
+            MakePreviewRoute<SettingsPageViewModel, MainPageViewModel, &SettingsPageViewModel::NavigateToMain>(),
+        };
+        return routes;
+    }
+
+    bool PageManager::NavigatePreviewRoute(std::string_view target, std::string& error) {
+        error.clear();
+        if (this->currentPage == nullptr) {
+            error = "Preview route requires an initialized application session";
+            LOG_WARNING("MobileClock.PreviewRoute", "Route request to '{}' rejected: {}", target, error);
+            return false;
+        }
+        LOG_INFO(
+            "MobileClock.PreviewRoute",
+            "Route request: current='{}', target='{}'",
+            this->currentPage->Name(),
+            target);
+        if (this->currentPage->Name() == target) {
+            LOG_INFO("MobileClock.PreviewRoute", "Route request ignored because '{}' is already active", target);
+            return true;
+        }
+        struct RouteNode final {
+            std::string_view page;
+            size_t previousNode;
+            const PreviewRoute* incomingRoute;
+        };
+        std::vector<RouteNode> nodes{{this->currentPage->Name(), 0, nullptr}};
+        constexpr size_t noRoute = std::numeric_limits<size_t>::max();
+        size_t targetNode = noRoute;
+        for (size_t index = 0; index < nodes.size() && targetNode == noRoute; ++index) {
+            for (const PreviewRoute& route : PreviewRoutes()) {
+                if (route.source != nodes[index].page) {
+                    continue;
+                }
+                const bool wasVisited = std::any_of(nodes.begin(), nodes.end(), [&route](const RouteNode& node) {
+                    return node.page == route.target;
+                });
+                if (wasVisited) {
+                    continue;
+                }
+                nodes.push_back({route.target, index, &route});
+                if (route.target == target) {
+                    targetNode = nodes.size() - 1;
+                    break;
+                }
+            }
+        }
+        if (targetNode == noRoute) {
+            error = std::format("No preview route from {} to {}", this->currentPage->Name(), target);
+            LOG_WARNING("MobileClock.PreviewRoute", "Route request rejected: {}", error);
+            return false;
+        }
+        std::vector<const PreviewRoute*> route;
+        for (size_t index = targetNode; index != 0; index = nodes[index].previousNode) {
+            route.push_back(nodes[index].incomingRoute);
+        }
+        std::reverse(route.begin(), route.end());
+        return this->ExecutePreviewRoute(route, error);
+    }
+
+    bool PageManager::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
+        error.clear();
+        if (this->currentPage == nullptr || path.empty()) {
+            error = "Preview route requires an initialized application session and a path";
+            LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
+            return false;
+        }
+        std::string serializedPath;
+        for (const std::string_view page : path) {
+            if (!serializedPath.empty()) {
+                serializedPath += '>';
+            }
+            serializedPath += page;
+        }
+        LOG_INFO(
+            "MobileClock.PreviewRoute",
+            "Explicit route request: current='{}', path='{}'",
+            this->currentPage->Name(),
+            serializedPath);
+        if (path.front() != this->currentPage->Name()) {
+            error = std::format("Preview route starts at {}, but the active page is {}", path.front(), this->currentPage->Name());
+            LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
+            return false;
+        }
+        std::vector<const PreviewRoute*> route;
+        for (size_t index = 1; index < path.size(); ++index) {
+            const auto edge = std::find_if(PreviewRoutes().begin(), PreviewRoutes().end(), [&](const PreviewRoute& candidate) {
+                return candidate.source == path[index - 1] && candidate.target == path[index];
+            });
+            if (edge == PreviewRoutes().end()) {
+                error = std::format("No preview transition from {} to {}", path[index - 1], path[index]);
+                LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
+                return false;
+            }
+            route.push_back(&*edge);
+        }
+        return this->ExecutePreviewRoute(route, error);
+    }
+
+    std::string PageManager::PreviewRouteGraph() const {
+        std::string result;
+        for (const PreviewRoute& route : PreviewRoutes()) {
+            if (!result.empty()) {
+                result += ';';
+            }
+            result += route.source;
+            result += '>';
+            result += route.target;
+        }
+        return result;
+    }
+
+    bool PageManager::ExecutePreviewRoute(std::span<const PreviewRoute*> route, std::string& error) {
+        for (const PreviewRoute* edge : route) {
+            if (edge == nullptr) {
+                error = "Preview route contains an invalid transition";
+                LOG_ERROR("MobileClock.PreviewRoute", "Route execution failed: {}", error);
+                return false;
+            }
+            const std::string_view previousPage = this->CurrentPageName();
+            LOG_INFO(
+                "MobileClock.PreviewRoute",
+                "Executing transition: {} -> {}",
+                edge->source,
+                edge->target);
+            this->isTransitioning = false;
+            edge->trigger(this->pages);
+            const std::string_view currentPage = this->CurrentPageName();
+            if (currentPage != edge->target) {
+                error = std::format(
+                    "Preview transition {} -> {} ended on {}",
+                    edge->source,
+                    edge->target,
+                    currentPage);
+                LOG_ERROR(
+                    "MobileClock.PreviewRoute",
+                    "Route execution failed after '{}': expected='{}', actual='{}', previous='{}'",
+                    error,
+                    edge->target,
+                    currentPage,
+                    previousPage);
+                return false;
+            }
+            LOG_INFO("MobileClock.PreviewRoute", "Transition completed: active='{}'", currentPage);
+        }
+        return true;
+    }
+
     bool PageManager::ApplyPreviewScenario(std::string_view pageName, std::string_view json, std::string& error) {
         IPage* const page = this->pages.Find(pageName);
         if (page == nullptr) {
