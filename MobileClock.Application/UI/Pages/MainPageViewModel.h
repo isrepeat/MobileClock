@@ -29,6 +29,9 @@ namespace mobileclock::ui {
         class Alarm final {
         public:
             Alarm(std::string time, std::string repeat, bool isEnabled);
+            explicit Alarm(const AlarmSettings& settings);
+
+            const AlarmSettings& Settings() const;
 
             const std::string& Time() const;
             const std::string& Repeat() const;
@@ -39,6 +42,7 @@ namespace mobileclock::ui {
             void SetToggleAlarmCommand(xaml::Element::Command value);
 
         private:
+            AlarmSettings settings;
             std::string time;
             std::string repeat;
             bool isEnabled = false;
@@ -75,6 +79,7 @@ namespace mobileclock::ui {
         const std::string& Status() const;
         const xaml::ObservableCollection<Alarm>& Alarms() const;
 
+        void AddAlarm(const AlarmSettings& settings);
         xaml::Element::Command CreateAlarmCommand() const;
         xaml::Element::Command NavigateToSettingsCommand() const;
         xaml::Element::Command ToggleAlarmCommand() const;

@@ -22,6 +22,8 @@ namespace mobileclock::renderer {
         void SetAssetManager(JNIEnv* env, jobject javaAssetManager);
         void SetCommandDispatcher(JNIEnv* env, jobject javaDispatcher);
         void SetStatus(JNIEnv* env, jstring javaStatus);
+        void AddAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri);
+        void SetAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri);
         void SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height);
         void SurfaceDestroyed();
         void Touch(jint action, jfloat x, jfloat y);

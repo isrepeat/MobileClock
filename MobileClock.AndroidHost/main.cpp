@@ -50,6 +50,18 @@ Java_com_example_mobileclock_native_NativeRenderer_nativeSetStatus(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_native_NativeRenderer_nativeAddAlarmMelody(
+    JNIEnv* env, jobject, jstring javaName, jstring javaUri) {
+    nativeApplication().AddAlarmMelody(env, javaName, javaUri);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_mobileclock_native_NativeRenderer_nativeSetAlarmMelody(
+    JNIEnv* env, jobject, jstring javaName, jstring javaUri) {
+    nativeApplication().SetAlarmMelody(env, javaName, javaUri);
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_example_mobileclock_native_NativeRenderer_nativeSurfaceChanged(
     JNIEnv* env, jobject, jobject androidSurface, jint width, jint height) {
     LOG_FUNCTION_SCOPE("MobileClock", "nativeSurfaceChanged: {}x{}", width, height);

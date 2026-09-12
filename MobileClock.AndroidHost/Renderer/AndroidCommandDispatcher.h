@@ -4,6 +4,7 @@
 namespace mobileclock::renderer {
     enum class AndroidAction {
         createAlarm,
+        chooseAlarmMelody,
         toggleAlarm,
         updateApplication,
         uploadScreenshot,

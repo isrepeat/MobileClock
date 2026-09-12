@@ -13,6 +13,10 @@ namespace mobileclock::renderer {
         this->dispatcher.Dispatch(AndroidAction::createAlarm);
     }
 
+    void AndroidApplicationActions::ChooseAlarmMelody() {
+        this->dispatcher.Dispatch(AndroidAction::chooseAlarmMelody);
+    }
+
     void AndroidApplicationActions::ToggleAlarm() {
         this->dispatcher.Dispatch(AndroidAction::toggleAlarm);
     }

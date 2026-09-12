@@ -6,6 +6,7 @@ namespace mobileclock::ui {
         virtual ~IApplicationActions() = default;
 
         virtual void CreateAlarm() = 0;
+        virtual void ChooseAlarmMelody() = 0;
         virtual void ToggleAlarm() = 0;
         virtual void UpdateApplication() = 0;
         virtual void UploadScreenshot() = 0;

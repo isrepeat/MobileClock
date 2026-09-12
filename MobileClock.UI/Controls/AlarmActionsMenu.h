@@ -70,10 +70,8 @@ namespace mobileclock::ui::controls {
             control->status = viewModel.Status();
             control->updateApplicationCommand = viewModel.UpdateApplicationCommand();
             control->uploadScreenshotCommand = viewModel.UploadScreenshotCommand();
-            control->openMenuCommand = [menu = control.get()]() {
-                if (!menu->isExpanded) {
-                    menu->SetIsExpanded(true);
-                }
+            control->toggleMenuCommand = [menu = control.get()]() {
+                menu->SetIsExpanded(!menu->isExpanded);
             };
             control->parentUnsubscribe = viewModel.Subscribe([menu = control.get(), &viewModel](auto) {
                 menu->SetStatus(viewModel.Status());
@@ -84,7 +82,7 @@ namespace mobileclock::ui::controls {
         }
 
         const std::string& Status() const;
-        xaml::Element::Command OpenMenuCommand() const;
+        xaml::Element::Command ToggleMenuCommand() const;
         xaml::Element::Command UpdateApplicationCommand() const;
         xaml::Element::Command UploadScreenshotCommand() const;
         bool IsExpanded() const;
@@ -108,7 +106,7 @@ namespace mobileclock::ui::controls {
         std::string status;
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         Unsubscribe parentUnsubscribe;
-        xaml::Element::Command openMenuCommand;
+        xaml::Element::Command toggleMenuCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

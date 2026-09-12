@@ -3,6 +3,8 @@
 #include <XamlRuntime/Animation.h>
 
 #include "UI/Pages/StatisticsPageViewModel.h"
+#include "UI/Pages/XiaomiThemesPageViewModel.h"
+#include "UI/Pages/AddAlarmPageViewModel.h"
 #include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/Pages/MainPageViewModel.h"
 #include "UI/InputDispatcher.h"
@@ -30,9 +32,13 @@ namespace mobileclock::ui {
         //
         bool Navigate(std::string_view pageName) override;
 
+        std::string_view CurrentPageName() const;
         void Initialize(xaml::Size availableSize);
+        void Resize(xaml::Size availableSize);
         void SetAnimationPlaybackRate(float value);
         void SetStatus(std::string value);
+        void AddAlarmMelody(std::string name, std::string uri);
+        void SetAlarmMelody(std::string name, std::string uri);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
         bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
@@ -49,7 +55,9 @@ namespace mobileclock::ui {
         using ApplicationPages = PageRegistry<
             MainPageViewModel,
             SettingsPageViewModel,
-            StatisticsPageViewModel>;
+            StatisticsPageViewModel,
+            AddAlarmPageViewModel,
+            XiaomiThemesPageViewModel>;
 
     private:
         xaml::Size availableSize;
@@ -58,6 +66,7 @@ namespace mobileclock::ui {
         IPage* currentPage = nullptr;
         IPage* outgoingPage = nullptr;
         bool isTransitioning = false;
+        bool preserveAddAlarmDraft = false;
         xaml::AnimationController animations;
         InputDispatcher inputDispatcher;
     };

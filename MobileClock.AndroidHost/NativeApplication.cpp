@@ -52,6 +52,14 @@ namespace mobileclock::native {
         this->renderer->SetStatus(env, javaStatus);
     }
 
+    void NativeApplication::AddAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
+        this->renderer->AddAlarmMelody(env, javaName, javaUri);
+    }
+
+    void NativeApplication::SetAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
+        this->renderer->SetAlarmMelody(env, javaName, javaUri);
+    }
+
     void NativeApplication::SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
         LOG_FUNCTION_SCOPE("MobileClock", "NativeApplication::SurfaceChanged: {}x{}", width, height);
         this->renderer->SurfaceChanged(env, androidSurface, width, height);

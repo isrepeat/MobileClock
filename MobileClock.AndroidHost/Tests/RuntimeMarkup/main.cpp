@@ -17,6 +17,7 @@ namespace mobileclock::tests::_details {
         // IApplicationActions
         //
         void CreateAlarm() override;
+        void ChooseAlarmMelody() override;
         void ToggleAlarm() override;
         void UpdateApplication() override;
         void UploadScreenshot() override;
@@ -28,6 +29,7 @@ namespace mobileclock::tests::_details {
     // IApplicationActions
     //
     void Actions::CreateAlarm() {}
+    void Actions::ChooseAlarmMelody() {}
     void Actions::ToggleAlarm() {}
     void Actions::UpdateApplication() {}
     void Actions::UploadScreenshot() {}
@@ -71,6 +73,110 @@ namespace mobileclock::tests::_details {
     }
 }
 
+namespace mobileclock::tests::_details {
+
+    void FinishNavigation(ui::ApplicationSession& session) {
+        for (int iteration = 0; iteration < 100; ++iteration) {
+            session.Update();
+            if (!xaml::AnimationController::IsAnimating(session.Root())) {
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Check(false, "Page transition did not finish");
+    }
+
+    void CompleteAlarm(ui::ApplicationSession& session) {
+        Find(session.Root(), "addAlarmButton")->ExecuteCommand();
+        Check(session.Root().Id() == "addAlarmPage", "Add button must open the form");
+        FinishNavigation(session);
+        Find(session.Root(), "saveAlarmButton")->ExecuteCommand();
+        Check(session.Root().Id() == "root", "Save must return to main page");
+        FinishNavigation(session);
+    }
+
+    void CheckAlarmForm() {
+        Actions actions;
+        ui::ApplicationSession session(actions);
+        session.Initialize({720, 1440});
+        session.SetAnimationPlaybackRate(100.0f);
+        Check(!xaml::AnimationController::IsAnimating(session.Root()), "Initial page must not animate");
+        auto* mainRoot = &session.Root();
+        auto* items = Find(*List(session.Root()), "interactiveListItems");
+        const auto initialCount = items->Children().size();
+        Find(session.Root(), "addAlarmButton")->ExecuteCommand();
+        Check(session.Root().Id() == "addAlarmPage", "Add page navigation");
+        Check(xaml::AnimationController::IsAnimating(session.Root()), "Add page Show must animate");
+        Check(xaml::AnimationController::IsAnimating(*mainRoot), "Main page Hide must animate");
+        Check(session.Root().State<xaml::VisualTransform>().offsetX > 0,
+            "Forward page must enter from the right: offset="
+                + std::to_string(session.Root().State<xaml::VisualTransform>().offsetX)
+                + ", width=" + std::to_string(session.Root().Bounds().width));
+        FinishNavigation(session);
+        Check(session.Root().State<xaml::VisualTransform>().offsetX == 0, "Forward transition must finish at zero");
+        Check(!mainRoot->CanReceiveInput(), "Hidden main page must not receive input");
+        Check(items->Children().size() == initialCount, "Opening form created an alarm");
+        Check(Find(session.Root(), "wheel0Row2")->Text() == "07", "Initial hour");
+        Check(Find(session.Root(), "wheel1Row2")->Text() == "30", "Initial minute");
+        const auto pan = [&session](int column, float rows, bool cancel) {
+            xaml::layout(session.Root(), {720, 1440});
+            const auto bounds = Find(session.Root(), "wheel" + std::to_string(column))->Bounds();
+            const float x = bounds.x + bounds.width / 2;
+            const float y = bounds.y + bounds.height / 2;
+            const float end = y - rows * bounds.height / 5;
+            session.PointerDown(x, y);
+            session.PointerMove(x, end);
+            if (cancel) {
+                session.CancelPointer();
+            }
+            else {
+                session.PointerUp(x, end);
+            }
+        };
+        pan(0, -8, false);
+        pan(1, -31, false);
+        Check(Find(session.Root(), "wheel0Row2")->Text() == "23", "Hour wrap backwards");
+        Check(Find(session.Root(), "wheel1Row2")->Text() == "59", "Minute wrap backwards");
+        pan(0, 1, false);
+        pan(1, 1, false);
+        Check(Find(session.Root(), "wheel0Row2")->Text() == "00", "Hour wrap forwards");
+        Check(Find(session.Root(), "wheel1Row2")->Text() == "00", "Minute wrap forwards");
+        pan(0, 3, true);
+        Check(Find(session.Root(), "wheel0Row2")->Text() == "00", "Cancelled pan must restore hour");
+        for (int day = 0; day < 5; ++day) {
+            Find(session.Root(), "day" + std::to_string(day))->ExecuteCommand();
+        }
+        Check(Find(session.Root(), "repeatSummary")->Text() == "Однократно", "No days means once");
+        Find(session.Root(), "melodyButton")->ExecuteCommand();
+        Check(Find(session.Root(), "melodyChoices")->VisibilityValue() == xaml::attr::Visibility::visible, "Melody chooser");
+        Find(session.Root(), "melody1")->ExecuteCommand();
+        Check(Find(session.Root(), "melodyName")->Text() == "Классика", "Melody selection");
+        xaml::layout(session.Root(), {720, 1440});
+        const auto toggle = Find(session.Root(), "vibrationToggle")->Bounds();
+        session.PointerDown(toggle.x + toggle.width / 2, toggle.y + toggle.height / 2);
+        session.PointerUp(toggle.x + toggle.width / 2, toggle.y + toggle.height / 2);
+        Check(!Find(session.Root(), "vibrationToggle")->IsOn(), "Vibration input");
+        Find(session.Root(), "saveAlarmButton")->ExecuteCommand();
+        Check(session.Root().Id() == "root", "Save navigation");
+        Check(xaml::AnimationController::IsAnimating(session.Root()), "Main page Show must animate");
+        Check(session.Root().State<xaml::VisualTransform>().offsetX < 0, "Back navigation must enter from the left");
+        FinishNavigation(session);
+        Check(items->Children().size() == initialCount + 1, "Save must create exactly one alarm");
+        const auto* alarm = static_cast<const ui::MainPageViewModel::Alarm*>(items->Children().back()->DataContext());
+        Check(alarm != nullptr && alarm->Time() == "00:00", "Saved time");
+        Check(alarm->Repeat() == "Однократно", "Saved repeat");
+        Check(alarm->Settings().melody == "Классика" && !alarm->Settings().vibration, "Saved sound settings");
+        Find(session.Root(), "addAlarmButton")->ExecuteCommand();
+        Check(Find(session.Root(), "wheel0Row2")->Text() == "07", "New form must reset draft");
+        FinishNavigation(session);
+        Find(session.Root(), "backNavigation")->ExecuteCommand();
+        FinishNavigation(session);
+        Check(items->Children().size() == initialCount + 1, "Cancel must not create an alarm");
+        Check(session.Root().State<xaml::VisualTransform>().offsetX == 0, "Back transition must finish at zero");
+    }
+
+}
+
 int main(int argc, char** argv) {
     using namespace mobileclock::tests::_details;
     try {
@@ -80,11 +186,13 @@ int main(int argc, char** argv) {
             "<?xml version='1.0'?><Page xmlns='urn:mobileclock:xaml'>\n<TextBlock text='a &amp; b &#x1F600; > c'/></Page>", "parser.xaml");
         Check(ast.children[0].location.line == 2 && ast.children[0].location.column == 1, "Source location");
         Check(ast.children[0].attributes[0].value.find("a & b") == 0, "XML entities");
+        CheckAlarmForm();
         Actions actions;
         mobileclock::ui::ApplicationSession session(actions);
         session.Initialize({1080, 1920});
+        session.SetAnimationPlaybackRate(100.0f);
         std::string diagnostics;
-        for (const std::string name : {"MainPage", "SettingsPage", "StatisticsPage"}) {
+        for (const std::string name : {"MainPage", "SettingsPage", "StatisticsPage", "AddAlarmPage"}) {
             const auto path = project + "/MobileClock.Application/UI/Pages/" + name + ".xaml";
             const auto markup = Read(path);
             Check(session.ReloadMarkup(name, markup, path, diagnostics), diagnostics);
@@ -140,7 +248,7 @@ int main(int argc, char** argv) {
         auto* list = List(session.Root());
         auto* items = Find(*list, "interactiveListItems");
         const auto count = items->Children().size();
-        Find(session.Root(), "addAlarmButton")->ExecuteCommand();
+        CompleteAlarm(session);
         Check(items->Children().size() == count + 1, "Runtime template must observe collection insertion");
         auto* oldContent = list->Content();
         auto brokenTemplate = Read(templatePath);
@@ -148,7 +256,7 @@ int main(int argc, char** argv) {
         brokenTemplate.replace(timeBinding, std::string("{Binding Time}").size(), "{Binding MissingTime}");
         Check(!session.ReloadMarkup("MainPage", brokenTemplate, templatePath, diagnostics), "Bad item binding accepted");
         Check(list->Content() == oldContent, "Failed template reload replaced content");
-        Find(session.Root(), "addAlarmButton")->ExecuteCommand();
+        CompleteAlarm(session);
         Check(items->Children().size() == count + 2, "Old template subscription must survive failure");
         auto changedTemplate = Read(templatePath);
         const auto height = changedTemplate.find("height=\"200\"");
@@ -159,7 +267,7 @@ int main(int argc, char** argv) {
         const auto tabsPath = project + "/MobileClock.UI/Controls/TimelineTabs.xaml";
         Check(session.ReloadMarkup("MainPage", Read(tabsPath), tabsPath, diagnostics), diagnostics);
         for (int index = 0; index < 10; ++index) {
-            Find(session.Root(), "addAlarmButton")->ExecuteCommand();
+            CompleteAlarm(session);
         }
         xaml::layout(session.Root(), {1080, 1920});
         auto* scroll = Find(*list, "interactiveListScrollViewer");

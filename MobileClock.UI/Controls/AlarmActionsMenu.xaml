@@ -23,7 +23,7 @@
                         horizontalAlignment="Center"
                         background="#00000000"
                         borderThickness="0"
-                        command="{Binding OpenMenuCommand}">
+                        command="{Binding ToggleMenuCommand}">
                     <SvgImage width="150"
                               height="60"
                               verticalAlignment="Center"

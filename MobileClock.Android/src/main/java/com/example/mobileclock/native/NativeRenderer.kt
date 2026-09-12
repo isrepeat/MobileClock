@@ -28,6 +28,14 @@ object NativeRenderer {
         nativeSetStatus(message)
     }
 
+    fun addAlarmMelody(name: String, uri: String) {
+        nativeAddAlarmMelody(name, uri)
+    }
+
+    fun setAlarmMelody(name: String, uri: String) {
+        nativeSetAlarmMelody(name, uri)
+    }
+
     fun log(filesDirectory: File, category: String, message: String) {
         configureLogFile(filesDirectory)
         nativeLog(category, message)
@@ -74,6 +82,8 @@ object NativeRenderer {
     private external fun nativeSetAssetManager(assetManager: AssetManager)
     private external fun nativeSetCommandDispatcher(dispatcher: NativeCommandDispatcher)
     private external fun nativeSetStatus(status: String)
+    private external fun nativeAddAlarmMelody(name: String, uri: String)
+    private external fun nativeSetAlarmMelody(name: String, uri: String)
     private external fun nativeSetLogFile(path: String)
     private external fun nativeFlushLogs()
     private external fun nativeLog(category: String, message: String)

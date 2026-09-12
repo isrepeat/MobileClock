@@ -1,0 +1,23 @@
+{
+  "Утренние": {
+    "Melodies": [
+      { "Name": "Morning", "Uri": "preview://xiaomi-themes/morning" },
+      { "Name": "Lone Grass, Solitary Flower", "Uri": "preview://xiaomi-themes/lone-grass" },
+      { "Name": "Positive Uplift", "Uri": "preview://xiaomi-themes/positive-uplift" }
+    ]
+  },
+  "Природа": {
+    "Melodies": [
+      { "Name": "Casino_2", "Uri": "preview://xiaomi-themes/casino-2" },
+      { "Name": "Under the Moon and Flowers", "Uri": "preview://xiaomi-themes/moon-flowers" },
+      { "Name": "Paradise Discovered", "Uri": "preview://xiaomi-themes/paradise" }
+    ]
+  },
+  "Дождь": {
+    "Melodies": [
+      { "Name": "Never Loved Before", "Uri": "preview://xiaomi-themes/never-loved" },
+      { "Name": "Electronic Jubilance", "Uri": "preview://xiaomi-themes/electronic-jubilance" },
+      { "Name": "Vitality Forest", "Uri": "preview://xiaomi-themes/vitality-forest" }
+    ]
+  }
+}

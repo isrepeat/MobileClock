@@ -34,6 +34,7 @@ namespace mobileclock::renderer {
         AndroidApplicationActions applicationActions;
         mobileclock::ui::ApplicationSession session;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
+        bool isSessionInitialized = false;
     };
 }
 
@@ -150,6 +151,36 @@ namespace mobileclock::renderer {
         env->ReleaseStringUTFChars(javaStatus, status);
     }
 
+    void NativeRenderer::AddAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
+        const char* name = env->GetStringUTFChars(javaName, nullptr);
+        if (name == nullptr) {
+            return;
+        }
+        const char* uri = env->GetStringUTFChars(javaUri, nullptr);
+        if (uri == nullptr) {
+            env->ReleaseStringUTFChars(javaName, name);
+            return;
+        }
+        this->state->session.AddAlarmMelody(name, uri);
+        env->ReleaseStringUTFChars(javaUri, uri);
+        env->ReleaseStringUTFChars(javaName, name);
+    }
+
+    void NativeRenderer::SetAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
+        const char* name = env->GetStringUTFChars(javaName, nullptr);
+        if (name == nullptr) {
+            return;
+        }
+        const char* uri = env->GetStringUTFChars(javaUri, nullptr);
+        if (uri == nullptr) {
+            env->ReleaseStringUTFChars(javaName, name);
+            return;
+        }
+        this->state->session.SetAlarmMelody(name, uri);
+        env->ReleaseStringUTFChars(javaUri, uri);
+        env->ReleaseStringUTFChars(javaName, name);
+    }
+
     void NativeRenderer::SurfaceChanged(
         JNIEnv* env,
         jobject androidSurface,
@@ -193,10 +224,16 @@ namespace mobileclock::renderer {
             nullptr);
         eglMakeCurrent(state.display, state.surface, state.surface, state.context);
 
-        state.session.Initialize({
+        const xaml::Size availableSize{
             static_cast<float>(width),
             static_cast<float>(height),
-        });
+        };
+        if (state.isSessionInitialized) {
+            state.session.Resize(availableSize);
+        } else {
+            state.session.Initialize(availableSize);
+            state.isSessionInitialized = true;
+        }
         const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Roboto-Regular.ttf");
         const std::vector<unsigned char> boldFontData = state.assetsManager->ReadBytes("Roboto-Bold.ttf");
         const std::vector<unsigned char> blackFontData = state.assetsManager->ReadBytes("Roboto-Black.ttf");

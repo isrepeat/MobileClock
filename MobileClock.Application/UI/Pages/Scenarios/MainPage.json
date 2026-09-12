@@ -3,38 +3,48 @@
     "Status": "Обновление запущено",
     "Alarms": [
       {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
+        "Time": "06:30",
+        "Repeat": "Пн, Вт, Ср, Чт, Пт",
+        "IsEnabled": true
       },
       {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
       },
       {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
       },
       {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
       },
       {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
       },
       {
-        "Time": "",
-        "Repeat": "",
-        "IsEnabled": false
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
       },
       {
-        "Time": "",
-        "Repeat": "",
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
+      },
+      {
+        "Time": "07:15",
+        "Repeat": "Каждый день",
+        "IsEnabled": true
+      },
+      {
+        "Time": "09:00",
+        "Repeat": "Сб, Вс",
         "IsEnabled": false
       }
     ],

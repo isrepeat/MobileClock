@@ -18,6 +18,10 @@ namespace mobileclock::ui {
         this->pageManager.Initialize(availableSize);
     }
 
+    void ApplicationSession::Resize(xaml::Size availableSize) {
+        this->pageManager.Resize(availableSize);
+    }
+
     void ApplicationSession::SetAnimationPlaybackRate(float value) {
         this->pageManager.SetAnimationPlaybackRate(value);
     }
@@ -26,8 +30,20 @@ namespace mobileclock::ui {
         return this->pageManager.Navigate(name);
     }
 
+    std::string_view ApplicationSession::CurrentPageName() const {
+        return this->pageManager.CurrentPageName();
+    }
+
     void ApplicationSession::SetStatus(std::string value) {
         this->pageManager.SetStatus(std::move(value));
+    }
+
+    void ApplicationSession::AddAlarmMelody(std::string name, std::string uri) {
+        this->pageManager.AddAlarmMelody(std::move(name), std::move(uri));
+    }
+
+    void ApplicationSession::SetAlarmMelody(std::string name, std::string uri) {
+        this->pageManager.SetAlarmMelody(std::move(name), std::move(uri));
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

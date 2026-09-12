@@ -15,6 +15,14 @@ namespace mobileclock::ui {
     PageManager::PageManager(IApplicationActions& actions)
         : pageContext{static_cast<IPageNavigator&>(*this), actions}
         , pages(this->pageContext) {
+        this->pageContext.saveAlarm = [this](const AlarmSettings& settings) {
+            this->pages.Get<MainPageViewModel>().AddAlarm(settings);
+        };
+        this->pageContext.applyAlarmMelody = [this](std::string name, std::string uri) {
+            this->pages.Get<AddAlarmPageViewModel>().SetMelody(std::move(name), std::move(uri));
+            this->preserveAddAlarmDraft = true;
+            this->Navigate(AddAlarmPageViewModel::PageName);
+        };
     }
 
     //
@@ -25,6 +33,12 @@ namespace mobileclock::ui {
         if (page == nullptr || this->currentPage == page || this->isTransitioning) {
             return page != nullptr;
         }
+        if (page == &this->pages.GetPage<AddAlarmPageViewModel>()) {
+            if (!this->preserveAddAlarmDraft) {
+                this->pages.Get<AddAlarmPageViewModel>().Reset();
+            }
+            this->preserveAddAlarmDraft = false;
+        }
         this->outgoingPage = this->currentPage;
         this->currentPage = page;
         this->pages.ForEach([page](IPage& candidate) {
@@ -34,6 +48,10 @@ namespace mobileclock::ui {
         });
         this->isTransitioning = this->pages.IsAnyAnimating();
         return true;
+    }
+
+    std::string_view PageManager::CurrentPageName() const {
+        return this->currentPage == nullptr ? std::string_view{} : this->currentPage->Name();
     }
 
     //
@@ -57,7 +75,9 @@ namespace mobileclock::ui {
         this->pages.ForEach([&](IPage& page) {
             page.Initialize(this->availableSize);
             page.Root().SetAnimationParametersProvider(parameters);
-            page.Root().SetVisibility(xaml::attr::Visibility::collapsed);
+            page.Root().SetVisibility(&page == &this->pages.GetPage<MainPageViewModel>()
+                ? xaml::attr::Visibility::visible
+                : xaml::attr::Visibility::collapsed);
             this->animations.Attach(page.Root(), registry);
         });
         this->currentPage = &this->pages.GetPage<MainPageViewModel>();
@@ -66,12 +86,28 @@ namespace mobileclock::ui {
         this->isTransitioning = false;
     }
 
+    void PageManager::Resize(xaml::Size availableSize) {
+        this->availableSize = availableSize;
+        this->pages.ForEach([availableSize](IPage& page) {
+            xaml::layout(page.Root(), availableSize);
+        });
+    }
+
     void PageManager::SetAnimationPlaybackRate(float value) {
         this->animations.SetPlaybackRate(value);
     }
 
     void PageManager::SetStatus(std::string value) {
         this->pages.Get<MainPageViewModel>().SetStatus(std::move(value));
+    }
+
+    void PageManager::AddAlarmMelody(std::string name, std::string uri) {
+        this->pages.Get<AddAlarmPageViewModel>().AddMelody(std::move(name), std::move(uri));
+    }
+
+    void PageManager::SetAlarmMelody(std::string name, std::string uri) {
+        AddAlarmPageViewModel& page = this->pages.Get<AddAlarmPageViewModel>();
+        page.SetMelody(std::move(name), std::move(uri));
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

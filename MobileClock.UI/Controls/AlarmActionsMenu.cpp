@@ -54,7 +54,7 @@ namespace mobileclock::ui::controls {
     // IGestureTarget
     //
     bool AlarmActionsMenu::CanHandlePan(const xaml::Element& element) const {
-        return this->isExpanded && this->Owns(element);
+        return this->Owns(element);
     }
 
     bool AlarmActionsMenu::IsVerticalPan() const {
@@ -94,11 +94,9 @@ namespace mobileclock::ui::controls {
             "Expanded", "alarmActionsPanel", xaml::AnimatedProperty::height);
         const float distance = state.downY - state.currentY;
         const float threshold = std::min(48.0f, (expanded - collapsed) * 0.5f);
-        if (distance <= -threshold) {
-            this->SetIsExpanded(false);
-        } else {
-            this->ApplyState(true);
-        }
+        const bool isExpanded = distance >= threshold ? true
+            : distance <= -threshold ? false : this->isExpanded;
+        this->SetIsExpanded(isExpanded);
         return true;
     }
 
@@ -130,7 +128,7 @@ namespace mobileclock::ui::controls {
         const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
         try {
             auto bindings = std::make_shared<xaml::runtime::RuntimeBindingRegistry>(context.bindings);
-            bindings->AddCommand("OpenMenuCommand", this->OpenMenuCommand());
+            bindings->AddCommand("ToggleMenuCommand", this->ToggleMenuCommand());
             auto controlContext = context;
             controlContext.bindings = std::move(bindings);
             auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), controlContext,
@@ -161,8 +159,8 @@ namespace mobileclock::ui::controls {
         return this->status;
     }
 
-    xaml::Element::Command AlarmActionsMenu::OpenMenuCommand() const {
-        return this->openMenuCommand;
+    xaml::Element::Command AlarmActionsMenu::ToggleMenuCommand() const {
+        return this->toggleMenuCommand;
     }
 
     xaml::Element::Command AlarmActionsMenu::UpdateApplicationCommand() const {

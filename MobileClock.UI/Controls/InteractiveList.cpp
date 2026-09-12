@@ -107,10 +107,12 @@ namespace mobileclock::ui::controls {
     // API
     //
     void InteractiveList::PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
-        std::vector<xaml::UserControl*> oldControls;
-        std::vector<xaml::UserControl*> newControls;
-        const auto collect = [](auto&& self, xaml::Element& node, std::vector<xaml::UserControl*>& controls) -> void {
-            if (auto* control = dynamic_cast<xaml::UserControl*>(&node)) {
+        // Only lists own the item subscriptions transferred by this operation.
+        // Moving other controls leaves their bindings attached to a discarded instance.
+        std::vector<InteractiveList*> oldControls;
+        std::vector<InteractiveList*> newControls;
+        const auto collect = [](auto&& self, xaml::Element& node, std::vector<InteractiveList*>& controls) -> void {
+            if (auto* control = dynamic_cast<InteractiveList*>(&node)) {
                 controls.push_back(control);
                 return;
             }

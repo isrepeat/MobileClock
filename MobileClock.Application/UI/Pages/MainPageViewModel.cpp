@@ -15,8 +15,9 @@
 #endif
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/MainPage.xaml.h"
-#include "UI/Pages/SettingsPageViewModel.h"
 #include "!Generated/Build/BuildVersion.h"
+#include "UI/Pages/SettingsPageViewModel.h"
+#include "UI/Pages/AddAlarmPageViewModel.h"
 
 #include <stdexcept>
 #include <algorithm>
@@ -54,9 +55,8 @@ namespace mobileclock::ui::_details {
 namespace mobileclock::ui {
     MainPageViewModel::MainPageViewModel(PageContext& context)
         : packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
-        , createAlarmCommand([this]() {
-            Alarm& alarm = this->alarms.EmplaceBack("", "", false);
-            alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+        , createAlarmCommand([&context]() {
+            context.navigator.Navigate<AddAlarmPageViewModel>();
         })
         , navigateToSettingsCommand([&context]() {
             context.navigator.Navigate<SettingsPageViewModel>();
@@ -79,6 +79,34 @@ namespace mobileclock::ui {
         : time(std::move(time))
         , repeat(std::move(repeat))
         , isEnabled(isEnabled) {
+    }
+
+    MainPageViewModel::Alarm::Alarm(const AlarmSettings& settings)
+        : settings(settings)
+        , time(std::format("{:02}:{:02}", settings.hour, settings.minute))
+        , isEnabled(true) {
+        constexpr std::array<std::string_view, 7> names{"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
+        for (size_t index = 0; index < settings.days.size(); ++index) {
+            if (settings.days[index]) {
+                if (!this->repeat.empty()) {
+                    this->repeat += ", ";
+                }
+                this->repeat += names[index];
+            }
+        }
+        if (this->repeat.empty()) {
+            this->repeat = "Однократно";
+        }
+        else if (std::all_of(settings.days.begin(), settings.days.end(), [](bool day) { return day; })) {
+            this->repeat = "Ежедневно";
+        }
+    }
+
+    //
+    // API
+    //
+    const AlarmSettings& MainPageViewModel::Alarm::Settings() const {
+        return this->settings;
     }
 
     const std::string& MainPageViewModel::Alarm::Time() const {
@@ -159,6 +187,11 @@ namespace mobileclock::ui {
 
     const xaml::ObservableCollection<MainPageViewModel::Alarm>& MainPageViewModel::Alarms() const {
         return this->alarms;
+    }
+
+    void MainPageViewModel::AddAlarm(const AlarmSettings& settings) {
+        Alarm& alarm = this->alarms.EmplaceBack(settings);
+        alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
     }
 
     xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {

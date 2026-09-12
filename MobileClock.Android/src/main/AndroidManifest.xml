@@ -12,6 +12,9 @@
     <!-- Явный запуск updater-пакета разрешён правилами package visibility. -->
     <queries>
         <package android:name="com.example.mobileclock.updater" />
+        <intent>
+            <action android:name="android.intent.action.RINGTONE_PICKER" />
+        </intent>
     </queries>
 
     <application

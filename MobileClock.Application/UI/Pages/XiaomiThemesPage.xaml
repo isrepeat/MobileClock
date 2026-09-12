@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?mobileclock-preview-scenario path="Scenarios/XiaomiThemesPage.json"?>
+<Page xmlns="urn:mobileclock:xaml"
+      background="#171813">
+    <Grid padding="32 44 32 24"
+          horizontalAlignment="Stretch"
+          verticalAlignment="Stretch">
+        <rowDefinitions>
+            <rowDefinition height="Auto"/>
+            <rowDefinition height="*"/>
+            <rowDefinition height="84"/>
+        </rowDefinitions>
+        <StackPanel orientation="Vertical"
+                    margin="0 0 0 24">
+            <TextBlock text="Xiaomi Themes"
+                       fontSize="42"
+                       fontWeight="Bold"
+                       foreground="#EAE8DC"/>
+            <TextBlock text="Выберите мелодию для будильника"
+                       fontSize="23"
+                       foreground="#93937E"
+                       margin="0 8 0 0"/>
+        </StackPanel>
+        <ScrollViewer gridRow="1"
+                      horizontalAlignment="Stretch"
+                      verticalAlignment="Stretch">
+            <StackPanel id="melodyList"
+                        orientation="Vertical"
+                        horizontalAlignment="Stretch">
+                <Button id="melody0"
+                        height="76"
+                        fontSize="26"
+                        foreground="#EAE8DC"
+                        borderThickness="0"
+                        cornerRadius="16"
+                        margin="0 0 0 12"
+                        horizontalAlignment="Stretch"/>
+                <Button id="melody1"
+                        height="76"
+                        fontSize="26"
+                        foreground="#EAE8DC"
+                        borderThickness="0"
+                        cornerRadius="16"
+                        margin="0 0 0 12"
+                        horizontalAlignment="Stretch"/>
+                <Button id="melody2"
+                        height="76"
+                        fontSize="26"
+                        foreground="#EAE8DC"
+                        borderThickness="0"
+                        cornerRadius="16"
+                        margin="0 0 0 12"
+                        horizontalAlignment="Stretch"/>
+            </StackPanel>
+        </ScrollViewer>
+        <Button id="applyButton"
+                gridRow="2"
+                text="Apply"
+                fontSize="30"
+                fontWeight="Bold"
+                background="#E0B64D"
+                foreground="#171813"
+                borderThickness="0"
+                cornerRadius="24"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                verticalAlignment="Stretch"/>
+    </Grid>
+</Page>

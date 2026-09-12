@@ -3,9 +3,11 @@
 #include <XamlRuntime/Animation.h>
 
 #include "UI/ApplicationActions.h"
+#include "UI/AlarmSettings.h"
 #include "UI/Navigation.h"
 
 #include <string_view>
+#include <functional>
 #include <utility>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -41,6 +43,8 @@ namespace mobileclock::ui {
     struct PageContext final {
         IPageNavigator& navigator;
         IApplicationActions& actions;
+        std::function<void(const AlarmSettings&)> saveAlarm;
+        std::function<void(std::string, std::string)> applyAlarmMelody;
     };
 
     template <typename TViewModel>
