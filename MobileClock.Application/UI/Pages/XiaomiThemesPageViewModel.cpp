@@ -154,6 +154,11 @@ namespace mobileclock::ui {
     // Internal
     //
     void XiaomiThemesPageViewModel::ConnectControls() {
+        if (auto* back = this->Find("backNavigation")) {
+            back->SetCommand([this]() {
+                this->context.navigator.Trigger(NavigationTrigger::cancelMelodySelection);
+            });
+        }
         if (auto* apply = this->Find("applyButton")) {
             apply->SetCommand([this]() {
                 this->context.navigator.Trigger(NavigationTrigger::applySelectedMelody);

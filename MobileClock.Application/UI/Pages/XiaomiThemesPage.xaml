@@ -1,69 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?mobileclock-preview-scenario path="Scenarios/XiaomiThemesPage.json"?>
-<Page xmlns="urn:mobileclock:xaml"
-      background="#171813">
+<Page background="#171813"
+      xmlns="urn:mobileclock:xaml">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="0"
+                            to="1"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <Animation name="animationPageTransition"
+                       duration="240"
+                       distance="1"
+                       easing="CubicOut"/>
+            <FloatAnimation property="opacity"
+                            from="Current"
+                            to="0"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+    </Page.Storyboards>
     <Grid padding="32 44 32 24"
-          horizontalAlignment="Stretch"
-          verticalAlignment="Stretch">
+          verticalAlignment="Stretch"
+          horizontalAlignment="Stretch">
         <rowDefinitions>
             <rowDefinition height="Auto"/>
             <rowDefinition height="*"/>
             <rowDefinition height="84"/>
         </rowDefinitions>
-        <StackPanel orientation="Vertical"
-                    margin="0 0 0 24">
-            <TextBlock text="Xiaomi Themes"
-                       fontSize="42"
+        <StackPanel margin="0 0 0 24"
+                    orientation="Vertical">
+            <Border id="backNavigation"
+                    margin="0 0 0 16"
+                    padding="10"
+                    horizontalAlignment="Left"
+                    background="#2D3022"
+                    cornerRadius="24">
+                <SvgImage width="40"
+                          height="40"
+                          verticalAlignment="Center"
+                          horizontalAlignment="Center"
+                          source="Icons/back.svg"
+                          tint="#EAE8DC"/>
+            </Border>
+            <TextBlock fontSize="42"
                        fontWeight="Bold"
-                       foreground="#EAE8DC"/>
-            <TextBlock text="Выберите мелодию для будильника"
+                       foreground="#EAE8DC"
+                       text="Xiaomi Themes"/>
+            <TextBlock margin="0 8 0 0"
                        fontSize="23"
                        foreground="#93937E"
-                       margin="0 8 0 0"/>
+                       text="Выберите мелодию для будильника"/>
         </StackPanel>
         <ScrollViewer gridRow="1"
-                      horizontalAlignment="Stretch"
-                      verticalAlignment="Stretch">
+                      verticalAlignment="Stretch"
+                      horizontalAlignment="Stretch">
             <StackPanel id="melodyList"
-                        orientation="Vertical"
-                        horizontalAlignment="Stretch">
+                        horizontalAlignment="Stretch"
+                        orientation="Vertical">
                 <Button id="melody0"
                         height="76"
+                        margin="0 0 0 12"
+                        contentAlignment="Center"
+                        horizontalAlignment="Stretch"
                         fontSize="26"
                         foreground="#EAE8DC"
-                        borderThickness="0"
                         cornerRadius="16"
-                        margin="0 0 0 12"
-                        horizontalAlignment="Stretch"/>
+                        borderThickness="0"/>
                 <Button id="melody1"
                         height="76"
+                        margin="0 0 0 12"
+                        contentAlignment="Center"
+                        horizontalAlignment="Stretch"
                         fontSize="26"
                         foreground="#EAE8DC"
-                        borderThickness="0"
                         cornerRadius="16"
-                        margin="0 0 0 12"
-                        horizontalAlignment="Stretch"/>
+                        borderThickness="0"/>
                 <Button id="melody2"
                         height="76"
+                        margin="0 0 0 12"
+                        contentAlignment="Center"
+                        horizontalAlignment="Stretch"
                         fontSize="26"
                         foreground="#EAE8DC"
-                        borderThickness="0"
                         cornerRadius="16"
-                        margin="0 0 0 12"
-                        horizontalAlignment="Stretch"/>
+                        borderThickness="0"/>
             </StackPanel>
         </ScrollViewer>
         <Button id="applyButton"
                 gridRow="2"
-                text="Apply"
-                fontSize="30"
-                fontWeight="Bold"
-                background="#E0B64D"
-                foreground="#171813"
-                borderThickness="0"
-                cornerRadius="24"
+                verticalAlignment="Stretch"
                 contentAlignment="Center"
                 horizontalAlignment="Stretch"
-                verticalAlignment="Stretch"/>
+                fontSize="30"
+                fontWeight="Bold"
+                foreground="#171813"
+                background="#E0B64D"
+                cornerRadius="24"
+                text="Apply"
+                borderThickness="0"/>
     </Grid>
 </Page>

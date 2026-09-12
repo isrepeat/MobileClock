@@ -10,6 +10,7 @@ namespace mobileclock::ui {
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         chooseAlarmMelody,
         applySelectedMelody,
+        cancelMelodySelection,
 #endif
     };
 

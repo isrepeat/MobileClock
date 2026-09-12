@@ -451,6 +451,7 @@ namespace mobileclock::ui {
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
             MakeRoute<AddAlarmPageViewModel, XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody>(),
             MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody>(),
+            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection>(),
 #endif
             MakeRoute<SettingsPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain>(),
         };

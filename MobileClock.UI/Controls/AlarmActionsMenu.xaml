@@ -63,12 +63,12 @@
                                     background="#DDB54F"
                                     cornerRadius="10"/>
                             <TextBlock gridColumn="1"
-                                       text="Служебные действия"
-                                       fontSize="32"
                                        margin="0 0 4 0"
                                        verticalAlignment="Center"
                                        horizontalAlignment="Left"
-                                       foreground="#DDB54F"/>
+                                       fontSize="32"
+                                       foreground="#DDB54F"
+                                       text="Служебные действия"/>
                             <SvgImage gridColumn="2"
                                       width="28"
                                       height="28"
@@ -82,12 +82,12 @@
                             gridRow="2"
                             verticalAlignment="Stretch"
                             horizontalAlignment="Stretch"
+                            background="#24251C"
+                            cornerRadius="13"
                             command="{Binding UpdateApplicationCommand}"
                             renderer="rendererWave"
-                            background="#24251C"
                             borderBrush="#323327"
-                            borderThickness="1"
-                            cornerRadius="13">
+                            borderThickness="1">
                         <Border.Storyboards>
                             <Storyboard trigger="PointerDown">
                                 <Animation name="animationSoftPulse"
@@ -142,17 +142,17 @@
                                     <rowDefinition height="35"/>
                                 </rowDefinitions>
                                 <TextBlock gridRow="0"
-                                           text="Обновить"
+                                           verticalAlignment="Center"
+                                           horizontalAlignment="Left"
                                            fontSize="35"
-                                           verticalAlignment="Center"
-                                           horizontalAlignment="Left"
-                                           foreground="#F1E8D2"/>
+                                           foreground="#F1E8D2"
+                                           text="Обновить"/>
                                 <TextBlock gridRow="1"
-                                           text="Проверить данные и виджеты"
-                                           fontSize="29"
                                            verticalAlignment="Center"
                                            horizontalAlignment="Left"
-                                           foreground="#96947C"/>
+                                           fontSize="29"
+                                           foreground="#96947C"
+                                           text="Проверить данные и виджеты"/>
                             </Grid>
                             <SvgImage gridColumn="3"
                                       width="34"
@@ -164,21 +164,21 @@
                         </Grid>
                     </Border>
                     <TextBlock gridRow="4"
-                               text="Резервное"
-                               fontSize="28"
                                verticalAlignment="Center"
                                horizontalAlignment="Left"
-                               foreground="#96947C"/>
+                               fontSize="28"
+                               foreground="#96947C"
+                               text="Резервное"/>
                     <Border id="uploadScreenshotButton"
                             gridRow="5"
                             verticalAlignment="Stretch"
                             horizontalAlignment="Stretch"
+                            background="#22231B"
+                            cornerRadius="13"
                             command="{Binding UploadScreenshotCommand}"
                             renderer="rendererWave"
-                            background="#22231B"
                             borderBrush="#38392C"
-                            borderThickness="1"
-                            cornerRadius="13">
+                            borderThickness="1">
                         <Border.Storyboards>
                             <Storyboard trigger="PointerDown">
                                 <Animation name="animationSoftPulse"
@@ -218,11 +218,11 @@
                                       source="Icons/google-drive.svg"
                                       tint="#83816A"/>
                             <TextBlock gridColumn="1"
-                                       text="Сохранить скриншот"
-                                       fontSize="31"
                                        verticalAlignment="Center"
                                        horizontalAlignment="Left"
-                                       foreground="#D7D0B8"/>
+                                       fontSize="31"
+                                       foreground="#D7D0B8"
+                                       text="Сохранить скриншот"/>
                             <SvgImage gridColumn="2"
                                       width="34"
                                       height="34"
@@ -242,11 +242,11 @@
                             <columnDefinition width="*"/>
                         </columnDefinitions>
                         <TextBlock gridColumn="1"
-                                   text="{Binding Status}"
-                                   fontSize="32"
                                    verticalAlignment="Center"
                                    horizontalAlignment="Left"
-                                   foreground="#AAA78B"/>
+                                   fontSize="32"
+                                   foreground="#AAA78B"
+                                   text="{Binding Status}"/>
                     </Grid>
                 </Grid>
             </Grid>

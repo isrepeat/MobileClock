@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Page xmlns="urn:mobileclock:xaml"
-      id="settingsPage"
+<Page id="settingsPage"
+      padding="24 24 80 24"
       background="#1B1C17"
-      padding="24 24 80 24">
+      xmlns="urn:mobileclock:xaml">
     <Page.Storyboards>
         <Storyboard trigger="Show">
             <Animation name="animationPageTransition"
@@ -27,130 +27,130 @@
                             easing="CubicOut"/>
         </Storyboard>
     </Page.Storyboards>
-    <StackPanel orientation="Vertical"
+    <StackPanel verticalAlignment="Top"
                 horizontalAlignment="Stretch"
-                verticalAlignment="Top">
+                orientation="Vertical">
         <Grid height="90"
+              horizontalAlignment="Stretch"
               borderBrush="#4E4B3D"
-              borderThickness="0 0 0 1"
-              horizontalAlignment="Stretch">
+              borderThickness="0 0 0 1">
             <columnDefinitions>
                 <columnDefinition width="12%"/>
                 <columnDefinition width="76%"/>
                 <columnDefinition width="12%"/>
             </columnDefinitions>
             <Border id="backNavigation"
-                    background="#292A23"
-                    command="{Binding NavigateToMainCommand}"
-                    cornerRadius="24"
                     padding="10"
+                    verticalAlignment="Center"
                     horizontalAlignment="Center"
-                    verticalAlignment="Center">
-                <SvgImage source="Icons/back.svg"
-                          tint="#EADCB5"
-                          width="40"
+                    background="#292A23"
+                    cornerRadius="24"
+                    command="{Binding NavigateToMainCommand}">
+                <SvgImage width="40"
                           height="40"
+                          verticalAlignment="Center"
                           horizontalAlignment="Center"
-                          verticalAlignment="Center"/>
+                          source="Icons/back.svg"
+                          tint="#EADCB5"/>
             </Border>
-            <TextBlock text="Настройки"
+            <TextBlock gridColumn="1"
+                       verticalAlignment="Center"
+                       horizontalAlignment="Center"
                        fontSize="40"
                        fontWeight="Bold"
                        foreground="#EADCB5"
-                       horizontalAlignment="Center"
-                       verticalAlignment="Center"
-                       gridColumn="1"/>
+                       text="Настройки"/>
         </Grid>
-        <TextBlock text="Оформление"
+        <TextBlock margin="8 36 0 12"
                    fontSize="18"
                    fontWeight="Bold"
                    foreground="#9D9477"
-                   margin="8 36 0 12"/>
-        <Border background="#292A23"
-                borderBrush="#4E4B3D"
-                borderThickness="1"
+                   text="Оформление"/>
+        <Border padding="24"
+                horizontalAlignment="Stretch"
+                background="#292A23"
                 cornerRadius="16"
-                padding="24"
-                horizontalAlignment="Stretch">
+                borderBrush="#4E4B3D"
+                borderThickness="1">
             <Grid height="72"
                   horizontalAlignment="Stretch">
                 <columnDefinitions>
                     <columnDefinition width="40%"/>
                     <columnDefinition width="60%"/>
                 </columnDefinitions>
-                <TextBlock text="Тема"
+                <TextBlock verticalAlignment="Center"
+                           horizontalAlignment="Left"
                            fontSize="24"
                            foreground="#EADCB5"
-                           horizontalAlignment="Left"
-                           verticalAlignment="Center"/>
-                <TextBlock text="{Binding Theme}"
+                           text="Тема"/>
+                <TextBlock gridColumn="1"
+                           verticalAlignment="Center"
+                           horizontalAlignment="Right"
                            fontSize="20"
                            foreground="#D5BD7D"
-                           horizontalAlignment="Right"
-                           verticalAlignment="Center"
-                           gridColumn="1"/>
+                           text="{Binding Theme}"/>
             </Grid>
         </Border>
-        <TextBlock text="Будильники"
+        <TextBlock margin="8 36 0 12"
                    fontSize="18"
                    fontWeight="Bold"
                    foreground="#9D9477"
-                   margin="8 36 0 12"/>
-        <Border background="#292A23"
-                borderBrush="#4E4B3D"
-                borderThickness="1"
+                   text="Будильники"/>
+        <Border padding="24"
+                horizontalAlignment="Stretch"
+                background="#292A23"
                 cornerRadius="16"
-                padding="24"
-                horizontalAlignment="Stretch">
+                borderBrush="#4E4B3D"
+                borderThickness="1">
             <Grid height="72"
                   horizontalAlignment="Stretch">
                 <columnDefinitions>
                     <columnDefinition width="40%"/>
                     <columnDefinition width="60%"/>
                 </columnDefinitions>
-                <TextBlock text="Звук"
+                <TextBlock verticalAlignment="Center"
+                           horizontalAlignment="Left"
                            fontSize="24"
                            foreground="#EADCB5"
-                           horizontalAlignment="Left"
-                           verticalAlignment="Center"/>
-                <TextBlock text="{Binding Sound}"
+                           text="Звук"/>
+                <TextBlock gridColumn="1"
+                           verticalAlignment="Center"
+                           horizontalAlignment="Right"
                            fontSize="20"
                            foreground="#D5BD7D"
-                           horizontalAlignment="Right"
-                           verticalAlignment="Center"
-                           gridColumn="1"/>
+                           text="{Binding Sound}"/>
             </Grid>
         </Border>
-        <Button renderer="rendererWave"
-                id="resetAlarmMelodySelectionButton"
+        <Button id="resetAlarmMelodySelectionButton"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                background="#303128"
+                cornerRadius="16"
+                renderer="rendererWave"
                 text="Сбросить мелодии и приложения"
                 command="{Binding ResetAlarmMelodySelectionCommand}"
-                background="#303128"
                 borderBrush="#47483D"
-                borderThickness="1"
-                foreground="#F1E8D2"
-                cornerRadius="16"
-                fontSize="24"
-                fontWeight="Bold"
+                borderThickness="1"/>
+        <Button id="shareLogsButton"
                 height="72"
                 margin="0 0 0 10"
                 contentAlignment="Center"
-                horizontalAlignment="Stretch"/>
-        <Button renderer="rendererWave"
-                id="shareLogsButton"
+                horizontalAlignment="Stretch"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                background="#303128"
+                cornerRadius="16"
+                renderer="rendererWave"
                 text="Поделиться логом"
                 command="{Binding ShareLogsCommand}"
-                background="#303128"
                 borderBrush="#47483D"
-                borderThickness="1"
-                foreground="#F1E8D2"
-                cornerRadius="16"
-                fontSize="24"
-                fontWeight="Bold"
-                height="72"
-                margin="0 0 0 10"
-                contentAlignment="Center"
-                horizontalAlignment="Stretch">
+                borderThickness="1">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
                     <Animation name="animationSoftPulse"
@@ -176,21 +176,21 @@
                 </Storyboard>
             </Button.Storyboards>
         </Button>
-        <Button renderer="rendererWave"
-                id="exportLogsButton"
-                text="Экспортировать логи"
-                command="{Binding ExportLogsCommand}"
-                background="#303128"
-                borderBrush="#47483D"
-                borderThickness="1"
-                foreground="#F1E8D2"
-                cornerRadius="16"
-                fontSize="24"
-                fontWeight="Bold"
+        <Button id="exportLogsButton"
                 height="72"
                 margin="0 0 0 10"
                 contentAlignment="Center"
-                horizontalAlignment="Stretch">
+                horizontalAlignment="Stretch"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                background="#303128"
+                cornerRadius="16"
+                renderer="rendererWave"
+                text="Экспортировать логи"
+                command="{Binding ExportLogsCommand}"
+                borderBrush="#47483D"
+                borderThickness="1">
             <Button.Storyboards>
                 <Storyboard trigger="PointerDown">
                     <Animation name="animationSoftPulse"

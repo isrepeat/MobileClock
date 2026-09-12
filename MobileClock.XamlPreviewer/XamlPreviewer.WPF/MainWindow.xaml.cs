@@ -1368,11 +1368,11 @@ public partial class MainWindow : Window {
                     this.nativeApplicationSession.PreviewPageTitles,
                     this.nativeApplicationSession.CurrentPage);
             }
+            var targetPage = this.GetNativeApplicationPageName();
             this.UpdateElementInspection();
             if (isNewSession) {
-                this.nativeApplicationSession.LoadPage("MainPage");
+                this.nativeApplicationSession.LoadPage(targetPage);
             }
-            var targetPage = this.GetNativeApplicationPageName();
             if (this.pendingPreviewRoute is { Count: > 0 } route) {
                 NativeRuntime.xr_log_info($"Preview graph dispatches native route: {string.Join('>', route)}");
                 this.nativeApplicationSession.NavigatePreviewRoute(route);
