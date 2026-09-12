@@ -88,7 +88,9 @@ namespace mobileclock::ui {
         bool Owns(const xaml::Element& element) const override;
 
         void ConnectControls();
+        void OnStorageChange(const StorageChange& change);
         void RebuildMelodyChoices();
+        void RemoveMelody(std::string_view uri);
         void Refresh();
         void RefreshWheel(int column, float offset);
         void ChangeTime(int column, int steps);
@@ -99,6 +101,7 @@ namespace mobileclock::ui {
         PageContext& context;
         AlarmSettings settings;
         std::vector<Melody> melodies;
+        ApplicationStorage::Unsubscribe storageSubscription;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

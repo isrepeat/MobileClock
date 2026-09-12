@@ -22,7 +22,7 @@ namespace mobileclock::renderer {
     struct NativeRenderer::State {
         State()
             : applicationActions(commandDispatcher)
-            , session(applicationActions) {
+            , session(applicationActions, storage) {
         }
 
         EGLDisplay display = EGL_NO_DISPLAY;
@@ -32,6 +32,7 @@ namespace mobileclock::renderer {
         std::unique_ptr<AssetsManager> assetsManager;
         AndroidCommandDispatcher commandDispatcher;
         AndroidApplicationActions applicationActions;
+        mobileclock::ui::ApplicationStorage storage;
         mobileclock::ui::ApplicationSession session;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
         bool isSessionInitialized = false;

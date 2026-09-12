@@ -11,7 +11,7 @@
     </PropertyGroup>
     <ItemDefinitionGroup>
         <ClCompile>
-            <AdditionalIncludeDirectories>$(ProjectDir)..\..;$(ProjectDir)..\..\MobileClock.Application;$(ProjectDir)..\..\MobileClock.AndroidHost;$(ProjectDir)..\..\Build\MobileClock.Application;$(ProjectDir)..\..\UtilityHelpersLib\3rdParty\Spdlog\Spdlog.Shared\Spdlog;$(ProjectDir)..\..\UtilityHelpersLib\Helpers\Helpers.Logging;$(ProjectDir)..\..\UtilityHelpersLib\HelpersNew\HelpersNew.Shared;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\OpenGLESRenderer\OpenGLESRenderer.Shared;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <AdditionalIncludeDirectories>$(ProjectDir)..\..;$(ProjectDir)..\..\MobileClock.Application;$(ProjectDir)..\..\MobileClock.AndroidHost;$(ProjectDir)..\..\Build\MobileClock.Application;$(ProjectDir)..\..\UtilityHelpersLib\3rdParty\Spdlog\Spdlog.Shared\Spdlog;$(ProjectDir)..\..\UtilityHelpersLib\3rdParty\JsonParser\JsonParser.Shared;$(ProjectDir)..\..\UtilityHelpersLib\Helpers\Helpers.Shared;$(ProjectDir)..\..\UtilityHelpersLib\Helpers\Helpers.Logging;$(ProjectDir)..\..\UtilityHelpersLib\HelpersNew\HelpersNew.Shared;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\OpenGLESRenderer\OpenGLESRenderer.Shared;$(ProjectDir)..\..\UtilityHelpersLib\NugetProjects\XamlRuntime\Nuget\XamlRuntime\XamlRuntime.Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
             <LanguageStandard>stdcpp20</LanguageStandard>
             <WarningLevel>Level4</WarningLevel>
             <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>

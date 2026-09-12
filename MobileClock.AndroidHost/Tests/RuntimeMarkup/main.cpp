@@ -18,6 +18,7 @@ namespace mobileclock::tests::_details {
         //
         void CreateAlarm() override;
         void ChooseAlarmMelody() override;
+        void ResetAlarmMelodySelection() override;
         void ToggleAlarm() override;
         void UpdateApplication() override;
         void UploadScreenshot() override;
@@ -30,6 +31,7 @@ namespace mobileclock::tests::_details {
     //
     void Actions::CreateAlarm() {}
     void Actions::ChooseAlarmMelody() {}
+    void Actions::ResetAlarmMelodySelection() {}
     void Actions::ToggleAlarm() {}
     void Actions::UpdateApplication() {}
     void Actions::UploadScreenshot() {}
@@ -97,7 +99,8 @@ namespace mobileclock::tests::_details {
 
     void CheckAlarmForm() {
         Actions actions;
-        ui::ApplicationSession session(actions);
+        ui::ApplicationStorage storage;
+        ui::ApplicationSession session(actions, storage);
         session.Initialize({720, 1440});
         session.SetAnimationPlaybackRate(100.0f);
         Check(!xaml::AnimationController::IsAnimating(session.Root()), "Initial page must not animate");
@@ -196,7 +199,8 @@ int main(int argc, char** argv) {
         Check(ast.children[0].attributes[0].value.find("a & b") == 0, "XML entities");
         CheckAlarmForm();
         Actions actions;
-        mobileclock::ui::ApplicationSession session(actions);
+        mobileclock::ui::ApplicationStorage storage;
+        mobileclock::ui::ApplicationSession session(actions, storage);
         session.Initialize({1080, 1920});
         session.SetAnimationPlaybackRate(100.0f);
         std::string diagnostics;

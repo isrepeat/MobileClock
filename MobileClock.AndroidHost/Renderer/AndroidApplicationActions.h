@@ -17,6 +17,7 @@ namespace mobileclock::renderer {
         //
         void CreateAlarm() override;
         void ChooseAlarmMelody() override;
+        void ResetAlarmMelodySelection() override;
         void ToggleAlarm() override;
         void UpdateApplication() override;
         void UploadScreenshot() override;

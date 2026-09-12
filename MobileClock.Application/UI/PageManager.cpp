@@ -19,8 +19,8 @@
 #include <array>
 
 namespace mobileclock::ui {
-    PageManager::PageManager(IApplicationActions& actions)
-        : pageContext{static_cast<IPageNavigator&>(*this), actions}
+    PageManager::PageManager(IApplicationActions& actions, ApplicationStorage& storage)
+        : pageContext{static_cast<IPageNavigator&>(*this), actions, storage}
         , pages(this->pageContext) {
         this->pageContext.saveAlarm = [this](const AlarmSettings& settings) {
             this->pages.Get<MainPageViewModel>().AddAlarm(settings);
@@ -138,7 +138,14 @@ namespace mobileclock::ui {
     }
 
     void PageManager::AddAlarmMelody(std::string name, std::string uri) {
-        this->pages.Get<AddAlarmPageViewModel>().AddMelody(std::move(name), std::move(uri));
+        auto edit = this->pageContext.storage.Edit();
+        const auto existing = std::find_if(edit->alarmMelodies.begin(), edit->alarmMelodies.end(), [&uri](const AlarmMelody& melody) {
+            return melody.uri == uri;
+        });
+        if (existing == edit->alarmMelodies.end()) {
+            edit->alarmMelodies.push_back({std::move(name), std::move(uri)});
+            edit.Commit();
+        }
     }
 
     void PageManager::SetAlarmMelody(std::string name, std::string uri) {

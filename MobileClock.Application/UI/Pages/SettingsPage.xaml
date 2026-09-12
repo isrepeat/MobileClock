@@ -122,6 +122,21 @@
             </Grid>
         </Border>
         <Button renderer="rendererWave"
+                id="resetAlarmMelodySelectionButton"
+                text="Сбросить мелодии и приложения"
+                command="{Binding ResetAlarmMelodySelectionCommand}"
+                background="#303128"
+                borderBrush="#47483D"
+                borderThickness="1"
+                foreground="#F1E8D2"
+                cornerRadius="16"
+                fontSize="24"
+                fontWeight="Bold"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"/>
+        <Button renderer="rendererWave"
                 id="shareLogsButton"
                 text="Поделиться логом"
                 command="{Binding ShareLogsCommand}"

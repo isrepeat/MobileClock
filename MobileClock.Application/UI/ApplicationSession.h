@@ -13,7 +13,7 @@ namespace mobileclock::ui {
     // но не создают страницы, bindings или animation registry самостоятельно.
     class ApplicationSession final {
     public:
-        explicit ApplicationSession(IApplicationActions& actions);
+        ApplicationSession(IApplicationActions& actions, ApplicationStorage& storage);
         ~ApplicationSession() = default;
 
         ApplicationSession(const ApplicationSession&) = delete;

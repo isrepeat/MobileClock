@@ -28,6 +28,12 @@ namespace mobileclock::ui {
         : navigateToMainCommand([&context]() {
             context.navigator.Trigger(NavigationTrigger::navigateToMain);
         })
+        , resetAlarmMelodySelectionCommand([&context]() {
+            auto edit = context.storage.Edit();
+            edit->alarmMelodies.clear();
+            edit.Commit();
+            context.actions.ResetAlarmMelodySelection();
+        })
         , shareLogsCommand([&context]() {
             context.actions.ShareLogs();
         })
@@ -97,6 +103,10 @@ namespace mobileclock::ui {
         return this->navigateToMainCommand;
     }
 
+    xaml::Element::Command SettingsPageViewModel::ResetAlarmMelodySelectionCommand() const {
+        return this->resetAlarmMelodySelectionCommand;
+    }
+
     xaml::Element::Command SettingsPageViewModel::ShareLogsCommand() const {
         return this->shareLogsCommand;
     }
@@ -152,6 +162,7 @@ namespace mobileclock::ui {
         publisher.Text("Theme", Property::theme, &SettingsPageViewModel::Theme);
         publisher.Text("Sound", Property::sound, &SettingsPageViewModel::Sound);
         publisher.Command("NavigateToMainCommand", &SettingsPageViewModel::NavigateToMainCommand);
+        publisher.Command("ResetAlarmMelodySelectionCommand", &SettingsPageViewModel::ResetAlarmMelodySelectionCommand);
         publisher.Command("ShareLogsCommand", &SettingsPageViewModel::ShareLogsCommand);
         publisher.Command("ExportLogsCommand", &SettingsPageViewModel::ExportLogsCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "SettingsPageViewModel", {}};

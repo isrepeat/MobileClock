@@ -9,6 +9,8 @@ namespace mobileclock::renderer::_details {
             return "createAlarm";
         case AndroidAction::chooseAlarmMelody:
             return "chooseAlarmMelody";
+        case AndroidAction::resetAlarmMelodySelection:
+            return "resetAlarmMelodySelection";
         case AndroidAction::toggleAlarm:
             return "toggleAlarm";
         case AndroidAction::updateApplication:

@@ -58,6 +58,7 @@ namespace mobileclock::ui {
 
         void NavigateToMain();
         xaml::Element::Command NavigateToMainCommand() const;
+        xaml::Element::Command ResetAlarmMelodySelectionCommand() const;
         xaml::Element::Command ShareLogsCommand() const;
         xaml::Element::Command ExportLogsCommand() const;
         void Initialize(xaml::Size availableSize);
@@ -82,6 +83,7 @@ namespace mobileclock::ui {
         std::unique_ptr<xaml::BindingScope> runtimeBindings;
 #endif
         xaml::Element::Command navigateToMainCommand;
+        xaml::Element::Command resetAlarmMelodySelectionCommand;
         xaml::Element::Command shareLogsCommand;
         xaml::Element::Command exportLogsCommand;
     };

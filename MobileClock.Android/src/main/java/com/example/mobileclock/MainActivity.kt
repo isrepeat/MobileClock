@@ -5,6 +5,8 @@ import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
+import android.util.AtomicFile
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +17,7 @@ import com.example.mobileclock.feature.update.UpdateDiagnostics
 import com.example.mobileclock.native.NativeRenderer
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     private data class AlarmMelody(val name: String, val uri: String)
@@ -137,6 +140,7 @@ class MainActivity : ComponentActivity() {
     private fun handleNativeCommand(command: String) {
         when (command) {
             "chooseAlarmMelody" -> chooseAlarmMelody()
+            "resetAlarmMelodySelection" -> resetAlarmMelodySelection()
             "shareLogs" -> shareLogs()
             "exportLogs" -> googleDriveUploadCoordinator.startLogUpload()
             "uploadScreenshot" -> googleDriveUploadCoordinator.startScreenshotUpload()
@@ -159,14 +163,36 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun resetAlarmMelodySelection() {
+        // Legacy: удаляем сохранённые мелодии, созданные версиями до JSON-хранилища.
+        getSharedPreferences(ALARM_MELODIES_PREFERENCES, MODE_PRIVATE)
+            .edit()
+            .remove(ALARM_MELODIES_KEY)
+            .apply()
+        AtomicFile(alarmMelodiesFile()).delete()
+        showNativeStatus("Сохранённые мелодии удалены")
+        runCatching {
+            startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+        }.onFailure {
+            showNativeStatus("Не удалось открыть настройки приложений")
+        }
+    }
+
     private fun loadAlarmMelodies(): List<AlarmMelody> {
-        val serialized = getSharedPreferences(ALARM_MELODIES_PREFERENCES, MODE_PRIVATE)
-            .getString(ALARM_MELODIES_KEY, null) ?: return emptyList()
+        val file = alarmMelodiesFile()
+        if (!file.exists()) {
+            val legacyMelodies = loadLegacyAlarmMelodies()
+            if (legacyMelodies.isNotEmpty() && saveAlarmMelodies(legacyMelodies)) {
+                getSharedPreferences(ALARM_MELODIES_PREFERENCES, MODE_PRIVATE)
+                    .edit()
+                    .remove(ALARM_MELODIES_KEY)
+                    .apply()
+            }
+            return legacyMelodies
+        }
         return runCatching {
-            val items = JSONArray(serialized)
-            List(items.length()) { index ->
-                val item = items.getJSONObject(index)
-                AlarmMelody(item.getString("name"), item.getString("uri"))
+            AtomicFile(file).openRead().bufferedReader().use { reader ->
+                parseAlarmMelodies(reader.readText())
             }
         }.getOrDefault(emptyList())
     }
@@ -174,6 +200,28 @@ class MainActivity : ComponentActivity() {
     private fun saveAlarmMelody(name: String, uri: String) {
         val melodies = loadAlarmMelodies().filterNot { melody -> melody.uri == uri }.toMutableList()
         melodies.add(0, AlarmMelody(name, uri))
+        if (!saveAlarmMelodies(melodies)) {
+            showNativeStatus("Не удалось сохранить мелодию")
+        }
+    }
+
+    private fun loadLegacyAlarmMelodies(): List<AlarmMelody> {
+        val serialized = getSharedPreferences(ALARM_MELODIES_PREFERENCES, MODE_PRIVATE)
+            .getString(ALARM_MELODIES_KEY, null) ?: return emptyList()
+        return runCatching {
+            parseAlarmMelodies(serialized)
+        }.getOrDefault(emptyList())
+    }
+
+    private fun parseAlarmMelodies(serialized: String): List<AlarmMelody> {
+        val items = JSONArray(serialized)
+        return List(items.length()) { index ->
+            val item = items.getJSONObject(index)
+            AlarmMelody(item.getString("name"), item.getString("uri"))
+        }
+    }
+
+    private fun saveAlarmMelodies(melodies: List<AlarmMelody>): Boolean = runCatching {
         val serialized = JSONArray().apply {
             melodies.forEach { melody ->
                 put(JSONObject().apply {
@@ -182,11 +230,18 @@ class MainActivity : ComponentActivity() {
                 })
             }
         }
-        getSharedPreferences(ALARM_MELODIES_PREFERENCES, MODE_PRIVATE)
-            .edit()
-            .putString(ALARM_MELODIES_KEY, serialized.toString())
-            .apply()
-    }
+        val file = AtomicFile(alarmMelodiesFile())
+        val stream = file.startWrite()
+        try {
+            stream.write(serialized.toString().toByteArray(Charsets.UTF_8))
+            file.finishWrite(stream)
+        } catch (error: Exception) {
+            file.failWrite(stream)
+            throw error
+        }
+    }.isSuccess
+
+    private fun alarmMelodiesFile(): File = File(filesDir, MOBILECLOCK_STORAGE_FILENAME)
 
     private fun showNativeStatus(message: String) {
         NativeRenderer.setStatus(message)
@@ -201,5 +256,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_UPDATE_ERROR = "update_error"
         const val ALARM_MELODIES_PREFERENCES = "alarm_melodies"
         const val ALARM_MELODIES_KEY = "items"
+        const val MOBILECLOCK_STORAGE_FILENAME = "mobileclock-storage.json"
     }
 }

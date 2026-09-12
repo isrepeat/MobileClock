@@ -17,6 +17,10 @@ namespace mobileclock::renderer {
         this->dispatcher.Dispatch(AndroidAction::chooseAlarmMelody);
     }
 
+    void AndroidApplicationActions::ResetAlarmMelodySelection() {
+        this->dispatcher.Dispatch(AndroidAction::resetAlarmMelodySelection);
+    }
+
     void AndroidApplicationActions::ToggleAlarm() {
         this->dispatcher.Dispatch(AndroidAction::toggleAlarm);
     }

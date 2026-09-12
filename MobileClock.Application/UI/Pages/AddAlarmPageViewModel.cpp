@@ -44,6 +44,12 @@ namespace mobileclock::ui {
 
     AddAlarmPageViewModel::AddAlarmPageViewModel(PageContext& context)
         : context(context) {
+        for (const AlarmMelody& melody : this->context.storage->alarmMelodies) {
+            this->AddMelody(melody.name, melody.uri);
+        }
+        this->storageSubscription = this->context.storage.Subscribe([this](const StorageChange& change) {
+            this->OnStorageChange(change);
+        });
         this->RegisterGestureTarget();
     }
 
@@ -165,12 +171,25 @@ namespace mobileclock::ui {
         });
         if (existing == this->melodies.end()) {
             this->melodies.emplace_back(std::move(name), std::move(uri));
+        } else {
+            *existing = Melody(std::move(name), std::move(uri));
         }
         this->RebuildMelodyChoices();
     }
 
     void AddAlarmPageViewModel::SetMelody(std::string name, std::string uri) {
-        this->AddMelody(name, uri);
+        auto edit = this->context.storage.Edit();
+        const auto existing = std::find_if(edit->alarmMelodies.begin(), edit->alarmMelodies.end(), [&uri](const AlarmMelody& melody) {
+            return melody.uri == uri;
+        });
+        if (existing == edit->alarmMelodies.end()) {
+            edit->alarmMelodies.push_back({name, uri});
+        } else {
+            existing->name = name;
+        }
+        if (!edit.Commit()) {
+            return;
+        }
         this->settings.melody = std::move(name);
         this->settings.melodyUri = std::move(uri);
         this->Refresh();
@@ -295,6 +314,25 @@ namespace mobileclock::ui {
         this->RebuildMelodyChoices();
     }
 
+    void AddAlarmPageViewModel::OnStorageChange(const StorageChange& change) {
+        if (change.path.segments.empty() || change.path.segments.front() != "alarmMelodies") {
+            return;
+        }
+        switch (change.action) {
+        case StorageAction::add:
+        case StorageAction::update:
+            if (change.value) {
+                this->AddMelody(change.value->name, change.value->uri);
+            }
+            return;
+        case StorageAction::remove:
+            if (change.previousValue) {
+                this->RemoveMelody(change.previousValue->uri);
+            }
+            return;
+        }
+    }
+
     void AddAlarmPageViewModel::RebuildMelodyChoices() {
         auto* const choices = this->Find("melodyChoices");
         if (choices == nullptr) {
@@ -328,6 +366,22 @@ namespace mobileclock::ui {
                 }
             });
         }
+    }
+
+    void AddAlarmPageViewModel::RemoveMelody(std::string_view uri) {
+        const auto melody = std::find_if(this->melodies.begin(), this->melodies.end(), [uri](const Melody& value) {
+            return value.Uri() == uri;
+        });
+        if (melody == this->melodies.end()) {
+            return;
+        }
+        if (this->settings.melodyUri == uri) {
+            this->settings.melody = AlarmSettings{}.melody;
+            this->settings.melodyUri.clear();
+        }
+        this->melodies.erase(melody);
+        this->RebuildMelodyChoices();
+        this->Refresh();
     }
 
     void AddAlarmPageViewModel::Refresh() {

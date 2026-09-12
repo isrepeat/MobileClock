@@ -8,6 +8,12 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
+#include <JsonParser/JsonParser.h>
+#include <Windows.h>
+
+#ifdef DrawText
+#undef DrawText
+#endif
 
 #include "../../MobileClock.Presentation/PreviewSession.h"
 #include "../../MobileClock.Application/UI/ApplicationSession.h"
@@ -17,6 +23,7 @@
 #include <unordered_map>
 #include <string_view>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <algorithm>
 #include <stdexcept>
@@ -28,6 +35,17 @@
 #include <string>
 #include <vector>
 #include <cmath>
+
+JS_OBJECT_EXTERNAL(
+    mobileclock::ui::AlarmMelody,
+    JS_MEMBER_ALIASES(name, "Name", "name"),
+    JS_MEMBER_ALIASES(uri, "Uri", "uri")
+);
+
+JS_OBJECT_EXTERNAL(
+    mobileclock::ui::ApplicationStorageData,
+    JS_MEMBER_ALIASES(alarmMelodies, "AlarmMelodies", "alarm_melodies")
+);
 
 namespace xaml::bridge::_details {
     bool SameSourcePath(std::string_view left, std::string_view right) {
@@ -273,15 +291,93 @@ struct xr_angle_surface {
 };
 
 namespace mobileclock::preview::_details {
-    class PreviewApplicationActions final : public ui::IApplicationActions {
+    std::filesystem::path PreviewerStatePath() {
+        std::vector<wchar_t> executablePath(MAX_PATH);
+        DWORD length = 0;
+        do {
+            length = GetModuleFileNameW(nullptr, executablePath.data(), static_cast<DWORD>(executablePath.size()));
+            if (length == 0) {
+                throw std::runtime_error("Cannot locate XamlPreviewer executable");
+            }
+            if (length < executablePath.size() - 1) {
+                break;
+            }
+            executablePath.resize(executablePath.size() * 2);
+        } while (true);
+        return std::filesystem::path(std::wstring(executablePath.data(), length)).parent_path() / "mobileclock-storage-previewer.json";
+    }
+
+    class PreviewerStateStorage final {
     public:
-        void ProcessPendingActions() {
+        explicit PreviewerStateStorage(std::filesystem::path path)
+            : path(std::move(path)) {
         }
 
+        //
+        // API
+        //
+        ui::ApplicationStorageData Load() const {
+            std::ifstream stream(this->path, std::ios::binary);
+            if (!stream) {
+                return {};
+            }
+            const std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+            ui::ApplicationStorageData state;
+            JS::ParseContext context(json.data(), json.size());
+            if (context.parseTo(state) != JS::Error::NoError) {
+                LOG_WARNING("XamlPreviewer.State", "Ignoring invalid previewer state '{}': {}", this->path.string(), context.makeErrorString());
+                return {};
+            }
+            return state;
+        }
+
+        bool Save(const ui::ApplicationStorageData& data) const {
+            if (data.alarmMelodies.empty()) {
+                this->Clear();
+                return true;
+            }
+            return this->Write(data);
+        }
+
+    private:
+        //
+        // Internal
+        //
+        void Clear() const {
+            std::error_code error;
+            if (!std::filesystem::remove(this->path, error) && error) {
+                LOG_WARNING("XamlPreviewer.State", "Cannot delete previewer state '{}': {}", this->path.string(), error.message());
+            }
+        }
+
+        bool Write(const ui::ApplicationStorageData& data) const {
+            std::ofstream stream(this->path, std::ios::binary | std::ios::trunc);
+            if (!stream) {
+                LOG_WARNING("XamlPreviewer.State", "Cannot save previewer state '{}'", this->path.string());
+                return false;
+            }
+            stream << JS::serializeStruct(data);
+            return static_cast<bool>(stream);
+        }
+
+    private:
+        std::filesystem::path path;
+    };
+
+    class PreviewApplicationActions final : public ui::IApplicationActions {
+    public:
+        PreviewApplicationActions() = default;
+
+        //
+        // IApplicationActions
+        //
         void CreateAlarm() override {
         }
 
         void ChooseAlarmMelody() override {
+        }
+
+        void ResetAlarmMelodySelection() override {
         }
 
         void ToggleAlarm() override {
@@ -299,12 +395,23 @@ namespace mobileclock::preview::_details {
         void ExportLogs() override {
         }
 
+        //
+        // API
+        //
+        void ProcessPendingActions() {
+        }
+
     };
 }
 
 struct mc_session {
     explicit mc_session(int width, int height)
-        : session(actions)
+        : stateStorage(mobileclock::preview::_details::PreviewerStatePath())
+        , storage(stateStorage.Load(), [this](const mobileclock::ui::ApplicationStorageData& data) {
+            return this->stateStorage.Save(data);
+        })
+        , actions()
+        , session(actions, storage)
         , width(width)
         , height(height) {
         if (width <= 0 || height <= 0) {
@@ -313,6 +420,8 @@ struct mc_session {
         this->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
     }
 
+    mobileclock::preview::_details::PreviewerStateStorage stateStorage;
+    mobileclock::ui::ApplicationStorage storage;
     mobileclock::preview::_details::PreviewApplicationActions actions;
     mobileclock::ui::ApplicationSession session;
     int width;

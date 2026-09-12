@@ -7,6 +7,7 @@
 #endif
 #include "UI/ApplicationActions.h"
 #include "UI/AlarmSettings.h"
+#include "UI/ApplicationStorage.h"
 #include "UI/Navigation.h"
 
 #include <string_view>
@@ -44,6 +45,7 @@ namespace mobileclock::ui {
     struct PageContext final {
         IPageNavigator& navigator;
         IApplicationActions& actions;
+        ApplicationStorage& storage;
         std::function<void(const AlarmSettings&)> saveAlarm;
     };
 
