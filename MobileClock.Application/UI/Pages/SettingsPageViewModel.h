@@ -24,6 +24,7 @@ namespace mobileclock::ui {
     class SettingsPageViewModel final : public ISerializable {
     public:
         inline static constexpr std::string_view PageName = "SettingsPage";
+        inline static constexpr std::string_view PreviewGraphTitle = "⚙  Настройки";
 
         enum class Property {
             theme,

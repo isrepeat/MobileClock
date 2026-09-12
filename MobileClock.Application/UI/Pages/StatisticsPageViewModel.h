@@ -23,6 +23,7 @@ namespace mobileclock::ui {
     class StatisticsPageViewModel final : public ISerializable {
     public:
         inline static constexpr std::string_view PageName = "StatisticsPage";
+        inline static constexpr std::string_view PreviewGraphTitle = "Статистика";
 
         enum class Property {
             title,

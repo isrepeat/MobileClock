@@ -436,6 +436,13 @@ int mc_current_page(mc_session* session, char* page, int capacity) {
     }
 }
 
+int mc_is_transitioning(mc_session* session) {
+    if (session == nullptr) {
+        return 0;
+    }
+    return session->session.IsTransitioning() ? 1 : 0;
+}
+
 int mc_navigate_preview_route(mc_session* session, const char* target) {
     try {
         xaml::bridge::lastError.clear();
@@ -534,6 +541,25 @@ int mc_preview_route_graph(mc_session* session, char* graph, int capacity) {
         }
         std::memcpy(graph, value.data(), value.size());
         graph[value.size()] = static_cast<char>(0);
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
+int mc_preview_page_title(mc_session* session, const char* page, char* title, int capacity) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || page == nullptr || title == nullptr || capacity <= 0) {
+            throw std::invalid_argument("Session, page, title buffer and positive capacity are required");
+        }
+        const std::string_view value = session->session.PreviewPageTitle(page);
+        if (value.size() >= static_cast<size_t>(capacity)) {
+            throw std::invalid_argument("Preview page title buffer is too small");
+        }
+        std::memcpy(title, value.data(), value.size());
+        title[value.size()] = static_cast<char>(0);
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();

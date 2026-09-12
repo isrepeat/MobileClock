@@ -25,6 +25,7 @@ namespace mobileclock::ui {
     class MainPageViewModel final : public ISerializable {
     public:
         inline static constexpr std::string_view PageName = "MainPage";
+        inline static constexpr std::string_view PreviewGraphTitle = "⌂  Главная";
 
         class Alarm final {
         public:

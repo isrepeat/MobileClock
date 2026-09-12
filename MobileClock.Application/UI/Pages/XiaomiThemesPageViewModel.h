@@ -22,6 +22,7 @@ namespace mobileclock::ui {
     class XiaomiThemesPageViewModel final : public ISerializable {
     public:
         inline static constexpr std::string_view PageName = "XiaomiThemesPage";
+        inline static constexpr std::string_view PreviewGraphTitle = "Xiaomi Themes";
 
         class Melody final {
         public:

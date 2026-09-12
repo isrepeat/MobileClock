@@ -24,6 +24,7 @@ namespace mobileclock::ui {
         void SetAnimationPlaybackRate(float value);
         bool LoadPage(std::string_view name);
         std::string_view CurrentPageName() const;
+        bool IsTransitioning() const;
         void SetStatus(std::string value);
         void AddAlarmMelody(std::string name, std::string uri);
         void SetAlarmMelody(std::string name, std::string uri);
@@ -31,6 +32,7 @@ namespace mobileclock::ui {
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
         bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
         std::string PreviewRouteGraph() const;
+        std::string_view PreviewPageTitle(std::string_view pageName) const;
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
         bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
 #endif

@@ -69,7 +69,11 @@ internal sealed class MobileClockSession : IDisposable {
 
     public string CurrentPage => this.GetCurrentPage();
 
+    public bool IsTransitioning => NativeRuntime.mc_is_transitioning(this.session) != 0;
+
     public IReadOnlyList<PreviewRoute> PreviewRoutes => this.GetPreviewRoutes();
+
+    public IReadOnlyDictionary<string, string> PreviewPageTitles => this.GetPreviewPageTitles();
 
     public void NavigatePreviewRoute(string target) {
         NativeRuntime.Ensure(NativeRuntime.mc_navigate_preview_route(this.session, target) != 0);
@@ -268,6 +272,24 @@ internal sealed class MobileClockSession : IDisposable {
             .Where(value => value.Length == 2)
             .Select(value => new PreviewRoute(value[0], value[1]))
             .ToArray();
+    }
+
+    private IReadOnlyDictionary<string, string> GetPreviewPageTitles() {
+        var pages = this.GetPreviewRoutes()
+            .SelectMany(route => new[] { route.Source, route.Target })
+            .Distinct()
+            .ToArray();
+        var result = new Dictionary<string, string>(pages.Length, StringComparer.Ordinal);
+        foreach (var page in pages) {
+            var title = new byte[512];
+            NativeRuntime.Ensure(NativeRuntime.mc_preview_page_title(this.session, page, title, title.Length) != 0);
+            var titleLength = Array.IndexOf(title, (byte)0);
+            if (titleLength < 0) {
+                throw new InvalidOperationException("Заголовок страницы не завершён нулевым байтом.");
+            }
+            result.Add(page, Encoding.UTF8.GetString(title, 0, titleLength));
+        }
+        return result;
     }
 
     private void Render() {

@@ -61,6 +61,10 @@ namespace mobileclock::ui {
         return this->currentPage == nullptr ? std::string_view{} : this->currentPage->Name();
     }
 
+    bool PageManager::IsTransitioning() const {
+        return this->isTransitioning;
+    }
+
     //
     // API
     //
@@ -246,6 +250,11 @@ namespace mobileclock::ui {
             result += route.target;
         }
         return result;
+    }
+
+    std::string_view PageManager::PreviewPageTitle(std::string_view pageName) const {
+        const IPage* const page = this->pages.Find(pageName);
+        return page == nullptr ? pageName : page->PreviewGraphTitle();
     }
 
     bool PageManager::ExecutePreviewRoute(std::span<const PreviewRoute*> route, std::string& error) {

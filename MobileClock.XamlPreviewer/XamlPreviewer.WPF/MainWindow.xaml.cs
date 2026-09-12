@@ -52,6 +52,7 @@ public partial class MainWindow : Window {
     private bool settingsPersistenceReady;
     private MobileClockSession? nativeApplicationSession;
     private IReadOnlyList<string>? pendingPreviewRoute;
+    private string? deferredNavigationEditorPage;
     private bool isClosing;
     private PreviewerSettings settings = null!;
     private string? markupPath;
@@ -86,7 +87,6 @@ public partial class MainWindow : Window {
         this.statusPresenter = new PreviewStatusPresenter(this.StatusText);
         this.navigationGraphController = new NavigationGraphController(
             this.NavigationGraph,
-            this.SelectNavigationPageInEditor,
             this.statusPresenter.Information);
         this.navigationGraphController.ActivePageChanged += this.NavigationGraphActivePageChanged;
         this.navigationGraphController.RouteConfirmed += this.NavigationGraphRouteConfirmed;
@@ -294,6 +294,7 @@ public partial class MainWindow : Window {
 
     private void ClearFolderPickerPreview() {
         this.animationTimer.Stop();
+        this.deferredNavigationEditorPage = null;
         this.nativeApplicationSession?.Dispose();
         this.nativeApplicationSession = null;
         this.previewLayer.Children.Clear();
@@ -666,6 +667,10 @@ public partial class MainWindow : Window {
     }
 
     private void NavigationGraphActivePageChanged(string page) {
+        if (this.nativeApplicationSession?.IsTransitioning == true) {
+            this.deferredNavigationEditorPage = page;
+            return;
+        }
         this.SelectNavigationPageInEditor(page);
     }
 
@@ -834,6 +839,11 @@ public partial class MainWindow : Window {
             this.nativeApplicationSession?.UpdateAndRender();
             if (this.nativeApplicationSession is not null) {
                 this.navigationGraphController.Synchronize(this.nativeApplicationSession.CurrentPage);
+                if (!this.nativeApplicationSession.IsTransitioning
+                    && this.deferredNavigationEditorPage is not null) {
+                    this.SelectNavigationPageInEditor(this.deferredNavigationEditorPage);
+                    this.deferredNavigationEditorPage = null;
+                }
             }
         }
         catch (Exception exception) {
@@ -1341,6 +1351,7 @@ public partial class MainWindow : Window {
                 || this.nativeApplicationSession.Height != previewSize.Height;
             if (isNewSession) {
                 this.animationTimer.Stop();
+                this.deferredNavigationEditorPage = null;
                 this.nativeApplicationSession?.Dispose();
                 this.nativeApplicationSession = new MobileClockSession(
                     this.settings.ResourcesDirectory,
@@ -1354,6 +1365,7 @@ public partial class MainWindow : Window {
                 this.ApplyElementInspectionHighlightSettings();
                 this.navigationGraphController.SetRoutes(
                     this.nativeApplicationSession.PreviewRoutes,
+                    this.nativeApplicationSession.PreviewPageTitles,
                     this.nativeApplicationSession.CurrentPage);
             }
             this.UpdateElementInspection();

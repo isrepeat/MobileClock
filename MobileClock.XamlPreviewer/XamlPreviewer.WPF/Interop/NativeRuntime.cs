@@ -101,6 +101,9 @@ internal static class NativeRuntime {
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_current_page")]
     public static extern int mc_current_page(IntPtr session, [Out] StringBuilder page, int capacity);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_is_transitioning")]
+    public static extern int mc_is_transitioning(IntPtr session);
+
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_navigate_preview_route")]
     public static extern int mc_navigate_preview_route(
         IntPtr session,
@@ -113,6 +116,13 @@ internal static class NativeRuntime {
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_preview_route_graph")]
     public static extern int mc_preview_route_graph(IntPtr session, [Out] StringBuilder graph, int capacity);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_preview_page_title")]
+    public static extern int mc_preview_page_title(
+        IntPtr session,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string page,
+        [Out] byte[] title,
+        int capacity);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_apply_preview_scenario")]
     public static extern int mc_apply_preview_scenario(

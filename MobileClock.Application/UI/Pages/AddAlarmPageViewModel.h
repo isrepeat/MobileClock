@@ -22,6 +22,7 @@ namespace mobileclock::ui {
     class AddAlarmPageViewModel final : public ISerializable, public IGestureTarget {
     public:
         inline static constexpr std::string_view PageName = "AddAlarmPage";
+        inline static constexpr std::string_view PreviewGraphTitle = "Новый будильник";
 
         class Melody final {
         public:

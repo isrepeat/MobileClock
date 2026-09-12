@@ -34,6 +34,7 @@ namespace mobileclock::ui {
         bool Navigate(std::string_view pageName) override;
 
         std::string_view CurrentPageName() const;
+        bool IsTransitioning() const;
         void Initialize(xaml::Size availableSize);
         void Resize(xaml::Size availableSize);
         void SetAnimationPlaybackRate(float value);
@@ -44,6 +45,7 @@ namespace mobileclock::ui {
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
         bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
         std::string PreviewRouteGraph() const;
+        std::string_view PreviewPageTitle(std::string_view pageName) const;
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
         bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
 #endif

@@ -34,6 +34,10 @@ namespace mobileclock::ui {
         return this->pageManager.CurrentPageName();
     }
 
+    bool ApplicationSession::IsTransitioning() const {
+        return this->pageManager.IsTransitioning();
+    }
+
     void ApplicationSession::SetStatus(std::string value) {
         this->pageManager.SetStatus(std::move(value));
     }
@@ -57,6 +61,10 @@ namespace mobileclock::ui {
 
     std::string ApplicationSession::PreviewRouteGraph() const {
         return this->pageManager.PreviewRouteGraph();
+    }
+
+    std::string_view ApplicationSession::PreviewPageTitle(std::string_view pageName) const {
+        return this->pageManager.PreviewPageTitle(pageName);
     }
 
     bool ApplicationSession::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {

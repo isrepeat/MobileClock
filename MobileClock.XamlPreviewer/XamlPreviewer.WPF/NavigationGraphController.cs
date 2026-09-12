@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using Polygon = System.Windows.Shapes.Polygon;
@@ -25,11 +26,11 @@ internal sealed class NavigationGraphController {
     private const double CardHeight = 78.0;
     private const double LayerSpacing = 120.0;
     private readonly Canvas graph;
-    private readonly Action<string> selectPage;
     private readonly Action<string> reportInformation;
     private readonly Dictionary<string, Button> nodes = [];
     private readonly Dictionary<GraphEdge, Polyline> edges = [];
     private IReadOnlyList<PreviewRoute> routes = [];
+    private IReadOnlyDictionary<string, string> pageTitles = new Dictionary<string, string>(StringComparer.Ordinal);
     private IReadOnlyList<string> selectedPath = [];
     private IReadOnlyList<IReadOnlyList<string>> pathCandidates = [];
     private string? selectedTarget;
@@ -38,14 +39,17 @@ internal sealed class NavigationGraphController {
     public event Action<string>? ActivePageChanged;
     public event Action<IReadOnlyList<string>>? RouteConfirmed;
 
-    public NavigationGraphController(Canvas graph, Action<string> selectPage, Action<string> reportInformation) {
+    public NavigationGraphController(Canvas graph, Action<string> reportInformation) {
         this.graph = graph;
-        this.selectPage = selectPage;
         this.reportInformation = reportInformation;
     }
 
-    public void SetRoutes(IReadOnlyList<PreviewRoute> routes, string currentPage) {
+    public void SetRoutes(
+        IReadOnlyList<PreviewRoute> routes,
+        IReadOnlyDictionary<string, string> pageTitles,
+        string currentPage) {
         this.routes = routes;
+        this.pageTitles = pageTitles;
         this.ResetSelection();
         this.Synchronize(currentPage, true);
     }
@@ -56,6 +60,9 @@ internal sealed class NavigationGraphController {
         }
         var isPageChange = this.currentPage is not null
             && !string.Equals(this.currentPage, currentPage, StringComparison.Ordinal);
+        if (isPageChange) {
+            this.ResetSelection();
+        }
         this.currentPage = currentPage;
         this.Render();
         if (isPageChange) {
@@ -70,6 +77,7 @@ internal sealed class NavigationGraphController {
 
     public void Clear() {
         this.routes = [];
+        this.pageTitles = new Dictionary<string, string>(StringComparer.Ordinal);
         this.currentPage = null;
         this.ResetSelection();
         this.graph.Children.Clear();
@@ -94,7 +102,6 @@ internal sealed class NavigationGraphController {
         this.pathCandidates = paths;
         this.selectedPath = paths[0];
         NativeRuntime.xr_log_info($"Preview graph selected route: {string.Join('>', this.selectedPath)}; candidates={paths.Count}");
-        this.selectPage(target);
         this.Render();
     }
 
@@ -185,6 +192,7 @@ internal sealed class NavigationGraphController {
                 Foreground = new SolidColorBrush(Color.FromRgb(242, 242, 242)),
                 FontSize = 17,
                 FontWeight = FontWeights.SemiBold,
+                Template = CreateNavigationNodeTemplate(),
                 ToolTip = isTarget ? "Повторный клик запустит выбранный маршрут" : "Выбрать маршрут к странице",
             };
             button.Click += this.NavigationNodeClick;
@@ -195,6 +203,36 @@ internal sealed class NavigationGraphController {
         }
     }
 
+    private static ControlTemplate CreateNavigationNodeTemplate() {
+        var template = new ControlTemplate(typeof(Button));
+        var border = new FrameworkElementFactory(typeof(Border));
+        border.Name = "Border";
+        border.SetBinding(Border.BackgroundProperty, CreateTemplateBinding(Control.BackgroundProperty));
+        border.SetBinding(Border.BorderBrushProperty, CreateTemplateBinding(Control.BorderBrushProperty));
+        border.SetBinding(Border.BorderThicknessProperty, CreateTemplateBinding(Control.BorderThicknessProperty));
+        var content = new FrameworkElementFactory(typeof(ContentPresenter));
+        content.SetBinding(ContentPresenter.ContentProperty, CreateTemplateBinding(ContentControl.ContentProperty));
+        content.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        content.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        border.AppendChild(content);
+        template.VisualTree = border;
+
+        var hoverTrigger = new Trigger {
+            Property = UIElement.IsMouseOverProperty,
+            Value = true,
+        };
+        hoverTrigger.Setters.Add(new Setter(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(239, 191, 65)), "Border"));
+        hoverTrigger.Setters.Add(new Setter(Border.BorderThicknessProperty, new Thickness(2), "Border"));
+        template.Triggers.Add(hoverTrigger);
+        return template;
+    }
+
+    private static Binding CreateTemplateBinding(DependencyProperty property) {
+        return new Binding {
+            Path = new PropertyPath(property),
+            RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent),
+        };
+    }
     private void ResetSelection() {
         this.selectedPath = [];
         this.pathCandidates = [];
@@ -307,13 +345,7 @@ internal sealed class NavigationGraphController {
     }
 
     private string PageTitle(string page) {
-        return page switch {
-            "MainPage" => "⌂  Главная",
-            "AddAlarmPage" => "Новый будильник",
-            "XiaomiThemesPage" => "Xiaomi Themes",
-            "SettingsPage" => "⚙  Настройки",
-            _ => page.Replace("Page", string.Empty, StringComparison.Ordinal),
-        };
+        return this.pageTitles.GetValueOrDefault(page, page);
     }
 
     private bool ContainsEdge(IReadOnlyList<string> path, GraphEdge edge) {

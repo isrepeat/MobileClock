@@ -67,9 +67,11 @@ XAML_RUNTIME_BRIDGE_API mc_session* mc_create_session(int width, int height);
 XAML_RUNTIME_BRIDGE_API void mc_destroy_session(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_load_page(mc_session* session, const char* page);
 XAML_RUNTIME_BRIDGE_API int mc_current_page(mc_session* session, char* page, int capacity);
+XAML_RUNTIME_BRIDGE_API int mc_is_transitioning(mc_session* session);
 XAML_RUNTIME_BRIDGE_API int mc_navigate_preview_route(mc_session* session, const char* target);
 XAML_RUNTIME_BRIDGE_API int mc_navigate_preview_route_path(mc_session* session, const char* path);
 XAML_RUNTIME_BRIDGE_API int mc_preview_route_graph(mc_session* session, char* graph, int capacity);
+XAML_RUNTIME_BRIDGE_API int mc_preview_page_title(mc_session* session, const char* page, char* title, int capacity);
 XAML_RUNTIME_BRIDGE_API int mc_apply_preview_scenario(
     mc_session* session,
     const char* page,

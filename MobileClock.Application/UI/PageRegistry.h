@@ -34,6 +34,7 @@ namespace mobileclock::ui {
         virtual xaml::Element& Root() = 0;
         virtual void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const = 0;
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+        virtual std::string_view PreviewGraphTitle() const = 0;
         virtual bool ApplyScenario(std::string_view json, std::string& error) = 0;
         virtual xaml::runtime::RuntimeBindingContext RuntimeContext() = 0;
         virtual void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) = 0;
@@ -79,6 +80,13 @@ namespace mobileclock::ui {
         }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+        //
+        // IPage
+        //
+        std::string_view PreviewGraphTitle() const override {
+            return TViewModel::PreviewGraphTitle;
+        }
+
         xaml::runtime::RuntimeBindingContext RuntimeContext() override {
             return this->viewModel.RuntimeContext();
         }
@@ -114,9 +122,26 @@ namespace mobileclock::ui {
             }, this->pages);
         }
 
+        template <typename THandler>
+        void ForEach(THandler&& handler) const {
+            std::apply([&handler](const auto&... pages) {
+                (handler(static_cast<const IPage&>(*pages)), ...);
+            }, this->pages);
+        }
+
         IPage* Find(std::string_view pageName) {
             IPage* result = nullptr;
             this->ForEach([&result, pageName](IPage& page) {
+                if (result == nullptr && page.Name() == pageName) {
+                    result = &page;
+                }
+            });
+            return result;
+        }
+
+        const IPage* Find(std::string_view pageName) const {
+            const IPage* result = nullptr;
+            this->ForEach([&result, pageName](const IPage& page) {
                 if (result == nullptr && page.Name() == pageName) {
                     result = &page;
                 }
