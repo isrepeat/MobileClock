@@ -3,7 +3,7 @@
 #include <XamlRuntime/Input.h>
 
 #include "MobileClock.UI/Controls/InteractiveList.h"
-#include "UI/ApplicationSession.h"
+#include "UI/AppSessionController.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -11,33 +11,6 @@
 #include <thread>
 
 namespace mobileclock::tests::_details {
-    class Actions final : public ui::IApplicationActions {
-    public:
-        //
-        // IApplicationActions
-        //
-        void CreateAlarm() override;
-        void ChooseAlarmMelody() override;
-        void ResetAlarmMelodySelection() override;
-        void ToggleAlarm() override;
-        void UpdateApplication() override;
-        void UploadScreenshot() override;
-        void ShareLogs() override;
-        void ExportLogs() override;
-    };
-
-    //
-    // IApplicationActions
-    //
-    void Actions::CreateAlarm() {}
-    void Actions::ChooseAlarmMelody() {}
-    void Actions::ResetAlarmMelodySelection() {}
-    void Actions::ToggleAlarm() {}
-    void Actions::UpdateApplication() {}
-    void Actions::UploadScreenshot() {}
-    void Actions::ShareLogs() {}
-    void Actions::ExportLogs() {}
-
     void Check(bool condition, const std::string& message) {
         if (!condition) {
             throw std::runtime_error(message);
@@ -98,9 +71,9 @@ namespace mobileclock::tests::_details {
     }
 
     void CheckAlarmForm() {
-        Actions actions;
         ui::ApplicationStorage storage;
-        ui::ApplicationSession session(actions, storage);
+        ui::AppSessionController appSessionController(storage);
+        ui::ApplicationSession& session = appSessionController.Session();
         session.Initialize({720, 1440});
         session.SetAnimationPlaybackRate(100.0f);
         Check(!xaml::AnimationController::IsAnimating(session.Root()), "Initial page must not animate");
@@ -198,9 +171,9 @@ int main(int argc, char** argv) {
         Check(ast.children[0].location.line == 2 && ast.children[0].location.column == 1, "Source location");
         Check(ast.children[0].attributes[0].value.find("a & b") == 0, "XML entities");
         CheckAlarmForm();
-        Actions actions;
         mobileclock::ui::ApplicationStorage storage;
-        mobileclock::ui::ApplicationSession session(actions, storage);
+        mobileclock::ui::AppSessionController appSessionController(storage);
+        mobileclock::ui::ApplicationSession& session = appSessionController.Session();
         session.Initialize({1080, 1920});
         session.SetAnimationPlaybackRate(100.0f);
         std::string diagnostics;

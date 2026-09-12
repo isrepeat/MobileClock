@@ -2,30 +2,6 @@
 
 #include "Renderer/AndroidCommandDispatcher.h"
 
-namespace mobileclock::renderer::_details {
-    const char* AndroidActionName(AndroidAction action) {
-        switch (action) {
-        case AndroidAction::createAlarm:
-            return "createAlarm";
-        case AndroidAction::chooseAlarmMelody:
-            return "chooseAlarmMelody";
-        case AndroidAction::resetAlarmMelodySelection:
-            return "resetAlarmMelodySelection";
-        case AndroidAction::toggleAlarm:
-            return "toggleAlarm";
-        case AndroidAction::updateApplication:
-            return "updateApplication";
-        case AndroidAction::uploadScreenshot:
-            return "uploadScreenshot";
-        case AndroidAction::shareLogs:
-            return "shareLogs";
-        case AndroidAction::exportLogs:
-            return "exportLogs";
-        }
-        return "";
-    }
-}
-
 namespace mobileclock::renderer {
     AndroidCommandDispatcher::~AndroidCommandDispatcher() {
         this->ClearDispatcher();
@@ -34,7 +10,9 @@ namespace mobileclock::renderer {
     //
     // API
     //
-    void AndroidCommandDispatcher::Dispatch(AndroidAction action) const {
+    void AndroidCommandDispatcher::Dispatch(
+        mobileclock::ui::AppSessionSignal signal,
+        const mobileclock::ui::AppSessionSignalData& data) const {
         if (this->javaVm == nullptr || this->dispatcher == nullptr || this->dispatchMethod == nullptr) {
             return;
         }
@@ -46,10 +24,21 @@ namespace mobileclock::renderer {
             }
             isAttached = true;
         }
-        jstring javaAction = env->NewStringUTF(_details::AndroidActionName(action));
-        if (javaAction != nullptr) {
-            env->CallVoidMethod(this->dispatcher, this->dispatchMethod, javaAction);
-            env->DeleteLocalRef(javaAction);
+        jstring javaValue = env->NewStringUTF(data.value.c_str());
+        jstring javaAdditionalValue = env->NewStringUTF(data.additionalValue.c_str());
+        if (javaValue != nullptr && javaAdditionalValue != nullptr) {
+            env->CallVoidMethod(
+                this->dispatcher,
+                this->dispatchMethod,
+                static_cast<jint>(signal),
+                javaValue,
+                javaAdditionalValue);
+        }
+        if (javaAdditionalValue != nullptr) {
+            env->DeleteLocalRef(javaAdditionalValue);
+        }
+        if (javaValue != nullptr) {
+            env->DeleteLocalRef(javaValue);
         }
         if (isAttached) {
             this->javaVm->DetachCurrentThread();
@@ -61,7 +50,7 @@ namespace mobileclock::renderer {
         env->GetJavaVM(&this->javaVm);
         this->dispatcher = env->NewGlobalRef(value);
         const jclass dispatcherClass = env->GetObjectClass(value);
-        this->dispatchMethod = env->GetMethodID(dispatcherClass, "dispatch", "(Ljava/lang/String;)V");
+        this->dispatchMethod = env->GetMethodID(dispatcherClass, "dispatch", "(ILjava/lang/String;Ljava/lang/String;)V");
         env->DeleteLocalRef(dispatcherClass);
     }
 

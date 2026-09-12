@@ -5,12 +5,11 @@
 #include <android/input.h>
 #include <EGL/egl.h>
 
-#include "Renderer/AndroidApplicationActions.h"
-#include "Renderer/AndroidCommandDispatcher.h"
-#include "UI/ApplicationSession.h"
 #include "MobileClock.Presentation/Registrations.h"
-#include "AssetsManager.h"
+#include "Renderer/AndroidCommandDispatcher.h"
+#include "UI/AppSessionController.h"
 #include "NativeRenderer.h"
+#include "AssetsManager.h"
 
 #include <filesystem>
 #include <stdexcept>
@@ -21,8 +20,12 @@
 namespace mobileclock::renderer {
     struct NativeRenderer::State {
         State()
-            : applicationActions(commandDispatcher)
-            , session(applicationActions, storage) {
+            : appSessionController(storage) {
+            this->appSessionController.SetHostEventHandler([this](
+                mobileclock::ui::AppSessionSignal signal,
+                const mobileclock::ui::AppSessionSignalData& data) {
+                this->commandDispatcher.Dispatch(signal, data);
+            });
         }
 
         EGLDisplay display = EGL_NO_DISPLAY;
@@ -31,9 +34,8 @@ namespace mobileclock::renderer {
         ANativeWindow* window = nullptr;
         std::unique_ptr<AssetsManager> assetsManager;
         AndroidCommandDispatcher commandDispatcher;
-        AndroidApplicationActions applicationActions;
         mobileclock::ui::ApplicationStorage storage;
-        mobileclock::ui::ApplicationSession session;
+        mobileclock::ui::AppSessionController appSessionController;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
         bool isSessionInitialized = false;
     };
@@ -68,8 +70,8 @@ namespace mobileclock::renderer::_details {
             return;
         }
         state.renderer->BeginFrame();
-        state.session.Update();
-        state.session.Render(*state.renderer);
+        state.appSessionController.Session().Update();
+        state.appSessionController.Session().Render(*state.renderer);
         eglSwapBuffers(state.display, state.surface);
     }
 
@@ -143,43 +145,25 @@ namespace mobileclock::renderer {
         this->state->commandDispatcher.SetDispatcher(env, javaDispatcher);
     }
 
-    void NativeRenderer::SetStatus(JNIEnv* env, jstring javaStatus) {
-        const char* status = env->GetStringUTFChars(javaStatus, nullptr);
-        if (status == nullptr) {
+    void NativeRenderer::DispatchSessionSignal(
+        JNIEnv* env,
+        jint javaSignal,
+        jstring javaValue,
+        jstring javaAdditionalValue) {
+        const char* value = env->GetStringUTFChars(javaValue, nullptr);
+        if (value == nullptr) {
             return;
         }
-        this->state->session.SetStatus(status);
-        env->ReleaseStringUTFChars(javaStatus, status);
-    }
-
-    void NativeRenderer::AddAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
-        const char* name = env->GetStringUTFChars(javaName, nullptr);
-        if (name == nullptr) {
+        const char* additionalValue = env->GetStringUTFChars(javaAdditionalValue, nullptr);
+        if (additionalValue == nullptr) {
+            env->ReleaseStringUTFChars(javaValue, value);
             return;
         }
-        const char* uri = env->GetStringUTFChars(javaUri, nullptr);
-        if (uri == nullptr) {
-            env->ReleaseStringUTFChars(javaName, name);
-            return;
-        }
-        this->state->session.AddAlarmMelody(name, uri);
-        env->ReleaseStringUTFChars(javaUri, uri);
-        env->ReleaseStringUTFChars(javaName, name);
-    }
-
-    void NativeRenderer::SetAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
-        const char* name = env->GetStringUTFChars(javaName, nullptr);
-        if (name == nullptr) {
-            return;
-        }
-        const char* uri = env->GetStringUTFChars(javaUri, nullptr);
-        if (uri == nullptr) {
-            env->ReleaseStringUTFChars(javaName, name);
-            return;
-        }
-        this->state->session.SetAlarmMelody(name, uri);
-        env->ReleaseStringUTFChars(javaUri, uri);
-        env->ReleaseStringUTFChars(javaName, name);
+        this->state->appSessionController.Dispatch(
+            static_cast<mobileclock::ui::AppSessionSignal>(javaSignal),
+            {value, additionalValue});
+        env->ReleaseStringUTFChars(javaAdditionalValue, additionalValue);
+        env->ReleaseStringUTFChars(javaValue, value);
     }
 
     void NativeRenderer::SurfaceChanged(
@@ -230,9 +214,9 @@ namespace mobileclock::renderer {
             static_cast<float>(height),
         };
         if (state.isSessionInitialized) {
-            state.session.Resize(availableSize);
+            state.appSessionController.Session().Resize(availableSize);
         } else {
-            state.session.Initialize(availableSize);
+            state.appSessionController.Session().Initialize(availableSize);
             state.isSessionInitialized = true;
         }
         const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Roboto-Regular.ttf");
@@ -262,23 +246,23 @@ namespace mobileclock::renderer {
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
         if (action == AMOTION_EVENT_ACTION_DOWN) {
             LOG_DEBUG("MobileClock.Touch", "Touch down received: point=({}, {})", x, y);
-            this->state->session.PointerDown(x, y);
+            this->state->appSessionController.Session().PointerDown(x, y);
             return;
         }
         if (action == AMOTION_EVENT_ACTION_CANCEL) {
             LOG_DEBUG("MobileClock.Touch", "Touch cancelled");
-            this->state->session.CancelPointer();
+            this->state->appSessionController.Session().CancelPointer();
             return;
         }
         if (action == AMOTION_EVENT_ACTION_MOVE) {
-            this->state->session.PointerMove(x, y);
+            this->state->appSessionController.Session().PointerMove(x, y);
             return;
         }
         if (action != AMOTION_EVENT_ACTION_UP) {
             return;
         }
         LOG_DEBUG("MobileClock.Touch", "Touch up received: point=({}, {})", x, y);
-        this->state->session.PointerUp(x, y);
+        this->state->appSessionController.Session().PointerUp(x, y);
     }
 
     void NativeRenderer::Render() {

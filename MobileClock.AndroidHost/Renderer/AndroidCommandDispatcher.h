@@ -1,18 +1,9 @@
 #pragma once
 #include <jni.h>
 
-namespace mobileclock::renderer {
-    enum class AndroidAction {
-        createAlarm,
-        chooseAlarmMelody,
-        resetAlarmMelodySelection,
-        toggleAlarm,
-        updateApplication,
-        uploadScreenshot,
-        shareLogs,
-        exportLogs,
-    };
+#include "UI/AppSessionController.h"
 
+namespace mobileclock::renderer {
     class AndroidCommandDispatcher final {
     public:
         AndroidCommandDispatcher() = default;
@@ -21,7 +12,9 @@ namespace mobileclock::renderer {
         AndroidCommandDispatcher(const AndroidCommandDispatcher&) = delete;
         AndroidCommandDispatcher& operator=(const AndroidCommandDispatcher&) = delete;
 
-        void Dispatch(AndroidAction action) const;
+        void Dispatch(
+            mobileclock::ui::AppSessionSignal signal,
+            const mobileclock::ui::AppSessionSignalData& data) const;
         void SetDispatcher(JNIEnv* env, jobject value);
 
     private:

@@ -23,7 +23,7 @@ namespace xaml {
 namespace mobileclock::ui {
     class PageManager final : public IPageNavigator {
     public:
-        PageManager(IApplicationActions& actions, ApplicationStorage& storage);
+        PageManager(AppSessionController& appSessionController, ApplicationStorage& storage);
         ~PageManager() = default;
 
         PageManager(const PageManager&) = delete;

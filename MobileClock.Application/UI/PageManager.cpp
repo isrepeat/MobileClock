@@ -19,8 +19,8 @@
 #include <array>
 
 namespace mobileclock::ui {
-    PageManager::PageManager(IApplicationActions& actions, ApplicationStorage& storage)
-        : pageContext{static_cast<IPageNavigator&>(*this), actions, storage}
+    PageManager::PageManager(AppSessionController& appSessionController, ApplicationStorage& storage)
+        : pageContext{static_cast<IPageNavigator&>(*this), appSessionController, storage}
         , pages(this->pageContext) {
         this->pageContext.saveAlarm = [this](const AlarmSettings& settings) {
             this->pages.Get<MainPageViewModel>().AddAlarm(settings);

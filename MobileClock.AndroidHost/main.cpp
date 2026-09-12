@@ -44,21 +44,13 @@ Java_com_example_mobileclock_native_NativeRenderer_nativeSetCommandDispatcher(
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_mobileclock_native_NativeRenderer_nativeSetStatus(
-    JNIEnv* env, jobject, jstring javaStatus) {
-    nativeApplication().SetStatus(env, javaStatus);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_mobileclock_native_NativeRenderer_nativeAddAlarmMelody(
-    JNIEnv* env, jobject, jstring javaName, jstring javaUri) {
-    nativeApplication().AddAlarmMelody(env, javaName, javaUri);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_mobileclock_native_NativeRenderer_nativeSetAlarmMelody(
-    JNIEnv* env, jobject, jstring javaName, jstring javaUri) {
-    nativeApplication().SetAlarmMelody(env, javaName, javaUri);
+Java_com_example_mobileclock_native_NativeRenderer_nativeDispatchSessionSignal(
+    JNIEnv* env,
+    jobject,
+    jint javaSignal,
+    jstring javaValue,
+    jstring javaAdditionalValue) {
+    nativeApplication().DispatchSessionSignal(env, javaSignal, javaValue, javaAdditionalValue);
 }
 
 extern "C" JNIEXPORT void JNICALL

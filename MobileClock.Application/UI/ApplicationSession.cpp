@@ -5,8 +5,8 @@
 #include <utility>
 
 namespace mobileclock::ui {
-    ApplicationSession::ApplicationSession(IApplicationActions& actions, ApplicationStorage& storage)
-        : pageManager(actions, storage)
+    ApplicationSession::ApplicationSession(AppSessionController& appSessionController, ApplicationStorage& storage)
+        : pageManager(appSessionController, storage)
         , renderers() {
         mobileclock::presentation::RegisterRenderers(this->renderers);
     }

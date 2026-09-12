@@ -3,6 +3,7 @@
 #include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/AddAlarmPage.xaml.h"
+#include "UI/AppSessionController.h"
 #include "UI/Pages/MainPageViewModel.h"
 #include "UI/NavigationStates.h"
 
@@ -196,11 +197,7 @@ namespace mobileclock::ui {
     }
 
     void AddAlarmPageViewModel::ChooseAlarmMelody() {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        this->context.navigator.Trigger(NavigationTrigger::chooseAlarmMelody);
-#else
-        this->context.actions.ChooseAlarmMelody();
-#endif
+        this->context.appSessionController.Dispatch(AppSessionSignal::requestAlarmMelody, {});
     }
 
     void AddAlarmPageViewModel::NavigateToMain() {

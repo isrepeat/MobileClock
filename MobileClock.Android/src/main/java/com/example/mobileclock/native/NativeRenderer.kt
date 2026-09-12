@@ -5,6 +5,26 @@ import android.view.Surface
 import java.io.File
 
 object NativeRenderer {
+    enum class AppSessionSignal(val value: Int) {
+        REQUEST_ALARM_MELODY(0),
+        RESET_ALARM_MELODY_SELECTION(1),
+        TOGGLE_ALARM(2),
+        UPDATE_APPLICATION(3),
+        UPLOAD_SCREENSHOT(4),
+        SHARE_LOGS(5),
+        EXPORT_LOGS(6),
+        RESTORE_ALARM_MELODY(7),
+        ALARM_MELODY_SELECTED(8),
+        SET_STATUS(9),
+        ;
+
+        companion object {
+            fun fromValue(value: Int): AppSessionSignal? = entries.firstOrNull { signal ->
+                signal.value == value
+            }
+        }
+    }
+
     private var isLogFileConfigured = false
 
     init {
@@ -17,23 +37,15 @@ object NativeRenderer {
         // Kotlin подготавливает Android-зависимые объекты до первого GL-кадра.
         configureLogFile(filesDirectory)
         nativeSetAssetManager(assetManager)
-        nativeSetCommandDispatcher(NativeCommandDispatcher)
+        nativeSetCommandDispatcher(NativeBridgeCommandDispatcher)
     }
 
-    fun setCommandHandler(handler: (String) -> Unit) {
-        NativeCommandDispatcher.handler = handler
+    fun setCommandHandler(handler: (Int, String, String) -> Unit) {
+        NativeBridgeCommandDispatcher.handler = handler
     }
 
-    fun setStatus(message: String) {
-        nativeSetStatus(message)
-    }
-
-    fun addAlarmMelody(name: String, uri: String) {
-        nativeAddAlarmMelody(name, uri)
-    }
-
-    fun setAlarmMelody(name: String, uri: String) {
-        nativeSetAlarmMelody(name, uri)
+    fun dispatch(signal: AppSessionSignal, value: String = "", additionalValue: String = "") {
+        nativeDispatchSessionSignal(signal.value, value, additionalValue)
     }
 
     fun log(filesDirectory: File, category: String, message: String) {
@@ -80,10 +92,8 @@ object NativeRenderer {
     // Int -> jint, Float -> jfloat, String -> jstring.
     private external fun nativeSurfaceChanged(surface: Surface, width: Int, height: Int)
     private external fun nativeSetAssetManager(assetManager: AssetManager)
-    private external fun nativeSetCommandDispatcher(dispatcher: NativeCommandDispatcher)
-    private external fun nativeSetStatus(status: String)
-    private external fun nativeAddAlarmMelody(name: String, uri: String)
-    private external fun nativeSetAlarmMelody(name: String, uri: String)
+    private external fun nativeSetCommandDispatcher(dispatcher: NativeBridgeCommandDispatcher)
+    private external fun nativeDispatchSessionSignal(signal: Int, value: String, additionalValue: String)
     private external fun nativeSetLogFile(path: String)
     private external fun nativeFlushLogs()
     private external fun nativeLog(category: String, message: String)
@@ -92,12 +102,12 @@ object NativeRenderer {
     private external fun nativeRender()
 }
 
-object NativeCommandDispatcher {
+object NativeBridgeCommandDispatcher {
     @Volatile
-    var handler: ((String) -> Unit)? = null
+    var handler: ((Int, String, String) -> Unit)? = null
 
     // Вызывается C++ только после успешного отпускания touch на native-кнопке.
-    fun dispatch(command: String) {
-        handler?.invoke(command)
+    fun dispatch(signal: Int, value: String, additionalValue: String) {
+        handler?.invoke(signal, value, additionalValue)
     }
 }

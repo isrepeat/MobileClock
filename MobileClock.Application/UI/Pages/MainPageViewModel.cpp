@@ -18,6 +18,7 @@
 #include "!Generated/Build/BuildVersion.h"
 #include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/Pages/AddAlarmPageViewModel.h"
+#include "UI/AppSessionController.h"
 
 #include <stdexcept>
 #include <algorithm>
@@ -63,13 +64,13 @@ namespace mobileclock::ui {
             this->NavigateToSettings();
         })
         , toggleAlarmCommand([&context]() {
-            context.actions.ToggleAlarm();
+            context.appSessionController.Dispatch(AppSessionSignal::toggleAlarm, {});
         })
         , updateApplicationCommand([&context]() {
-            context.actions.UpdateApplication();
+            context.appSessionController.Dispatch(AppSessionSignal::updateApplication, {});
         })
         , uploadScreenshotCommand([&context]() {
-            context.actions.UploadScreenshot();
+            context.appSessionController.Dispatch(AppSessionSignal::uploadScreenshot, {});
         }) {
         for (Alarm& alarm : this->alarms) {
             alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);

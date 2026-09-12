@@ -8,6 +8,7 @@
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/SettingsPage.xaml.h"
 #include "UI/Pages/MainPageViewModel.h"
+#include "UI/AppSessionController.h"
 
 #include <utility>
 #include <format>
@@ -29,16 +30,13 @@ namespace mobileclock::ui {
             context.navigator.Trigger(NavigationTrigger::navigateToMain);
         })
         , resetAlarmMelodySelectionCommand([&context]() {
-            auto edit = context.storage.Edit();
-            edit->alarmMelodies.clear();
-            edit.Commit();
-            context.actions.ResetAlarmMelodySelection();
+            context.appSessionController.Dispatch(AppSessionSignal::resetAlarmMelodySelection, {});
         })
         , shareLogsCommand([&context]() {
-            context.actions.ShareLogs();
+            context.appSessionController.Dispatch(AppSessionSignal::shareLogs, {});
         })
         , exportLogsCommand([&context]() {
-            context.actions.ExportLogs();
+            context.appSessionController.Dispatch(AppSessionSignal::exportLogs, {});
         }) {
     }
 

@@ -5,7 +5,6 @@
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
-#include "UI/ApplicationActions.h"
 #include "UI/AlarmSettings.h"
 #include "UI/ApplicationStorage.h"
 #include "UI/Navigation.h"
@@ -22,6 +21,7 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
+    class AppSessionController;
     class IPage {
     public:
         virtual ~IPage() = default;
@@ -44,7 +44,7 @@ namespace mobileclock::ui {
 
     struct PageContext final {
         IPageNavigator& navigator;
-        IApplicationActions& actions;
+        AppSessionController& appSessionController;
         ApplicationStorage& storage;
         std::function<void(const AlarmSettings&)> saveAlarm;
     };

@@ -49,7 +49,11 @@ class MainActivity : ComponentActivity() {
         val melodyName = RingtoneManager.getRingtone(this, melodyUri)?.getTitle(this)
             ?: "Выбранная мелодия"
         saveAlarmMelody(melodyName, melodyUri.toString())
-        NativeRenderer.setAlarmMelody(melodyName, melodyUri.toString())
+        NativeRenderer.dispatch(
+            NativeRenderer.AppSessionSignal.ALARM_MELODY_SELECTED,
+            melodyName,
+            melodyUri.toString(),
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,7 +62,11 @@ class MainActivity : ComponentActivity() {
         handleUpdateCompletion(intent)
         NativeRenderer.initialize(filesDir, assets)
         loadAlarmMelodies().forEach { melody ->
-            NativeRenderer.addAlarmMelody(melody.name, melody.uri)
+            NativeRenderer.dispatch(
+                NativeRenderer.AppSessionSignal.RESTORE_ALARM_MELODY,
+                melody.name,
+                melody.uri,
+            )
         }
         logExportCoordinator = LogExportCoordinator(this, NativeRenderer::flushLogs)
         googleDriveUploadCoordinator = GoogleDriveUploadCoordinator(
@@ -70,10 +78,12 @@ class MainActivity : ComponentActivity() {
         selfUpdateController = SelfUpdateController(
             activity = this,
             onAuthorizationRequired = authorizeGoogleDriveUpdate::launch,
-            onProgress = NativeRenderer::setStatus,
+            onProgress = { message ->
+                NativeRenderer.dispatch(NativeRenderer.AppSessionSignal.SET_STATUS, message)
+            },
             onCompleted = ::showNativeStatus,
         )
-        NativeRenderer.setCommandHandler(::handleNativeCommand)
+        NativeRenderer.setCommandHandler(::handleNativeEvent)
         setContentView(com.example.mobileclock.native.NativeRenderSurfaceView(this))
     }
 
@@ -137,14 +147,15 @@ class MainActivity : ComponentActivity() {
         UpdateDiagnostics.write(this, "MainActivity.onWindowFocusChanged hasFocus=$hasFocus")
     }
 
-    private fun handleNativeCommand(command: String) {
-        when (command) {
-            "chooseAlarmMelody" -> chooseAlarmMelody()
-            "resetAlarmMelodySelection" -> resetAlarmMelodySelection()
-            "shareLogs" -> shareLogs()
-            "exportLogs" -> googleDriveUploadCoordinator.startLogUpload()
-            "uploadScreenshot" -> googleDriveUploadCoordinator.startScreenshotUpload()
-            "updateApplication" -> selfUpdateController.start()
+    private fun handleNativeEvent(signal: Int, value: String, additionalValue: String) {
+        when (NativeRenderer.AppSessionSignal.fromValue(signal)) {
+            NativeRenderer.AppSessionSignal.REQUEST_ALARM_MELODY -> chooseAlarmMelody()
+            NativeRenderer.AppSessionSignal.RESET_ALARM_MELODY_SELECTION -> resetAlarmMelodySelection()
+            NativeRenderer.AppSessionSignal.SHARE_LOGS -> shareLogs()
+            NativeRenderer.AppSessionSignal.EXPORT_LOGS -> googleDriveUploadCoordinator.startLogUpload()
+            NativeRenderer.AppSessionSignal.UPLOAD_SCREENSHOT -> googleDriveUploadCoordinator.startScreenshotUpload()
+            NativeRenderer.AppSessionSignal.UPDATE_APPLICATION -> selfUpdateController.start()
+            else -> Unit
         }
     }
 
@@ -244,7 +255,7 @@ class MainActivity : ComponentActivity() {
     private fun alarmMelodiesFile(): File = File(filesDir, MOBILECLOCK_STORAGE_FILENAME)
 
     private fun showNativeStatus(message: String) {
-        NativeRenderer.setStatus(message)
+        NativeRenderer.dispatch(NativeRenderer.AppSessionSignal.SET_STATUS, message)
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 

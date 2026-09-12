@@ -15,18 +15,18 @@
 #undef DrawText
 #endif
 
+#include "../../MobileClock.Application/UI/AppSessionController.h"
 #include "../../MobileClock.Presentation/PreviewSession.h"
-#include "../../MobileClock.Application/UI/ApplicationSession.h"
 #include "AngleRenderSurface.h"
 #include "NativeBridge.h"
 
 #include <unordered_map>
 #include <string_view>
 #include <filesystem>
-#include <fstream>
 #include <functional>
 #include <algorithm>
 #include <stdexcept>
+#include <fstream>
 #include <cstring>
 #include <format>
 #include <chrono>
@@ -364,44 +364,6 @@ namespace mobileclock::preview::_details {
         std::filesystem::path path;
     };
 
-    class PreviewApplicationActions final : public ui::IApplicationActions {
-    public:
-        PreviewApplicationActions() = default;
-
-        //
-        // IApplicationActions
-        //
-        void CreateAlarm() override {
-        }
-
-        void ChooseAlarmMelody() override {
-        }
-
-        void ResetAlarmMelodySelection() override {
-        }
-
-        void ToggleAlarm() override {
-        }
-
-        void UpdateApplication() override {
-        }
-
-        void UploadScreenshot() override {
-        }
-
-        void ShareLogs() override {
-        }
-
-        void ExportLogs() override {
-        }
-
-        //
-        // API
-        //
-        void ProcessPendingActions() {
-        }
-
-    };
 }
 
 struct mc_session {
@@ -410,20 +372,31 @@ struct mc_session {
         , storage(stateStorage.Load(), [this](const mobileclock::ui::ApplicationStorageData& data) {
             return this->stateStorage.Save(data);
         })
-        , actions()
-        , session(actions, storage)
+        , appSessionController(storage)
         , width(width)
         , height(height) {
         if (width <= 0 || height <= 0) {
             throw std::invalid_argument("Session dimensions must be positive");
         }
-        this->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
+        this->appSessionController.SetHostEventHandler([this](
+            mobileclock::ui::AppSessionSignal signal,
+            const mobileclock::ui::AppSessionSignalData&) {
+            if (signal != mobileclock::ui::AppSessionSignal::requestAlarmMelody) {
+                return;
+            }
+            std::string error;
+            if (!this->appSessionController.Session().NavigatePreviewRoute(
+                mobileclock::ui::XiaomiThemesPageViewModel::PageName,
+                error)) {
+                LOG_WARNING("XamlPreviewer.Session", "Cannot open Xiaomi Themes: {}", error);
+            }
+        });
+        this->appSessionController.Session().Initialize({static_cast<float>(width), static_cast<float>(height)});
     }
 
     mobileclock::preview::_details::PreviewerStateStorage stateStorage;
     mobileclock::ui::ApplicationStorage storage;
-    mobileclock::preview::_details::PreviewApplicationActions actions;
-    mobileclock::ui::ApplicationSession session;
+    mobileclock::ui::AppSessionController appSessionController;
     int width;
     int height;
     xaml::Element* inspectionElement = nullptr;
@@ -504,7 +477,7 @@ int mc_load_page(mc_session* session, const char* page) {
         }
         mobileclock::preview::_details::ClearInspectionWireframe(*session);
         mobileclock::preview::_details::ClearSelectedWireframe(*session);
-        if (!session->session.LoadPage(page)) {
+        if (!session->appSessionController.Session().LoadPage(page)) {
             throw std::invalid_argument("Unknown MobileClock page");
         }
         return 1;
@@ -520,7 +493,7 @@ int mc_current_page(mc_session* session, char* page, int capacity) {
         if (session == nullptr || page == nullptr || capacity <= 0) {
             throw std::invalid_argument("Session, page buffer and positive capacity are required");
         }
-        const std::string_view name = session->session.CurrentPageName();
+        const std::string_view name = session->appSessionController.Session().CurrentPageName();
         if (name.size() >= static_cast<size_t>(capacity)) {
             throw std::invalid_argument("Page buffer is too small");
         }
@@ -537,7 +510,7 @@ int mc_is_transitioning(mc_session* session) {
     if (session == nullptr) {
         return 0;
     }
-    return session->session.IsTransitioning() ? 1 : 0;
+    return session->appSessionController.Session().IsTransitioning() ? 1 : 0;
 }
 
 int mc_navigate_preview_route(mc_session* session, const char* target) {
@@ -549,23 +522,22 @@ int mc_navigate_preview_route(mc_session* session, const char* target) {
         LOG_INFO(
             "XamlPreviewer.Route",
             "Native route request: current='{}', target='{}'",
-            session->session.CurrentPageName(),
+            session->appSessionController.Session().CurrentPageName(),
             target);
-        if (!session->session.NavigatePreviewRoute(target, xaml::bridge::lastError)) {
+        if (!session->appSessionController.Session().NavigatePreviewRoute(target, xaml::bridge::lastError)) {
             LOG_WARNING("XamlPreviewer.Route", "Native route rejected: {}", xaml::bridge::lastError);
             return 0;
         }
-        session->actions.ProcessPendingActions();
-        if (session->session.CurrentPageName() != target) {
+        if (session->appSessionController.Session().CurrentPageName() != target) {
             xaml::bridge::lastError = std::format("Preview route did not reach {}", target);
             LOG_ERROR(
                 "XamlPreviewer.Route",
                 "Native route failed after pending actions: target='{}', actual='{}'",
                 target,
-                session->session.CurrentPageName());
+                session->appSessionController.Session().CurrentPageName());
             return 0;
         }
-        LOG_INFO("XamlPreviewer.Route", "Native route completed: active='{}'", session->session.CurrentPageName());
+        LOG_INFO("XamlPreviewer.Route", "Native route completed: active='{}'", session->appSessionController.Session().CurrentPageName());
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -583,7 +555,7 @@ int mc_navigate_preview_route_path(mc_session* session, const char* path) {
         LOG_INFO(
             "XamlPreviewer.Route",
             "Native explicit route request: current='{}', path='{}'",
-            session->session.CurrentPageName(),
+            session->appSessionController.Session().CurrentPageName(),
             path);
         std::vector<std::string_view> pages;
         const std::string_view serialized(path);
@@ -600,24 +572,23 @@ int mc_navigate_preview_route_path(mc_session* session, const char* path) {
             }
             start = separator + 1;
         }
-        if (!session->session.NavigatePreviewRoute(pages, xaml::bridge::lastError)) {
+        if (!session->appSessionController.Session().NavigatePreviewRoute(pages, xaml::bridge::lastError)) {
             LOG_WARNING("XamlPreviewer.Route", "Native explicit route rejected: {}", xaml::bridge::lastError);
             return 0;
         }
-        session->actions.ProcessPendingActions();
-        if (session->session.CurrentPageName() != pages.back()) {
+        if (session->appSessionController.Session().CurrentPageName() != pages.back()) {
             xaml::bridge::lastError = std::format("Preview route did not reach {}", pages.back());
             LOG_ERROR(
                 "XamlPreviewer.Route",
                 "Native explicit route failed after pending actions: target='{}', actual='{}'",
                 pages.back(),
-                session->session.CurrentPageName());
+                session->appSessionController.Session().CurrentPageName());
             return 0;
         }
         LOG_INFO(
             "XamlPreviewer.Route",
             "Native explicit route completed: active='{}'",
-            session->session.CurrentPageName());
+            session->appSessionController.Session().CurrentPageName());
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -632,7 +603,7 @@ int mc_preview_route_graph(mc_session* session, char* graph, int capacity) {
         if (session == nullptr || graph == nullptr || capacity <= 0) {
             throw std::invalid_argument("Session, graph buffer and positive capacity are required");
         }
-        const std::string value = session->session.PreviewRouteGraph();
+        const std::string value = session->appSessionController.Session().PreviewRouteGraph();
         if (value.size() >= static_cast<size_t>(capacity)) {
             throw std::invalid_argument("Preview route graph buffer is too small");
         }
@@ -651,7 +622,7 @@ int mc_preview_page_title(mc_session* session, const char* page, char* title, in
         if (session == nullptr || page == nullptr || title == nullptr || capacity <= 0) {
             throw std::invalid_argument("Session, page, title buffer and positive capacity are required");
         }
-        const std::string_view value = session->session.PreviewPageTitle(page);
+        const std::string_view value = session->appSessionController.Session().PreviewPageTitle(page);
         if (value.size() >= static_cast<size_t>(capacity)) {
             throw std::invalid_argument("Preview page title buffer is too small");
         }
@@ -673,7 +644,7 @@ int mc_apply_preview_scenario(mc_session* session, const char* page, const char*
         }
         mobileclock::preview::_details::ClearInspectionWireframe(*session);
         mobileclock::preview::_details::ClearSelectedWireframe(*session);
-        if (!session->session.ApplyPreviewScenario(page, json, xaml::bridge::lastError)) {
+        if (!session->appSessionController.Session().ApplyPreviewScenario(page, json, xaml::bridge::lastError)) {
             if (xaml::bridge::lastError.empty()) {
                 xaml::bridge::lastError = "Preview scenario was not applied";
             }
@@ -701,7 +672,7 @@ int mc_reload_markup(mc_session* session, const char* page, const char* markup, 
         // переносит состояние выделения и может сохранить native-контролы.
         mobileclock::preview::_details::ClearInspectionWireframe(*session);
         mobileclock::preview::_details::ClearSelectedWireframe(*session);
-        if (!session->session.ReloadMarkup(page, markup, sourcePath, xaml::bridge::lastError)) {
+        if (!session->appSessionController.Session().ReloadMarkup(page, markup, sourcePath, xaml::bridge::lastError)) {
             return 0;
         }
         // WPF повторно выбирает элемент из текущей позиции caret
@@ -725,7 +696,7 @@ int mc_resize(mc_session* session, int width, int height) {
         session->width = width;
         session->height = height;
         mobileclock::preview::_details::ClearInspectionWireframe(*session);
-        session->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
+        session->appSessionController.Session().Initialize({static_cast<float>(width), static_cast<float>(height)});
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -739,7 +710,7 @@ int mc_set_animation_playback_rate(mc_session* session, float value) {
         if (session == nullptr) {
             throw std::invalid_argument("Session is required");
         }
-        session->session.SetAnimationPlaybackRate(value);
+        session->appSessionController.Session().SetAnimationPlaybackRate(value);
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -753,7 +724,7 @@ int mc_set_status(mc_session* session, const char* value) {
         if (session == nullptr || value == nullptr) {
             throw std::invalid_argument("Session and status are required");
         }
-        session->session.SetStatus(value);
+        session->appSessionController.Dispatch(mobileclock::ui::AppSessionSignal::setStatus, {value, {}});
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -765,7 +736,7 @@ int mc_pointer_down(mc_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
-    session->session.PointerDown(x, y);
+    session->appSessionController.Session().PointerDown(x, y);
     return 1;
 }
 
@@ -773,7 +744,7 @@ int mc_pointer_move(mc_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
-    session->session.PointerMove(x, y);
+    session->appSessionController.Session().PointerMove(x, y);
     return 1;
 }
 
@@ -781,7 +752,7 @@ int mc_pointer_up(mc_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
-    session->session.PointerUp(x, y);
+    session->appSessionController.Session().PointerUp(x, y);
     return 1;
 }
 
@@ -789,7 +760,7 @@ int mc_pointer_cancel(mc_session* session) {
     if (session == nullptr) {
         return 0;
     }
-    session->session.CancelPointer();
+    session->appSessionController.Session().CancelPointer();
     return 1;
 }
 
@@ -797,7 +768,7 @@ int mc_cursor_kind(mc_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
-    xaml::Element& root = session->session.Root();
+    xaml::Element& root = session->appSessionController.Session().Root();
     xaml::Element* const visual = xaml::HitTestVisual(root, x, y);
     if (visual == nullptr) {
         return 0;
@@ -822,7 +793,7 @@ int mc_inspect(
     if (session == nullptr || result == nullptr) {
         return 0;
     }
-    xaml::Element* element = xaml::HitTestVisual(session->session.Root(), x, y);
+    xaml::Element* element = xaml::HitTestVisual(session->appSessionController.Session().Root(), x, y);
     while (element != nullptr && element->SourceLine() <= 0) {
         element = element->Parent();
     }
@@ -923,7 +894,7 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
         column,
         sourcePath);
     xaml::Element* const element = xaml::bridge::_details::FindElementAtSource(
-        session->session.Root(),
+        session->appSessionController.Session().Root(),
         sourcePath,
         line,
         column);
@@ -965,8 +936,7 @@ int mc_update(mc_session* session) {
     if (session == nullptr) {
         return 0;
     }
-    session->session.Update();
-    session->actions.ProcessPendingActions();
+    session->appSessionController.Session().Update();
     return 1;
 }
 
@@ -983,7 +953,7 @@ int mc_render_angle_surface(
             || destinationCapacity / destinationStride < surface->height) {
             throw std::invalid_argument("Invalid MobileClock ANGLE render arguments");
         }
-        surface->value.Render(session->session, destination, destinationStride);
+        surface->value.Render(session->appSessionController.Session(), destination, destinationStride);
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();

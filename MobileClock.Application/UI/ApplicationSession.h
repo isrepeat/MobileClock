@@ -8,12 +8,13 @@
 #include <string>
 
 namespace mobileclock::ui {
+    class AppSessionController;
     // Platform-neutral владелец UI-состояния одного запуска приложения.
     // Android и desktop previewer передают ему ввод и поверхность рендера,
     // но не создают страницы, bindings или animation registry самостоятельно.
     class ApplicationSession final {
     public:
-        ApplicationSession(IApplicationActions& actions, ApplicationStorage& storage);
+        ApplicationSession(AppSessionController& appSessionController, ApplicationStorage& storage);
         ~ApplicationSession() = default;
 
         ApplicationSession(const ApplicationSession&) = delete;

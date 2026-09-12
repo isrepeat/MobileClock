@@ -6,7 +6,6 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 
-#include "UI/ApplicationActions.h"
 #include "UI/ISerializable.h"
 #include "UI/PageRegistry.h"
 #include "UI/Navigation.h"

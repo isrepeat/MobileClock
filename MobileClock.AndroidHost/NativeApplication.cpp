@@ -48,16 +48,12 @@ namespace mobileclock::native {
         this->renderer->SetCommandDispatcher(env, javaDispatcher);
     }
 
-    void NativeApplication::SetStatus(JNIEnv* env, jstring javaStatus) {
-        this->renderer->SetStatus(env, javaStatus);
-    }
-
-    void NativeApplication::AddAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
-        this->renderer->AddAlarmMelody(env, javaName, javaUri);
-    }
-
-    void NativeApplication::SetAlarmMelody(JNIEnv* env, jstring javaName, jstring javaUri) {
-        this->renderer->SetAlarmMelody(env, javaName, javaUri);
+    void NativeApplication::DispatchSessionSignal(
+        JNIEnv* env,
+        jint javaSignal,
+        jstring javaValue,
+        jstring javaAdditionalValue) {
+        this->renderer->DispatchSessionSignal(env, javaSignal, javaValue, javaAdditionalValue);
     }
 
     void NativeApplication::SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height) {
