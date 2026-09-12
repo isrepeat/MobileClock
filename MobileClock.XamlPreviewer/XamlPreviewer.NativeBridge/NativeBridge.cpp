@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <string_view>
 #include <filesystem>
+#include <functional>
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
@@ -273,7 +274,25 @@ struct xr_angle_surface {
 namespace mobileclock::preview::_details {
     class PreviewApplicationActions final : public ui::IApplicationActions {
     public:
+        void SetChooseAlarmMelodyCommand(std::function<void()> value) {
+            this->chooseAlarmMelodyCommand = std::move(value);
+        }
+
+        void ProcessPendingActions() {
+            if (!this->isChooseAlarmMelodyRequested) {
+                return;
+            }
+            this->isChooseAlarmMelodyRequested = false;
+            if (this->chooseAlarmMelodyCommand) {
+                this->chooseAlarmMelodyCommand();
+            }
+        }
+
         void CreateAlarm() override {
+        }
+
+        void ChooseAlarmMelody() override {
+            this->isChooseAlarmMelodyRequested = true;
         }
 
         void ToggleAlarm() override {
@@ -290,6 +309,10 @@ namespace mobileclock::preview::_details {
 
         void ExportLogs() override {
         }
+
+    private:
+        std::function<void()> chooseAlarmMelodyCommand;
+        bool isChooseAlarmMelodyRequested = false;
     };
 }
 
@@ -302,6 +325,9 @@ struct mc_session {
             throw std::invalid_argument("Session dimensions must be positive");
         }
         this->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
+        this->actions.SetChooseAlarmMelodyCommand([this]() {
+            this->session.LoadPage("XiaomiThemesPage");
+        });
     }
 
     mobileclock::preview::_details::PreviewApplicationActions actions;
@@ -389,6 +415,25 @@ int mc_load_page(mc_session* session, const char* page) {
         if (!session->session.LoadPage(page)) {
             throw std::invalid_argument("Unknown MobileClock page");
         }
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
+int mc_current_page(mc_session* session, char* page, int capacity) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || page == nullptr || capacity <= 0) {
+            throw std::invalid_argument("Session, page buffer and positive capacity are required");
+        }
+        const std::string_view name = session->session.CurrentPageName();
+        if (name.size() >= static_cast<size_t>(capacity)) {
+            throw std::invalid_argument("Page buffer is too small");
+        }
+        std::memcpy(page, name.data(), name.size());
+        page[name.size()] = static_cast<char>(0);
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -698,6 +743,7 @@ int mc_update(mc_session* session) {
         return 0;
     }
     session->session.Update();
+    session->actions.ProcessPendingActions();
     return 1;
 }
 

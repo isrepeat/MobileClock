@@ -812,6 +812,19 @@ public partial class MainWindow : Window {
         }
     }
 
+    private void NativeApplicationPageNavigated(string pageName) {
+        this.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+            if (this.isClosing || this.nativeApplicationSession is null) {
+                return;
+            }
+            var pagePath = this.PagePicker.Items.Cast<string>().FirstOrDefault(candidate =>
+                string.Equals(Path.GetFileNameWithoutExtension(candidate), pageName, StringComparison.Ordinal));
+            if (pagePath is not null && !string.Equals(this.PagePicker.SelectedItem as string, pagePath, StringComparison.Ordinal)) {
+                this.PagePicker.SelectedItem = pagePath;
+            }
+        }));
+    }
+
     private void LoadMarkup(string path) {
         this.StoreCollapsedMarkupFoldings();
         this.markupPath = Path.GetFullPath(path);
@@ -1318,6 +1331,7 @@ public partial class MainWindow : Window {
                     previewSize.Height);
                 this.nativeApplicationSession.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
                 this.nativeApplicationSession.ElementSelected += this.PreviewElementSelected;
+                this.nativeApplicationSession.PageNavigated += this.NativeApplicationPageNavigated;
                 this.nativeApplicationSession.RuntimeMarkupReloaded += this.SelectElementFromMarkupEditor;
                 this.previewLayer.Children.Clear();
                 this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);

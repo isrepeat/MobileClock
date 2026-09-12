@@ -1,4 +1,5 @@
 using System.Windows.Media.Imaging;
+using System.Text;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +23,7 @@ internal sealed class MobileClockSession : IDisposable {
     private bool useDefaultCursorForElementInspection;
 
     public event Action<NativeInspectionResult>? ElementSelected;
+    public event Action<string>? PageNavigated;
     public event Action? RuntimeMarkupReloaded;
 
     public MobileClockSession(string resourcesDirectory, int width, int height) {
@@ -135,7 +137,11 @@ internal sealed class MobileClockSession : IDisposable {
 
     public void UpdateAndRender() {
         NativeRuntime.Ensure(NativeRuntime.mc_update(this.session) != 0);
-
+        var currentPage = this.GetCurrentPage();
+        if (!string.IsNullOrEmpty(currentPage) && !string.Equals(this.loadedPage, currentPage, StringComparison.Ordinal)) {
+            this.loadedPage = currentPage;
+            this.PageNavigated?.Invoke(currentPage);
+        }
         this.Render();
     }
 
@@ -232,6 +238,12 @@ internal sealed class MobileClockSession : IDisposable {
         var isInspected = NativeRuntime.mc_inspect(this.session, this.ScaleX(point.X), this.ScaleY(point.Y), out result) != 0;
         this.Render();
         return isInspected;
+    }
+
+    private string GetCurrentPage() {
+        var page = new StringBuilder(128);
+        NativeRuntime.Ensure(NativeRuntime.mc_current_page(this.session, page, page.Capacity) != 0);
+        return page.ToString();
     }
 
     private void Render() {

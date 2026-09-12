@@ -98,6 +98,9 @@ internal static class NativeRuntime {
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_load_page")]
     public static extern int mc_load_page(IntPtr session, [MarshalAs(UnmanagedType.LPUTF8Str)] string page);
 
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_current_page")]
+    public static extern int mc_current_page(IntPtr session, [Out] StringBuilder page, int capacity);
+
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_apply_preview_scenario")]
     public static extern int mc_apply_preview_scenario(
         IntPtr session,
