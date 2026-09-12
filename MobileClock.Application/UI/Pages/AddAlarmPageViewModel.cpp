@@ -4,6 +4,7 @@
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/AddAlarmPage.xaml.h"
 #include "UI/Pages/MainPageViewModel.h"
+#include "UI/NavigationStates.h"
 
 #include <algorithm>
 #include <format>
@@ -112,6 +113,35 @@ namespace mobileclock::ui {
     }
 
     //
+    // INavigationPage
+    //
+    std::unique_ptr<NavigationState> AddAlarmPageViewModel::OnNavigatingFrom(const NavigationRequest&) {
+        return {};
+    }
+
+    bool AddAlarmPageViewModel::OnNavigatingTo(
+        const NavigationRequest& request,
+        std::unique_ptr<NavigationState> state) {
+        switch (request.trigger) {
+        case NavigationTrigger::createAlarm:
+            this->Reset();
+            return true;
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        case NavigationTrigger::applySelectedMelody: {
+            const auto* const melody = dynamic_cast<const AlarmMelodyNavigationState*>(state.get());
+            if (melody == nullptr) {
+                return false;
+            }
+            this->SetMelody(melody->Name(), melody->Uri());
+            return true;
+        }
+#endif
+        default:
+            return true;
+        }
+    }
+
+    //
     // API
     //
     void AddAlarmPageViewModel::Reset() {
@@ -147,11 +177,15 @@ namespace mobileclock::ui {
     }
 
     void AddAlarmPageViewModel::ChooseAlarmMelody() {
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        this->context.navigator.Trigger(NavigationTrigger::chooseAlarmMelody);
+#else
         this->context.actions.ChooseAlarmMelody();
+#endif
     }
 
     void AddAlarmPageViewModel::NavigateToMain() {
-        this->context.navigator.Navigate<MainPageViewModel>();
+        this->context.navigator.Trigger(NavigationTrigger::navigateToMain);
     }
 
     void AddAlarmPageViewModel::Initialize(xaml::Size availableSize) {
@@ -230,7 +264,7 @@ namespace mobileclock::ui {
             }
             this->context.saveAlarm(this->settings);
             this->saved = true;
-            this->context.navigator.Navigate<MainPageViewModel>();
+            this->context.navigator.Trigger(NavigationTrigger::navigateToMain);
         });
         for (int column = 0; column < 2; ++column) {
             connect(std::format("wheel{}", column), []() {});

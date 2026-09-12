@@ -164,6 +164,17 @@ namespace mobileclock::ui {
 #endif
 
     //
+    // INavigationPage
+    //
+    std::unique_ptr<NavigationState> MainPageViewModel::OnNavigatingFrom(const NavigationRequest&) {
+        return {};
+    }
+
+    bool MainPageViewModel::OnNavigatingTo(const NavigationRequest&, std::unique_ptr<NavigationState>) {
+        return true;
+    }
+
+    //
     // API
     //
     const std::string& MainPageViewModel::ClockText() const {
@@ -196,11 +207,11 @@ namespace mobileclock::ui {
     }
 
     void MainPageViewModel::CreateAlarm() {
-        this->context.navigator.Navigate<AddAlarmPageViewModel>();
+        this->context.navigator.Trigger(NavigationTrigger::createAlarm);
     }
 
     void MainPageViewModel::NavigateToSettings() {
-        this->context.navigator.Navigate<SettingsPageViewModel>();
+        this->context.navigator.Trigger(NavigationTrigger::navigateToSettings);
     }
 
     xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {

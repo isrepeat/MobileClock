@@ -1,3 +1,4 @@
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include "UI/Pages/XiaomiThemesPageViewModel.h"
 
 #include <XamlRuntime/RenderEngine.h>
@@ -7,6 +8,7 @@
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/XiaomiThemesPage.xaml.h"
 #include "UI/Pages/AddAlarmPageViewModel.h"
+#include "UI/NavigationStates.h"
 
 #include <format>
 #include <utility>
@@ -46,6 +48,9 @@ namespace mobileclock::ui {
         , uri(std::move(uri)) {
     }
 
+    //
+    // API
+    //
     const std::string& XiaomiThemesPageViewModel::Melody::Name() const {
         return this->name;
     }
@@ -60,14 +65,6 @@ namespace mobileclock::ui {
         this->melodies.emplace_back("Lone Grass, Solitary Flower", "preview://xiaomi-themes/lone-grass");
         this->melodies.emplace_back("Positive Uplift", "preview://xiaomi-themes/positive-uplift");
         this->selectedMelody = 0;
-    }
-
-    void XiaomiThemesPageViewModel::ApplySelectedMelody() {
-        if (!this->selectedMelody || !this->context.applyAlarmMelody) {
-            return;
-        }
-        const Melody& melody = this->melodies[*this->selectedMelody];
-        this->context.applyAlarmMelody(melody.Name(), melody.Uri());
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -94,6 +91,24 @@ namespace mobileclock::ui {
     }
 #endif
 
+    //
+    // INavigationPage
+    //
+    std::unique_ptr<NavigationState> XiaomiThemesPageViewModel::OnNavigatingFrom(const NavigationRequest& request) {
+        if (request.trigger != NavigationTrigger::applySelectedMelody || !this->selectedMelody) {
+            return {};
+        }
+        const Melody& melody = this->melodies[*this->selectedMelody];
+        return std::make_unique<AlarmMelodyNavigationState>(melody.Name(), melody.Uri());
+    }
+
+    bool XiaomiThemesPageViewModel::OnNavigatingTo(const NavigationRequest&, std::unique_ptr<NavigationState>) {
+        return true;
+    }
+
+    //
+    // API
+    //
     void XiaomiThemesPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -141,7 +156,7 @@ namespace mobileclock::ui {
     void XiaomiThemesPageViewModel::ConnectControls() {
         if (auto* apply = this->Find("applyButton")) {
             apply->SetCommand([this]() {
-                this->ApplySelectedMelody();
+                this->context.navigator.Trigger(NavigationTrigger::applySelectedMelody);
             });
         }
         this->RebuildMelodies();
@@ -191,3 +206,4 @@ namespace mobileclock::ui {
         return this->page ? _details::FindXiaomiThemesElement(*this->page, id) : nullptr;
     }
 }
+#endif

@@ -2,17 +2,18 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 
-#include "UI/Pages/StatisticsPageViewModel.h"
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include "UI/Pages/XiaomiThemesPageViewModel.h"
+#endif
 #include "UI/Pages/AddAlarmPageViewModel.h"
 #include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/Pages/MainPageViewModel.h"
 #include "UI/InputDispatcher.h"
 #include "UI/PageRegistry.h"
 
-#include <span>
 #include <string_view>
 #include <string>
+#include <span>
 
 namespace xaml {
     class IRenderBackend;
@@ -32,6 +33,7 @@ namespace mobileclock::ui {
         // IPageNavigator
         //
         bool Navigate(std::string_view pageName) override;
+        bool Trigger(NavigationTrigger trigger) override;
 
         std::string_view CurrentPageName() const;
         bool IsTransitioning() const;
@@ -61,21 +63,27 @@ namespace mobileclock::ui {
         using ApplicationPages = PageRegistry<
             MainPageViewModel,
             SettingsPageViewModel,
-            StatisticsPageViewModel,
-            AddAlarmPageViewModel,
+            AddAlarmPageViewModel
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+            ,
             XiaomiThemesPageViewModel>;
+#else
+            >;
+#endif
 
-        struct PreviewRoute final {
+        struct NavigationRoute final {
             std::string_view source;
+            NavigationTrigger trigger;
             std::string_view target;
-            void (*trigger)(ApplicationPages& pages);
         };
 
-        template <typename TSource, typename TTarget, void (TSource::*TTrigger)()>
-        static PreviewRoute MakePreviewRoute();
+        template <typename TSource, typename TTarget, NavigationTrigger TTrigger>
+        static NavigationRoute MakeRoute();
 
-        static std::span<const PreviewRoute> PreviewRoutes();
-        bool ExecutePreviewRoute(std::span<const PreviewRoute*> route, std::string& error);
+        static std::span<const NavigationRoute> Routes();
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        bool ExecutePreviewRoute(std::span<const NavigationRoute*> route, std::string& error);
+#endif
 
     private:
         xaml::Size availableSize;
@@ -84,7 +92,6 @@ namespace mobileclock::ui {
         IPage* currentPage = nullptr;
         IPage* outgoingPage = nullptr;
         bool isTransitioning = false;
-        bool preserveAddAlarmDraft = false;
         xaml::AnimationController animations;
         InputDispatcher inputDispatcher;
     };

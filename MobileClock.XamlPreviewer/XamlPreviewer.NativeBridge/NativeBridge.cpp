@@ -275,10 +275,6 @@ struct xr_angle_surface {
 namespace mobileclock::preview::_details {
     class PreviewApplicationActions final : public ui::IApplicationActions {
     public:
-        void SetChooseAlarmMelodyCommand(std::function<void()> value) {
-            this->chooseAlarmMelodyCommand = std::move(value);
-        }
-
         void ProcessPendingActions() {
         }
 
@@ -286,9 +282,6 @@ namespace mobileclock::preview::_details {
         }
 
         void ChooseAlarmMelody() override {
-            if (this->chooseAlarmMelodyCommand) {
-                this->chooseAlarmMelodyCommand();
-            }
         }
 
         void ToggleAlarm() override {
@@ -306,8 +299,6 @@ namespace mobileclock::preview::_details {
         void ExportLogs() override {
         }
 
-    private:
-        std::function<void()> chooseAlarmMelodyCommand;
     };
 }
 
@@ -320,9 +311,6 @@ struct mc_session {
             throw std::invalid_argument("Session dimensions must be positive");
         }
         this->session.Initialize({static_cast<float>(width), static_cast<float>(height)});
-        this->actions.SetChooseAlarmMelodyCommand([this]() {
-            this->session.LoadPage("XiaomiThemesPage");
-        });
     }
 
     mobileclock::preview::_details::PreviewApplicationActions actions;

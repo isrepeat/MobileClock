@@ -19,7 +19,7 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class AddAlarmPageViewModel final : public ISerializable, public IGestureTarget {
+    class AddAlarmPageViewModel final : public ISerializable, public IGestureTarget, public INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "AddAlarmPage";
         inline static constexpr std::string_view PreviewGraphTitle = "Новый будильник";
@@ -57,6 +57,12 @@ namespace mobileclock::ui {
         bool EndPan(const PanState& state, xaml::AnimationController& animations) override;
         void CancelPan(xaml::Element& element) override;
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
+
+        //
+        // INavigationPage
+        //
+        std::unique_ptr<NavigationState> OnNavigatingFrom(const NavigationRequest& request) override;
+        bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) override;
 
         void Reset();
         const AlarmSettings& Settings() const;

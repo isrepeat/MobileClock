@@ -1,17 +1,16 @@
 #pragma once
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
-#endif
 #include <XamlRuntime/Binding.h>
 #include <XamlRuntime/XamlLayout.h>
 
 #include "UI/ISerializable.h"
 #include "UI/PageRegistry.h"
 
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace xaml {
     class IRenderBackend;
@@ -19,7 +18,7 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class XiaomiThemesPageViewModel final : public ISerializable {
+    class XiaomiThemesPageViewModel final : public ISerializable, public INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "XiaomiThemesPage";
         inline static constexpr std::string_view PreviewGraphTitle = "Xiaomi Themes";
@@ -46,7 +45,12 @@ namespace mobileclock::ui {
         bool Deserialize(std::string_view json, std::string& error) override;
 #endif
 
-        void ApplySelectedMelody();
+        //
+        // INavigationPage
+        //
+        std::unique_ptr<NavigationState> OnNavigatingFrom(const NavigationRequest& request) override;
+        bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) override;
+
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();
@@ -74,3 +78,4 @@ namespace mobileclock::ui {
 #endif
     };
 }
+#endif

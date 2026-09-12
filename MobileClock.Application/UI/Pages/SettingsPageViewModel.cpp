@@ -1,11 +1,10 @@
 #include "UI/Pages/SettingsPageViewModel.h"
 
-#include <XamlRuntime/RenderEngine.h>
-
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #include <JsonParser/JsonParser.h>
 #endif
+#include <XamlRuntime/RenderEngine.h>
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/SettingsPage.xaml.h"
 #include "UI/Pages/MainPageViewModel.h"
@@ -27,7 +26,7 @@ namespace mobileclock::ui {
 
     SettingsPageViewModel::SettingsPageViewModel(PageContext& context)
         : navigateToMainCommand([&context]() {
-            context.navigator.Navigate<MainPageViewModel>();
+            context.navigator.Trigger(NavigationTrigger::navigateToMain);
         })
         , shareLogsCommand([&context]() {
             context.actions.ShareLogs();
@@ -35,6 +34,48 @@ namespace mobileclock::ui {
         , exportLogsCommand([&context]() {
             context.actions.ExportLogs();
         }) {
+    }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // ISerializable
+    //
+    bool SettingsPageViewModel::Deserialize(std::string_view json, std::string& error) {
+        _details::SettingsPagePreviewScenario scenario;
+        JS::ParseContext context(json.data(), json.size());
+        if (context.parseTo(scenario) != JS::Error::NoError) {
+            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
+            return false;
+        }
+        if (scenario.Theme) {
+            this->theme = std::move(*scenario.Theme);
+            for (const auto& handler : this->propertyChangedHandlers) {
+                if (handler) {
+                    handler(Property::theme);
+                }
+            }
+        }
+        if (scenario.Sound) {
+            this->sound = std::move(*scenario.Sound);
+            for (const auto& handler : this->propertyChangedHandlers) {
+                if (handler) {
+                    handler(Property::sound);
+                }
+            }
+        }
+        return true;
+    }
+#endif
+
+    //
+    // INavigationPage
+    //
+    std::unique_ptr<NavigationState> SettingsPageViewModel::OnNavigatingFrom(const NavigationRequest&) {
+        return {};
+    }
+
+    bool SettingsPageViewModel::OnNavigatingTo(const NavigationRequest&, std::unique_ptr<NavigationState>) {
+        return true;
     }
 
     //
@@ -103,34 +144,6 @@ namespace mobileclock::ui {
             this->propertyChangedHandlers[index] = nullptr;
         };
     }
-
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool SettingsPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::SettingsPagePreviewScenario scenario;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
-            return false;
-        }
-        if (scenario.Theme) {
-            this->theme = std::move(*scenario.Theme);
-            for (const auto& handler : this->propertyChangedHandlers) {
-                if (handler) {
-                    handler(Property::theme);
-                }
-            }
-        }
-        if (scenario.Sound) {
-            this->sound = std::move(*scenario.Sound);
-            for (const auto& handler : this->propertyChangedHandlers) {
-                if (handler) {
-                    handler(Property::sound);
-                }
-            }
-        }
-        return true;
-    }
-#endif
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     xaml::runtime::RuntimeBindingContext SettingsPageViewModel::RuntimeContext() {

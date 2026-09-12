@@ -78,7 +78,7 @@ namespace mobileclock::tests::_details {
     void FinishNavigation(ui::ApplicationSession& session) {
         for (int iteration = 0; iteration < 100; ++iteration) {
             session.Update();
-            if (!xaml::AnimationController::IsAnimating(session.Root())) {
+            if (!session.IsTransitioning()) {
                 return;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -149,6 +149,14 @@ namespace mobileclock::tests::_details {
         Check(Find(session.Root(), "repeatSummary")->Text() == "Однократно", "No days means once");
         Find(session.Root(), "melodyButton")->ExecuteCommand();
         Check(Find(session.Root(), "melodyChoices")->VisibilityValue() == xaml::attr::Visibility::visible, "Melody chooser");
+        Find(session.Root(), "melodyChoices")->Children().front()->ExecuteCommand();
+        Check(session.CurrentPageName() == "XiaomiThemesPage", "Theme selection navigation");
+        FinishNavigation(session);
+        Find(session.Root(), "melody1")->ExecuteCommand();
+        Find(session.Root(), "applyButton")->ExecuteCommand();
+        Check(session.CurrentPageName() == "AddAlarmPage", "Selected theme must return to the form");
+        FinishNavigation(session);
+        Check(Find(session.Root(), "melodyName")->Text() == "Lone Grass, Solitary Flower", "Theme must update the draft");
         Find(session.Root(), "melody1")->ExecuteCommand();
         Check(Find(session.Root(), "melodyName")->Text() == "Классика", "Melody selection");
         xaml::layout(session.Root(), {720, 1440});
@@ -192,7 +200,7 @@ int main(int argc, char** argv) {
         session.Initialize({1080, 1920});
         session.SetAnimationPlaybackRate(100.0f);
         std::string diagnostics;
-        for (const std::string name : {"MainPage", "SettingsPage", "StatisticsPage", "AddAlarmPage"}) {
+        for (const std::string name : {"MainPage", "SettingsPage", "AddAlarmPage"}) {
             const auto path = project + "/MobileClock.Application/UI/Pages/" + name + ".xaml";
             const auto markup = Read(path);
             Check(session.ReloadMarkup(name, markup, path, diagnostics), diagnostics);

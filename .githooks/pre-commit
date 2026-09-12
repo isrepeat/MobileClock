@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+repository_root="$(git rev-parse --show-toplevel)"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$repository_root/.githooks/verify-final-byte.ps1"

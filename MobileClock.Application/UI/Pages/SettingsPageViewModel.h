@@ -21,7 +21,7 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class SettingsPageViewModel final : public ISerializable {
+    class SettingsPageViewModel final : public ISerializable, public INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "SettingsPage";
         inline static constexpr std::string_view PreviewGraphTitle = "⚙  Настройки";
@@ -40,6 +40,19 @@ namespace mobileclock::ui {
         SettingsPageViewModel(const SettingsPageViewModel&) = delete;
         SettingsPageViewModel& operator=(const SettingsPageViewModel&) = delete;
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        //
+        // ISerializable
+        //
+        bool Deserialize(std::string_view json, std::string& error) override;
+#endif
+
+        //
+        // INavigationPage
+        //
+        std::unique_ptr<NavigationState> OnNavigatingFrom(const NavigationRequest& request) override;
+        bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) override;
+
         const std::string& Theme() const;
         const std::string& Sound() const;
 
@@ -55,7 +68,6 @@ namespace mobileclock::ui {
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-        bool Deserialize(std::string_view json, std::string& error) override;
         xaml::runtime::RuntimeBindingContext RuntimeContext();
         void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 #endif

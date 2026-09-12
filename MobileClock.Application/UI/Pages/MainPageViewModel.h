@@ -22,7 +22,7 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class MainPageViewModel final : public ISerializable {
+    class MainPageViewModel final : public ISerializable, public INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "MainPage";
         inline static constexpr std::string_view PreviewGraphTitle = "⌂  Главная";
@@ -72,7 +72,11 @@ namespace mobileclock::ui {
         //
         bool Deserialize(std::string_view json, std::string& error) override;
 #endif
-
+        //
+        // INavigationPage
+        //
+        std::unique_ptr<NavigationState> OnNavigatingFrom(const NavigationRequest& request) override;
+        bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) override;
 
         const std::string& ClockText() const;
         void SetClockText(std::string value);

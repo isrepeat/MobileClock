@@ -2,6 +2,9 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
+#endif
 #include "UI/ApplicationActions.h"
 #include "UI/AlarmSettings.h"
 #include "UI/Navigation.h"
@@ -9,11 +12,6 @@
 #include <string_view>
 #include <functional>
 #include <utility>
-
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
-#endif
-
 #include <memory>
 #include <tuple>
 
@@ -28,6 +26,8 @@ namespace mobileclock::ui {
         virtual ~IPage() = default;
 
         virtual std::string_view Name() const = 0;
+        virtual std::unique_ptr<NavigationState> OnNavigatingFrom(const NavigationRequest& request) = 0;
+        virtual bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) = 0;
         virtual void Initialize(xaml::Size availableSize) = 0;
         virtual void HandleTap(xaml::Element& element) = 0;
         virtual void Update() = 0;
@@ -45,7 +45,6 @@ namespace mobileclock::ui {
         IPageNavigator& navigator;
         IApplicationActions& actions;
         std::function<void(const AlarmSettings&)> saveAlarm;
-        std::function<void(std::string, std::string)> applyAlarmMelody;
     };
 
     template <typename TViewModel>
@@ -57,6 +56,14 @@ namespace mobileclock::ui {
 
         std::string_view Name() const override {
             return TViewModel::PageName;
+        }
+
+        std::unique_ptr<NavigationState> OnNavigatingFrom(const NavigationRequest& request) override {
+            return this->viewModel.OnNavigatingFrom(request);
+        }
+
+        bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) override {
+            return this->viewModel.OnNavigatingTo(request, std::move(state));
         }
 
         void Initialize(xaml::Size availableSize) override {
