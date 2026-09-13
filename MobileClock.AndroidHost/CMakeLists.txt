@@ -238,10 +238,15 @@ set(mobileclock_ui_control_files
     ../MobileClock.UI/Controls/AlarmActionsMenu.h
     ../MobileClock.UI/Controls/AlarmActionsMenu.xaml
     ../MobileClock.UI/Controls/IGestureTarget.cpp
+    ../MobileClock.UI/Controls/PannableList.cpp
+    ../MobileClock.UI/Controls/PannableList.h
     ../MobileClock.UI/Controls/InteractiveList.cpp
     ../MobileClock.UI/Controls/InteractiveList.h
     ../MobileClock.UI/Controls/IGestureTarget.h
     ../MobileClock.UI/Controls/InteractiveList.xaml
+    ../MobileClock.UI/Controls/ScrollableList.cpp
+    ../MobileClock.UI/Controls/ScrollableList.h
+    ../MobileClock.UI/Controls/ScrollableList.xaml
     ../MobileClock.UI/Controls/TimelineTabs.cpp
     ../MobileClock.UI/Controls/TimelineTabs.h
     ../MobileClock.UI/Controls/TimelineTabs.xaml

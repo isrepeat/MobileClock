@@ -70,7 +70,7 @@ namespace mobileclock::tests::_details {
         FinishNavigation(session);
     }
 
-    void CheckAlarmForm() {
+    void CheckAlarmForm(const std::string& project) {
         ui::ApplicationStorage storage;
         ui::AppSessionController appSessionController(storage);
         ui::ApplicationSession& session = appSessionController.Session();
@@ -125,9 +125,26 @@ namespace mobileclock::tests::_details {
         Check(Find(session.Root(), "repeatSummary")->Text() == "Однократно", "No days means once");
         session.AddAlarmMelody("Morning", "preview://morning");
         session.AddAlarmMelody("Lone Grass, Solitary Flower", "preview://lone-grass");
+        for (int index = 0; index < 12; ++index) {
+            session.AddAlarmMelody("Test melody " + std::to_string(index), "preview://test-" + std::to_string(index));
+        }
+        xaml::layout(session.Root(), {720, 1440});
         auto* melodyChoices = Find(session.Root(), "melodyChoices");
-        Check(melodyChoices->Children().size() == 2, "Permanent melody list");
-        melodyChoices->Children().back()->ExecuteCommand();
+        Check(melodyChoices->Children().size() == 14, "Permanent melody list");
+        auto* melodyScrollViewer = Find(session.Root(), "scrollableListScrollViewer");
+        const auto melodyBounds = melodyScrollViewer->Bounds();
+        session.PointerDown(melodyBounds.x + melodyBounds.width / 2, melodyBounds.y + melodyBounds.height / 2);
+        session.PointerMove(melodyBounds.x + melodyBounds.width / 2, melodyBounds.y + melodyBounds.height / 2 - 200);
+        session.PointerUp(melodyBounds.x + melodyBounds.width / 2, melodyBounds.y + melodyBounds.height / 2 - 200);
+        Check(melodyScrollViewer->VerticalOffset() > 0, "Melody list pan must scroll");
+        const auto scrollOffset = melodyScrollViewer->VerticalOffset();
+        const auto scrollableListPath = project + "/MobileClock.UI/Controls/ScrollableList.xaml";
+        std::string diagnostics;
+        Check(session.ReloadMarkup("AddAlarmPage", Read(scrollableListPath), scrollableListPath, diagnostics), diagnostics);
+        melodyScrollViewer = Find(session.Root(), "scrollableListScrollViewer");
+        Check(melodyScrollViewer->VerticalOffset() == scrollOffset, "ScrollableList reload must preserve scroll offset");
+        melodyChoices = Find(session.Root(), "melodyChoices");
+        melodyChoices->Children()[1]->ExecuteCommand();
         Find(session.Root(), "saveAlarmButton")->ExecuteCommand();
         Check(session.Root().Id() == "root", "Save navigation");
         Check(xaml::AnimationController::IsAnimating(session.Root()), "Main page Show must animate");
@@ -158,7 +175,7 @@ int main(int argc, char** argv) {
             "<?xml version='1.0'?><Page xmlns='urn:mobileclock:xaml'>\n<TextBlock text='a &amp; b &#x1F600; > c'/></Page>", "parser.xaml");
         Check(ast.children[0].location.line == 2 && ast.children[0].location.column == 1, "Source location");
         Check(ast.children[0].attributes[0].value.find("a & b") == 0, "XML entities");
-        CheckAlarmForm();
+        CheckAlarmForm(project);
         mobileclock::ui::ApplicationStorage storage;
         mobileclock::ui::AppSessionController appSessionController(storage);
         mobileclock::ui::ApplicationSession& session = appSessionController.Session();

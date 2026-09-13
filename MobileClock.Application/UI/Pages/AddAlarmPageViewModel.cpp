@@ -6,6 +6,7 @@
 #endif
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/AddAlarmPage.xaml.h"
+#include "MobileClock.UI/Controls/ScrollableList.h"
 #include "UI/Pages/MainPageViewModel.h"
 #include "UI/AppSessionController.h"
 #include "UI/NavigationStates.h"
@@ -262,6 +263,10 @@ namespace mobileclock::ui {
             element.SetItemsSource(this->melodies, std::move(itemTemplate));
         };
         registry->AddCollection("Melodies", collection);
+        registry->AddCollection("ItemsSource", collection);
+        result.controls["ScrollableList"] = [this](xaml::BindingScope& scope) {
+            return controls::ScrollableList::Create(*this, this->melodies, scope);
+        };
         return result;
     }
 

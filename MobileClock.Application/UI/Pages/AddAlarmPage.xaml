@@ -2,7 +2,8 @@
 <Page id="addAlarmPage"
       padding="32"
       background="#171813"
-      xmlns="urn:mobileclock:xaml">
+      xmlns="urn:mobileclock:xaml"
+      xmlns:controls="using:mobileclock.ui.controls">
     <Page.Storyboards>
         <Storyboard trigger="Show">
             <FloatAnimation property="opacity"
@@ -389,34 +390,9 @@
                                            text="Выберите звук будильника"/>
                             </StackPanel>
                         </Button>
-                        <ScrollViewer gridRow="1"
-                                      verticalAlignment="Stretch"
-                                      horizontalAlignment="Stretch"
-                                      verticalScrollBarVisibility="Auto">
-                            <ListView id="melodyChoices"
-                                      verticalAlignment="Stretch"
-                                      horizontalAlignment="Stretch"
-                                      itemsSource="{Binding Melodies}">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button height="76"
-                                                padding="0"
-                                                contentAlignment="Center"
-                                                horizontalAlignment="Stretch"
-                                                fontSize="25"
-                                                foreground="#EAE8DC"
-                                                background="#171813"
-                                                borderBrush="#51533D"
-                                                borderThickness="0 1 0 0"
-                                                command="{Binding SelectCommand}">
-                                            <TextBlock verticalAlignment="Center"
-                                                       horizontalAlignment="Left"
-                                                       text="{Binding Name}"/>
-                                        </Button>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </ScrollViewer>
+                        <controls:ScrollableList gridRow="1"
+                                                 verticalAlignment="Stretch"
+                                                 horizontalAlignment="Stretch"/>
                     </Grid>
                 </Border>
         </Grid>

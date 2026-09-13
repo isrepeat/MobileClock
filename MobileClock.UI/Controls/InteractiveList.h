@@ -3,11 +3,10 @@
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include <XamlRuntime/DependentProperty.h>
-#include <XamlRuntime/UserControl.h>
 #include <XamlRuntime/XamlLayout.h>
 
 #include "!Generated/MobileClock.UI/Xaml/Controls/InteractiveList.xaml.h"
-#include "MobileClock.UI/Controls/IGestureTarget.h"
+#include "MobileClock.UI/Controls/PannableList.h"
 
 #include <chrono>
 #include <functional>
@@ -15,11 +14,7 @@
 #include <vector>
 
 namespace mobileclock::ui::controls {
-    class InteractiveList final : public xaml::UserControl, public IGestureTarget
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        , public xaml::runtime::IRuntimeReloadableControl
-#endif
-    {
+    class InteractiveList final : public PannableList {
     public:
         struct RemovalState {
             std::vector<xaml::Rect> previousBounds;
@@ -60,7 +55,7 @@ namespace mobileclock::ui::controls {
         const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
         bool CanHandlePan(const xaml::Element& element) const override;
-        xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
+        bool IsVerticalPan() const override;
         void BeginPan(const PanState& state) override;
         void UpdatePan(const PanState& state) override;
         bool EndPan(const PanState& state, xaml::AnimationController& animations) override;
@@ -68,6 +63,7 @@ namespace mobileclock::ui::controls {
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
     private:
+        std::string_view ScrollViewerId() const override;
         void SetRemoveHandler(std::function<bool(const void*)> value);
         const void* FindItemDataContext(xaml::Element& element) const;
         bool BeginRemoval(const void* dataContext);
@@ -84,12 +80,6 @@ namespace mobileclock::ui::controls {
             const RemovalState& state,
             xaml::AnimationController& animations,
             std::chrono::milliseconds duration);
-        xaml::Element* FindElement(std::string_view id) const;
-        void OnInitialized() override;
-        bool IsIn(const xaml::Element& pageRoot) const override;
-        bool Owns(const xaml::Element& element) const override;
-
-    private:
         xaml::DependentProperty<const void*> itemsSource;
         std::function<bool(const void*)> removeHandler;
         const void* pendingRemoval = nullptr;

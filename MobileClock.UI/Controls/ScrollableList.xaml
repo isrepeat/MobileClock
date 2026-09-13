@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="mobileclock::ui::controls::ScrollableList"
+             xmlns="urn:mobileclock:xaml"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer id="scrollableListScrollViewer"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch"
+                  verticalScrollBarVisibility="Auto">
+        <ListView id="melodyChoices"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch"
+                  itemsSource="{Binding ItemsSource}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Button height="76"
+                            padding="0"
+                            contentAlignment="Center"
+                            horizontalAlignment="Stretch"
+                            fontSize="25"
+                            foreground="#EAE8DC"
+                            background="#171813"
+                            borderBrush="#51533D"
+                            borderThickness="0 1 0 0"
+                            command="{Binding SelectCommand}">
+                        <TextBlock verticalAlignment="Center"
+                                   horizontalAlignment="Left"
+                                   text="{Binding Name}"/>
+                    </Button>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </ScrollViewer>
+</UserControl>

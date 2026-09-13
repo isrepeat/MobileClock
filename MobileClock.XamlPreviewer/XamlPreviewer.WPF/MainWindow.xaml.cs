@@ -923,29 +923,47 @@ public partial class MainWindow : Window {
             ? Directory.GetFiles(controlsDirectory, "*.xaml", SearchOption.AllDirectories)
                 .ToDictionary(Path.GetFileNameWithoutExtension, StringComparer.Ordinal)
             : new Dictionary<string, string>(StringComparer.Ordinal);
-        var controls = new List<MarkupNavigationTarget> {
-            new() { Name = "Page", Path = pagePath },
-        };
+        var discoveredControls = new List<(string Name, string Path, string? Id)>();
         var visitedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { pagePath };
         var pathsToInspect = new Queue<string>();
         pathsToInspect.Enqueue(pagePath);
-        var controlPattern = new Regex("<\\w+:(?<name>[A-Za-z][A-Za-z0-9]*)\\b", RegexOptions.CultureInvariant);
+        var controlPattern = new Regex(
+            "<\\w+:(?<name>[A-Za-z][A-Za-z0-9]*)\\b(?<attributes>[^>]*)>",
+            RegexOptions.CultureInvariant);
+        var idPattern = new Regex("\\bid\\s*=\\s*\"(?<id>[^\"]+)\"", RegexOptions.CultureInvariant);
         while (pathsToInspect.TryDequeue(out var sourcePath)) {
             foreach (Match match in controlPattern.Matches(File.ReadAllText(sourcePath))) {
                 var name = match.Groups["name"].Value;
-                if (!controlPaths.TryGetValue(name, out var controlPath)
-                    || !visitedPaths.Add(controlPath)) {
+                if (!controlPaths.TryGetValue(name, out var controlPath)) {
                     continue;
                 }
-                controls.Add(new() { Name = name, Path = controlPath });
-                pathsToInspect.Enqueue(controlPath);
+                var idMatch = idPattern.Match(match.Groups["attributes"].Value);
+                discoveredControls.Add((name, controlPath, idMatch.Success ? idMatch.Groups["id"].Value : null));
+                if (visitedPaths.Add(controlPath)) {
+                    pathsToInspect.Enqueue(controlPath);
+                }
+            }
+        }
+        var controls = new List<MarkupNavigationTarget> {
+            new() { Name = "Page", Path = pagePath },
+        };
+        foreach (var group in discoveredControls.GroupBy(control => control.Name, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)) {
+            var unnamedIndex = 0;
+            var groupCount = group.Count();
+            foreach (var control in group.OrderBy(control => string.IsNullOrEmpty(control.Id) ? 1 : 0)) {
+                var label = control.Name;
+                if (groupCount > 1) {
+                    label += string.IsNullOrEmpty(control.Id)
+                        ? $" [{++unnamedIndex}]"
+                        : $" [{control.Id}]";
+                }
+                controls.Add(new() { Name = label, Path = control.Path });
             }
         }
         this.updatingControlPicker = true;
         try {
-            this.ControlPicker.ItemsSource = controls.OrderBy(target => target.Name == "Page" ? 0 : 1)
-                .ThenBy(target => target.Name, StringComparer.Ordinal)
-                .ToArray();
+            this.ControlPicker.ItemsSource = controls;
             this.SelectControlPicker(this.markupPath ?? pagePath);
         }
         finally {

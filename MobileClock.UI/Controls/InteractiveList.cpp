@@ -13,18 +13,6 @@ namespace mobileclock::ui::controls::_details {
     constexpr float PanCompletionThreshold = 180.0f;
     constexpr float ScrollPositionTolerance = 1.0f;
 
-    bool Contains(const xaml::Element& root, const xaml::Element& element) {
-        if (&root == &element) {
-            return true;
-        }
-        for (const std::unique_ptr<xaml::Element>& child : root.Children()) {
-            if (Contains(*child, element)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     bool FindDataContext(
         const xaml::Element& root,
         const xaml::Element& element,
@@ -151,8 +139,8 @@ namespace mobileclock::ui::controls {
         return element.Id() == "interactiveListGestureTarget";
     }
 
-    xaml::Element* InteractiveList::FindScrollViewer(const xaml::Element& element) const {
-        return this->Owns(element) ? this->FindElement("interactiveListScrollViewer") : nullptr;
+    bool InteractiveList::IsVerticalPan() const {
+        return false;
     }
 
     void InteractiveList::BeginPan(const PanState& state) {
@@ -348,27 +336,7 @@ namespace mobileclock::ui::controls {
         }
     }
 
-    xaml::Element* InteractiveList::FindElement(std::string_view id) const {
-        return _details::FindElement(*const_cast<InteractiveList*>(this), id);
-    }
-
-    void InteractiveList::OnInitialized() {
-        this->RegisterGestureTarget();
-    }
-
-    bool InteractiveList::IsIn(const xaml::Element& pageRoot) const {
-        if (&pageRoot == this) {
-            return true;
-        }
-        for (const std::unique_ptr<xaml::Element>& child : pageRoot.Children()) {
-            if (this->IsIn(*child)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool InteractiveList::Owns(const xaml::Element& element) const {
-        return _details::Contains(*this, element);
+    std::string_view InteractiveList::ScrollViewerId() const {
+        return "interactiveListScrollViewer";
     }
 }
