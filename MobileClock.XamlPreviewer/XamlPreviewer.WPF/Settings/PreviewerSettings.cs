@@ -48,6 +48,7 @@ internal sealed class PreviewerSettings {
     public double PreviewScale { get; set; }
     public double PreviewHorizontalOffset { get; set; }
     public double PreviewVerticalOffset { get; set; }
+    public bool IsNavigationGraphVisible { get; set; } = true;
     public bool IsPreviewLandscape { get; set; }
     public double AnimationPlaybackRate { get; set; } = 1.0;
     public double[] AnimationPlaybackRates { get; set; } = [0.1, 0.25, 0.5, 1.0, 2.0, 4.0];

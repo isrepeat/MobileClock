@@ -11,6 +11,21 @@
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
   </ItemGroup>
 
+  <!-- WPF может оставить MarkupCompile.cache после отменённой сборки, хотя
+       соответствующие .g.cs или .baml уже удалены. Без кэша MarkupCompile
+       восстанавливает недостающие промежуточные файлы перед CoreCompile. -->
+  <Target Name="InvalidateStaleWpfMarkupCache" BeforeTargets="MarkupCompilePass1">
+    <Delete Files="$(IntermediateOutputPath)$(AssemblyName)_MarkupCompile.cache;$(IntermediateOutputPath)$(AssemblyName)_MarkupCompile.lref"
+            Condition="!Exists('$(IntermediateOutputPath)App.g.cs')
+                Or !Exists('$(IntermediateOutputPath)App.baml')
+                Or !Exists('$(IntermediateOutputPath)ExternalMarkupConflictDialog.g.cs')
+                Or !Exists('$(IntermediateOutputPath)ExternalMarkupConflictDialog.baml')
+                Or !Exists('$(IntermediateOutputPath)MainWindow.g.cs')
+                Or !Exists('$(IntermediateOutputPath)MainWindow.baml')
+                Or !Exists('$(IntermediateOutputPath)XamlPreviewer_Content.g.cs')
+                Or !Exists('$(IntermediateOutputPath)GeneratedInternalTypeHelper.g.cs')" />
+  </Target>
+
   <!-- NativeBridge — отдельный C++ проект. Собираем его явно: стандартный
        ProjectReference подставляет Win32 в транзитивные C++-проекты библиотеки. -->
   <Target Name="BuildNativeBridge" BeforeTargets="Build">

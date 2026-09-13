@@ -15,6 +15,7 @@
         Состояние, загрузка файлов и обработчики событий находятся в MainWindow.xaml.cs.
     -->
     <Window.Resources>
+        <GridLength x:Key="PanelSplitterWidth">12</GridLength>
         <!-- Общие ресурсы темы используются и стандартными WPF-контролами, и AvalonEdit. -->
         <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}"
                          Color="#242424" />
@@ -843,6 +844,13 @@
                     Margin="0 0 16 0"
                     Click="RebuildAndRestartButtonClick"
                     Content="Собрать и открыть" />
+            <ToggleButton x:Name="NavigationGraphToggleButton"
+                          Width="92"
+                          Margin="0 0 8 0"
+                          Style="{StaticResource EditorModeToggleButtonStyle}"
+                          Click="NavigationGraphToggleButtonClick"
+                          ToolTip="Показать маршрут приложения"
+                          Content="Маршрут" />
             <Button Width="30"
                     Click="EditorZoomOutButtonClick"
                     Content="−" />
@@ -894,10 +902,14 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="EditorColumn"
                                   Width="1.15*" />
-                <ColumnDefinition Width="15" />
-                <ColumnDefinition Width="430" />
-                <ColumnDefinition Width="10" />
-                <ColumnDefinition Width="1*" />
+                <ColumnDefinition x:Name="EditorNavigationSplitterColumn"
+                                  Width="{StaticResource PanelSplitterWidth}" />
+                <ColumnDefinition x:Name="NavigationGraphColumn"
+                                  Width="430" />
+                <ColumnDefinition x:Name="NavigationPreviewSplitterColumn"
+                                  Width="{StaticResource PanelSplitterWidth}" />
+                <ColumnDefinition x:Name="PreviewColumn"
+                                  Width="1*" />
                 <ColumnDefinition Width="0" />
                 <ColumnDefinition Width="0" />
             </Grid.ColumnDefinitions>
@@ -1020,15 +1032,18 @@
                             Content="Выбрать" />
                 </StackPanel>
             </Grid>
-            <GridSplitter Grid.Column="1"
+            <GridSplitter x:Name="EditorNavigationSplitter"
+                          Grid.Column="1"
                           HorizontalAlignment="Stretch"
                           Background="#333333"
                           DragCompleted="EditorSplitterDragCompleted" />
-            <Border Grid.Column="2"
+            <Border x:Name="NavigationGraphPanel"
+                    Grid.Column="2"
                     Margin="0 10"
                     Background="#171717"
                     BorderBrush="#444444"
-                    BorderThickness="1">
+                    BorderThickness="1"
+                    ClipToBounds="True">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -1047,10 +1062,12 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
-            <GridSplitter Grid.Column="3"
+            <GridSplitter x:Name="NavigationPreviewSplitter"
+                          Grid.Column="3"
                           HorizontalAlignment="Stretch"
                           Background="#333333" />
-            <Grid Grid.Column="4"
+            <Grid x:Name="PreviewPanel"
+                  Grid.Column="4"
                   Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
