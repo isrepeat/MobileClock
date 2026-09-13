@@ -6,7 +6,7 @@
 #endif
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/AddAlarmPage.xaml.h"
-#include "MobileClock.UI/Controls/ScrollableList.h"
+#include "MobileClock.UI/Controls/AlarmMelodyList.h"
 #include "UI/Pages/MainPageViewModel.h"
 #include "UI/AppSessionController.h"
 #include "UI/NavigationStates.h"
@@ -34,10 +34,15 @@ namespace mobileclock::ui::_details {
 }
 
 namespace mobileclock::ui {
-    AddAlarmPageViewModel::Melody::Melody(std::string name, std::string uri, xaml::Element::Command selectCommand)
+    AddAlarmPageViewModel::Melody::Melody(
+        std::string name,
+        std::string uri,
+        xaml::Element::Command selectCommand,
+        xaml::Element::Command deleteCommand)
         : name(std::move(name))
         , uri(std::move(uri))
-        , selectCommand(std::move(selectCommand)) {
+        , selectCommand(std::move(selectCommand))
+        , deleteCommand(std::move(deleteCommand)) {
     }
 
     const std::string& AddAlarmPageViewModel::Melody::Name() const {
@@ -50,6 +55,10 @@ namespace mobileclock::ui {
 
     xaml::Element::Command AddAlarmPageViewModel::Melody::SelectCommand() const {
         return this->selectCommand;
+    }
+
+    xaml::Element::Command AddAlarmPageViewModel::Melody::DeleteCommand() const {
+        return this->deleteCommand;
     }
 
     void AddAlarmPageViewModel::Melody::SetName(std::string value) {
@@ -81,19 +90,19 @@ namespace mobileclock::ui {
     //
     // IGestureTarget
     //
-    bool AddAlarmPageViewModel::CanHandlePan(const xaml::Element& element) const {
-        return this->WheelColumn(element) >= 0;
-    }
-
-    bool AddAlarmPageViewModel::IsVerticalPan() const {
-        return true;
-    }
-
     xaml::Element* AddAlarmPageViewModel::FindScrollViewer(const xaml::Element& element) const {
         return nullptr;
     }
 
-    void AddAlarmPageViewModel::BeginPan(const PanState& state) {
+    GestureHandling AddAlarmPageViewModel::ResolveGesture(
+        const PanState& state,
+        GestureDirection direction) const {
+        return this->WheelColumn(state.target) >= 0
+            && (direction == GestureDirection::up || direction == GestureDirection::down)
+            ? GestureHandling::captured : GestureHandling::ignored;
+    }
+
+    void AddAlarmPageViewModel::BeginGesture(const PanState& state) {
         this->activeColumn = this->WheelColumn(state.target);
         this->startValue = this->activeColumn == 0 ? this->settings.hour : this->settings.minute;
         const auto* wheel = this->Find(std::format("wheel{}", this->activeColumn));
@@ -102,7 +111,7 @@ namespace mobileclock::ui {
         this->dragging = true;
     }
 
-    void AddAlarmPageViewModel::UpdatePan(const PanState& state) {
+    void AddAlarmPageViewModel::UpdateGesture(const PanState& state) {
         const float distance = state.downY - state.currentY;
         const int steps = static_cast<int>(std::round(distance / this->rowHeight));
         int& value = this->activeColumn == 0 ? this->settings.hour : this->settings.minute;
@@ -111,15 +120,15 @@ namespace mobileclock::ui {
         this->RefreshWheel(this->activeColumn, this->remainder);
     }
 
-    bool AddAlarmPageViewModel::EndPan(const PanState& state, xaml::AnimationController& animations) {
-        this->UpdatePan(state);
+    bool AddAlarmPageViewModel::EndGesture(const PanState& state, xaml::AnimationController& animations) {
+        this->UpdateGesture(state);
         this->dragging = false;
         this->remainder = 0.0f;
         this->RefreshWheel(this->activeColumn, 0.0f);
         return true;
     }
 
-    void AddAlarmPageViewModel::CancelPan(xaml::Element& element) {
+    void AddAlarmPageViewModel::CancelGesture(xaml::Element& element) {
         if (this->dragging) {
             int& value = this->activeColumn == 0 ? this->settings.hour : this->settings.minute;
             value = this->startValue;
@@ -184,7 +193,10 @@ namespace mobileclock::ui {
             const xaml::Element::Command selectCommand = [this, name, uri]() {
                 this->SetMelody(name, uri);
             };
-            this->melodies.EmplaceBack(std::move(name), std::move(uri), selectCommand);
+            const xaml::Element::Command deleteCommand = [this, uri]() {
+                this->DeleteMelody(uri);
+            };
+            this->melodies.EmplaceBack(std::move(name), std::move(uri), selectCommand, deleteCommand);
         } else {
             existing->SetName(std::move(name));
         }
@@ -206,6 +218,18 @@ namespace mobileclock::ui {
         this->settings.melody = std::move(name);
         this->settings.melodyUri = std::move(uri);
         this->Refresh();
+    }
+
+    void AddAlarmPageViewModel::DeleteMelody(std::string_view uri) {
+        auto edit = this->context.storage.Edit();
+        const auto melody = std::find_if(edit->alarmMelodies.begin(), edit->alarmMelodies.end(), [uri](const AlarmMelody& value) {
+            return value.uri == uri;
+        });
+        if (melody == edit->alarmMelodies.end()) {
+            return;
+        }
+        edit->alarmMelodies.erase(melody);
+        edit.Commit();
     }
 
     const xaml::ObservableCollection<AddAlarmPageViewModel::Melody>& AddAlarmPageViewModel::Melodies() const {
@@ -257,6 +281,7 @@ namespace mobileclock::ui {
             auto item = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
             item->AddText("Name", [melody]() { return melody == nullptr ? "" : melody->Name(); });
             item->AddCommand("SelectCommand", melody == nullptr ? xaml::Element::Command{} : melody->SelectCommand());
+            item->AddCommand("DeleteCommand", melody == nullptr ? xaml::Element::Command{} : melody->DeleteCommand());
             return item;
         };
         collection.bind = [this](xaml::Element& element, xaml::Element::ItemTemplate itemTemplate) {
@@ -264,8 +289,8 @@ namespace mobileclock::ui {
         };
         registry->AddCollection("Melodies", collection);
         registry->AddCollection("ItemsSource", collection);
-        result.controls["ScrollableList"] = [this](xaml::BindingScope& scope) {
-            return controls::ScrollableList::Create(*this, this->melodies, scope);
+        result.controls["AlarmMelodyList"] = [this](xaml::BindingScope& scope) {
+            return controls::AlarmMelodyList::Create(*this, this->melodies, scope);
         };
         return result;
     }

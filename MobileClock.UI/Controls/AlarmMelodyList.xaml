@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="mobileclock::ui::controls::AlarmMelodyList"
+             xmlns="urn:mobileclock:xaml"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer id="scrollableListScrollViewer"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch"
+                  verticalScrollBarVisibility="Auto">
+        <ListView id="melodyChoices"
+                  verticalAlignment="Stretch"
+                  horizontalAlignment="Stretch"
+                  itemsSource="{Binding ItemsSource}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid height="84"
+                          margin="0 0 0 8"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch">
+                        <Button width="156"
+                                padding="0"
+                                contentAlignment="Center"
+                                horizontalAlignment="Right"
+                                fontSize="28"
+                                fontWeight="Bold"
+                                foreground="#F6EEE9"
+                                background="#A94C45"
+                                cornerRadius="18"
+                                text="Удалить"
+                                command="{Binding DeleteCommand}"/>
+                        <Button id="melodyListItem"
+                                padding="16 0 16 0"
+                                contentAlignment="Center"
+                                horizontalAlignment="Stretch"
+                                fontSize="32"
+                                foreground="#EAE8DC"
+                                background="#1A1D16"
+                                borderThickness="0"
+                                cornerRadius="18"
+                                command="{Binding SelectCommand}">
+                            <Grid verticalAlignment="Stretch"
+                                  horizontalAlignment="Stretch">
+                                <columnDefinitions>
+                                    <columnDefinition width="72"/>
+                                    <columnDefinition width="*"/>
+                                    <columnDefinition width="52"/>
+                                </columnDefinitions>
+                                <Border gridColumn="0"
+                                        width="56"
+                                        height="56"
+                                        verticalAlignment="Center"
+                                        horizontalAlignment="Left"
+                                        background="#282D21"
+                                        cornerRadius="16">
+                                    <SvgImage width="28"
+                                              height="28"
+                                              verticalAlignment="Center"
+                                              horizontalAlignment="Center"
+                                              source="Icons/music-note.svg"
+                                              tint="#D4D3C8"/>
+                                </Border>
+                                <TextBlock gridColumn="1"
+                                           verticalAlignment="Center"
+                                           horizontalAlignment="Left"
+                                           text="{Binding Name}"/>
+                                <SvgImage gridColumn="2"
+                                          width="24"
+                                          height="24"
+                                          verticalAlignment="Center"
+                                          horizontalAlignment="Center"
+                                          source="Icons/chevron-right.svg"
+                                          tint="#93937E"/>
+                            </Grid>
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </ScrollViewer>
+</UserControl>

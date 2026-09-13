@@ -1,50 +1,47 @@
 #pragma once
-#include <XamlRuntime/DependentProperty.h>
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
+#endif
+#include <XamlRuntime/UserControl.h>
 
-#include "!Generated/MobileClock.UI/Xaml/Controls/ScrollableList.xaml.h"
-#include "MobileClock.UI/Controls/PannableList.h"
+#include "MobileClock.UI/Controls/IGestureTarget.h"
 
 #include <memory>
+#include <string>
 #include <string_view>
 
 namespace mobileclock::ui::controls {
-    class ScrollableList final : public PannableList {
+    class ScrollableList : public xaml::UserControl, public IGestureTarget
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        , public xaml::runtime::IRuntimeReloadableControl
+#endif
+    {
     public:
         ScrollableList() = default;
         ~ScrollableList() override = default;
 
-        template <typename TViewModel>
-        static std::unique_ptr<ScrollableList> Create(
-            TViewModel& viewModel,
-            xaml::BindingScope& bindings) {
-            return Create(viewModel, viewModel.Melodies(), bindings);
-        }
-
-        template <typename TViewModel, typename TItemsSource>
-        static std::unique_ptr<ScrollableList> Create(
-            TViewModel& viewModel,
-            const TItemsSource& itemsSource,
-            xaml::BindingScope& bindings) {
-            auto control = std::make_unique<ScrollableList>();
-            control->itemsSource.Set(static_cast<const void*>(&itemsSource));
-            control->InitializeComponent(
-                xaml::generated::ScrollableListXaml::BuildContent(viewModel, itemsSource, bindings));
-            return control;
-        }
-
-        const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
+        //
+        // IGestureTarget
+        //
+        xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
+        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-        //
-        // IRuntimeReloadableControl
-        //
-        std::string_view RuntimeClassName() const override;
+        bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
+            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
 #endif
 
-    private:
-        std::string_view ScrollViewerId() const override;
+    protected:
+        virtual std::string_view ScrollViewerId() const = 0;
+        xaml::Element* FindElement(std::string_view id) const;
+        bool Owns(const xaml::Element& element) const override;
 
     private:
-        xaml::DependentProperty<const void*> itemsSource;
+        void OnInitialized() override;
+        bool IsIn(const xaml::Element& pageRoot) const override;
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+#endif
     };
 }

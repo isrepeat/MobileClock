@@ -2,8 +2,8 @@
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include "MobileClock.UI/Controls/AlarmActionsMenu.h"
-#include "MobileClock.UI/Controls/InteractiveList.h"
 #include "MobileClock.UI/Controls/TimelineTabs.h"
+#include "MobileClock.UI/Controls/AlarmList.h"
 #endif
 
 #include <Helpers.Logging/Logging.h>
@@ -356,8 +356,8 @@ namespace mobileclock::ui {
         // Если в runtime-XAML встретится {Binding Alarms} в itemsSource, используй этот RuntimeCollectionDescriptor.
         registry->AddCollection("Alarms", collection);
         registry->AddCollection("ItemsSource", collection);
-        result.controls["InteractiveList"] = [this](xaml::BindingScope& scope) {
-            return controls::InteractiveList::Create(*this, this->alarms, scope);
+        result.controls["AlarmList"] = [this](xaml::BindingScope& scope) {
+            return controls::AlarmList::Create(*this, this->alarms, scope);
         };
         result.controls["TimelineTabs"] = [this](xaml::BindingScope& scope) {
             return controls::TimelineTabs::Create(*this, scope);
@@ -370,7 +370,7 @@ namespace mobileclock::ui {
 
     void MainPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
         controls::AlarmActionsMenu::PreserveState(*this->page, *result.root);
-        controls::InteractiveList::PreserveInstances(*this->page, *result.root, *result.bindings);
+        controls::AlarmList::PreserveInstances(*this->page, *result.root, *result.bindings);
         this->bindings.Clear();
         this->runtimeBindings.reset();
         this->page = std::move(result.root);

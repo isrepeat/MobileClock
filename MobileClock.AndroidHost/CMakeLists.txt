@@ -196,18 +196,9 @@ set_target_properties(mobileclock_generated PROPERTIES
     FOLDER "!Generated"
 )
 
-set(mobileclock_presentation_source_files
-    ../MobileClock.Presentation/AnimationRenderers.cpp
-    ../MobileClock.Presentation/AnimationRenderers.h
-    ../MobileClock.Presentation/PreviewSession.cpp
-    ../MobileClock.Presentation/PreviewSession.h
-    ../MobileClock.Presentation/Registrations.cpp
-    ../MobileClock.Presentation/Registrations.h
-    ../MobileClock.Presentation/PageTransition.h
-    ../MobileClock.Presentation/Effects/Effects.cpp
-    ../MobileClock.Presentation/Effects/Effects.h
-    ../MobileClock.Presentation/Effects/Shaders.cpp
-    ../MobileClock.Presentation/Effects/Shaders.h
+file(GLOB_RECURSE mobileclock_presentation_source_files CONFIGURE_DEPENDS
+    "${mobileclock_project_root}/MobileClock.Presentation/*.cpp"
+    "${mobileclock_project_root}/MobileClock.Presentation/*.h"
 )
 source_group(TREE "${mobileclock_project_root}/MobileClock.Presentation" FILES
     ${mobileclock_presentation_source_files}
@@ -233,30 +224,16 @@ if (ANDROID)
     )
 endif()
 
-set(mobileclock_ui_control_files
-    ../MobileClock.UI/Controls/AlarmActionsMenu.cpp
-    ../MobileClock.UI/Controls/AlarmActionsMenu.h
-    ../MobileClock.UI/Controls/AlarmActionsMenu.xaml
-    ../MobileClock.UI/Controls/IGestureTarget.cpp
-    ../MobileClock.UI/Controls/PannableList.cpp
-    ../MobileClock.UI/Controls/PannableList.h
-    ../MobileClock.UI/Controls/InteractiveList.cpp
-    ../MobileClock.UI/Controls/InteractiveList.h
-    ../MobileClock.UI/Controls/IGestureTarget.h
-    ../MobileClock.UI/Controls/InteractiveList.xaml
-    ../MobileClock.UI/Controls/ScrollableList.cpp
-    ../MobileClock.UI/Controls/ScrollableList.h
-    ../MobileClock.UI/Controls/ScrollableList.xaml
-    ../MobileClock.UI/Controls/TimelineTabs.cpp
-    ../MobileClock.UI/Controls/TimelineTabs.h
-    ../MobileClock.UI/Controls/TimelineTabs.xaml
+file(GLOB_RECURSE mobileclock_ui_source_files CONFIGURE_DEPENDS
+    "${mobileclock_project_root}/MobileClock.UI/*.cpp"
+    "${mobileclock_project_root}/MobileClock.UI/*.h"
+    "${mobileclock_project_root}/MobileClock.UI/*.xaml"
 )
-source_group("Controls" FILES
-    ${mobileclock_ui_control_files}
-    ${mobileclock_ui_control_xaml_source}
+source_group(TREE "${mobileclock_project_root}/MobileClock.UI" FILES
+    ${mobileclock_ui_source_files}
 )
 add_library(mobileclock_ui STATIC
-    ${mobileclock_ui_control_files}
+    ${mobileclock_ui_source_files}
 )
 target_include_directories(mobileclock_ui PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"

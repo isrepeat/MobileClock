@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page id="addAlarmPage"
       padding="32"
-      background="#171813"
+      background="#11120E"
       xmlns="urn:mobileclock:xaml"
       xmlns:controls="using:mobileclock.ui.controls">
     <Page.Storyboards>
@@ -52,7 +52,6 @@
         <rowDefinitions>
             <rowDefinition height="84"/>
             <rowDefinition height="*"/>
-            <rowDefinition height="108"/>
         </rowDefinitions>
         <Grid gridRow="0"
               horizontalAlignment="Stretch">
@@ -77,21 +76,21 @@
                        fontSize="38"
                        fontWeight="Bold"
                        foreground="#EAE8DC"
-                       text="Новый будильник"/>
+                       text="Будильник"/>
         </Grid>
         <Grid id="formContent"
               gridRow="1"
               verticalAlignment="Stretch"
               horizontalAlignment="Stretch">
             <rowDefinitions>
-                <rowDefinition height="360"/>
-                <rowDefinition height="76"/>
+                <rowDefinition height="320"/>
+                <rowDefinition height="64"/>
                 <rowDefinition height="Auto"/>
                 <rowDefinition height="*"/>
             </rowDefinitions>
             <Grid id="timePicker"
                       gridRow="0"
-                      height="360"
+                      height="320"
                       margin="0 0 12 0"
                       horizontalAlignment="Stretch">
                     <columnDefinitions>
@@ -103,7 +102,7 @@
                           gridColumn="0"
                           verticalAlignment="Stretch"
                           horizontalAlignment="Stretch"
-                          background="#171813">
+                          background="#11120E">
                         <rowDefinitions>
                             <rowDefinition height="*"/>
                             <rowDefinition height="*"/>
@@ -161,7 +160,7 @@
                           gridColumn="2"
                           verticalAlignment="Stretch"
                           horizontalAlignment="Stretch"
-                          background="#171813">
+                          background="#11120E">
                         <rowDefinitions>
                             <rowDefinition height="*"/>
                             <rowDefinition height="*"/>
@@ -232,11 +231,11 @@
                         margin="0 0 0 20"
                         padding="24"
                         horizontalAlignment="Stretch"
-                        background="#23251C"
+                        background="#1D2118"
                         cornerRadius="24">
                     <StackPanel horizontalAlignment="Stretch"
                                 orientation="Vertical">
-                        <TextBlock fontSize="32"
+                        <TextBlock fontSize="40"
                                    foreground="#EAE8DC"
                                    text="Дни недели"/>
                         <Grid height="68"
@@ -260,7 +259,7 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Пн"
                                     borderBrush="#62644F"
@@ -274,7 +273,7 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Вт"
                                     borderBrush="#62644F"
@@ -288,7 +287,7 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Ср"
                                     borderBrush="#62644F"
@@ -302,7 +301,7 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Чт"
                                     borderBrush="#62644F"
@@ -316,7 +315,7 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Пт"
                                     borderBrush="#62644F"
@@ -330,7 +329,7 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Сб"
                                     borderBrush="#62644F"
@@ -344,24 +343,24 @@
                                     horizontalAlignment="Stretch"
                                     fontSize="24"
                                     foreground="#93937E"
-                                    background="#23251C"
+                                    background="#1D2118"
                                     cornerRadius="34"
                                     text="Вс"
                                     borderBrush="#62644F"
                                     borderThickness="1"/>
                         </Grid>
                         <TextBlock id="repeatSummary"
-                                   fontSize="23"
+                                   fontSize="26"
                                    foreground="#93937E"
                                    text="По будням"/>
                     </StackPanel>
                 </Border>
                 <Border gridRow="3"
-                        margin="0 0 0 24"
+                        margin="0"
                         padding="24"
                         verticalAlignment="Stretch"
                         horizontalAlignment="Stretch"
-                        background="#23251C"
+                        background="#1D2118"
                         cornerRadius="24">
                     <Grid verticalAlignment="Stretch"
                           horizontalAlignment="Stretch">
@@ -371,8 +370,8 @@
                         </rowDefinitions>
                         <Button id="melodyButton"
                                 gridRow="0"
-                                height="76"
-                                margin="0 0 0 16"
+                                height="82"
+                                margin="0 0 0 12"
                                 padding="0"
                                 verticalAlignment="Stretch"
                                 contentAlignment="Center"
@@ -381,33 +380,20 @@
                                 borderThickness="0">
                             <StackPanel horizontalAlignment="Stretch"
                                         orientation="Vertical">
-                                <TextBlock fontSize="32"
+                                <TextBlock fontSize="40"
                                            foreground="#EAE8DC"
                                            text="Мелодия"/>
-                                <TextBlock margin="0 4 0 0"
-                                           fontSize="23"
+                                <TextBlock margin="0 6 0 0"
+                                           fontSize="26"
                                            foreground="#93937E"
                                            text="Выберите звук будильника"/>
                             </StackPanel>
                         </Button>
-                        <controls:ScrollableList gridRow="1"
+                        <controls:AlarmMelodyList gridRow="1"
                                                  verticalAlignment="Stretch"
                                                  horizontalAlignment="Stretch"/>
                     </Grid>
                 </Border>
         </Grid>
-        <Button id="saveAlarmButton"
-                gridRow="2"
-                margin="0 0 16 0"
-                verticalAlignment="Stretch"
-                contentAlignment="Center"
-                horizontalAlignment="Stretch"
-                fontSize="32"
-                fontWeight="Bold"
-                foreground="#171813"
-                background="#E0B64D"
-                cornerRadius="28"
-                text="Сохранить"
-                borderThickness="0"/>
     </Grid>
 </Page>

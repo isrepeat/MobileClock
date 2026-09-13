@@ -2,7 +2,7 @@
 #include <XamlRuntime/RuntimeMarkup/XamlParser.h>
 #include <XamlRuntime/Input.h>
 
-#include "MobileClock.UI/Controls/InteractiveList.h"
+#include "MobileClock.UI/Controls/AlarmList.h"
 #include "UI/AppSessionController.h"
 
 #include <stdexcept>
@@ -35,8 +35,8 @@ namespace mobileclock::tests::_details {
         return nullptr;
     }
 
-    ui::controls::InteractiveList* List(xaml::Element& node) {
-        if (auto* control = dynamic_cast<ui::controls::InteractiveList*>(&node)) {
+    ui::controls::AlarmList* List(xaml::Element& node) {
+        if (auto* control = dynamic_cast<ui::controls::AlarmList*>(&node)) {
             return control;
         }
         for (const auto& child : node.Children()) {
@@ -138,11 +138,11 @@ namespace mobileclock::tests::_details {
         session.PointerUp(melodyBounds.x + melodyBounds.width / 2, melodyBounds.y + melodyBounds.height / 2 - 200);
         Check(melodyScrollViewer->VerticalOffset() > 0, "Melody list pan must scroll");
         const auto scrollOffset = melodyScrollViewer->VerticalOffset();
-        const auto scrollableListPath = project + "/MobileClock.UI/Controls/ScrollableList.xaml";
+        const auto scrollableListPath = project + "/MobileClock.UI/Controls/AlarmMelodyList.xaml";
         std::string diagnostics;
         Check(session.ReloadMarkup("AddAlarmPage", Read(scrollableListPath), scrollableListPath, diagnostics), diagnostics);
         melodyScrollViewer = Find(session.Root(), "scrollableListScrollViewer");
-        Check(melodyScrollViewer->VerticalOffset() == scrollOffset, "ScrollableList reload must preserve scroll offset");
+        Check(melodyScrollViewer->VerticalOffset() == scrollOffset, "AlarmMelodyList reload must preserve scroll offset");
         melodyChoices = Find(session.Root(), "melodyChoices");
         melodyChoices->Children()[1]->ExecuteCommand();
         Find(session.Root(), "saveAlarmButton")->ExecuteCommand();
@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
         auto* control = List(session.Root());
         Check(control != nullptr, "MainPage native list");
         Check(session.ReloadMarkup("MainPage", mainMarkup, mainPath, diagnostics), diagnostics);
-        Check(List(session.Root()) == control, "InteractiveList identity must survive reload");
+        Check(List(session.Root()) == control, "AlarmList identity must survive reload");
         auto* moreButton = Find(session.Root(), "timelineMoreIcon");
         Check(moreButton && moreButton->Type() == xaml::ElementType::button, "More action must be a Button");
         Check(moreButton->Children().size() == 1, "Button must retain its icon content");
@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
             Check(Find(session.Root(), "status")->Text() == std::to_string(iteration), "Repeated subscriptions");
         }
         Check(session.ReloadMarkup("MainPage", mainMarkup, mainPath, diagnostics), diagnostics);
-        const auto templatePath = project + "/MobileClock.UI/Controls/InteractiveList.xaml";
+        const auto templatePath = project + "/MobileClock.UI/Controls/AlarmList.xaml";
         Check(session.ReloadMarkup("MainPage", Read(templatePath), templatePath, diagnostics), diagnostics);
         auto* list = List(session.Root());
         auto* items = Find(*list, "interactiveListItems");
@@ -279,7 +279,8 @@ int main(int argc, char** argv) {
         gesture = Find(*list, "interactiveListGestureTarget");
         xaml::AnimationController removalAnimations;
         const auto beforeRemoval = Find(*list, "interactiveListItems")->Children().size();
-        Check(list->EndPan({session.Root(), *gesture, 0, 0, 0, 0, 300, 0}, removalAnimations),
+        Check(static_cast<ui::IGestureTarget&>(*list).EndGesture(
+            {session.Root(), *gesture, 0, 0, 0, 0, 300, 0}, removalAnimations),
             "Native removal handler was lost");
         std::this_thread::sleep_for(std::chrono::milliseconds(240));
         list->UpdateGestures(session.Root(), removalAnimations);

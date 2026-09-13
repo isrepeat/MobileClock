@@ -116,16 +116,16 @@ Registry остаётся явным allow-list. Runtime-XAML не может о
 `result.controls` содержит фабрики известных C++-контролов:
 
 ```cpp
-result.controls["InteractiveList"] = [this](xaml::BindingScope& scope) {
-    return controls::InteractiveList::Create(*this, this->alarms, scope);
+result.controls["AlarmList"] = [this](xaml::BindingScope& scope) {
+    return controls::AlarmList::Create(*this, this->alarms, scope);
 };
 ```
 
-При встрече `InteractiveList` runtime вызывает фабрику, а не создаёт обычный `xaml::Element`. Это сохраняет логику жестов и внутреннее состояние контрола.
+При встрече `AlarmList` runtime вызывает фабрику, а не создаёт обычный `xaml::Element`. Это сохраняет логику жестов и внутреннее состояние контрола.
 
-`InteractiveList.xaml` и `TimelineTabs.xaml` имеют корень `UserControl`. `PageManager` находит уже существующий native-контрол по `x:Class` и вызывает `ReplaceTemplate`. Контрол строит новый шаблон, проверяет обязательные элементы, переносит scroll/pan и меняет только внутреннее content-дерево. Сам C++-экземпляр остаётся прежним.
+`AlarmList.xaml` и `TimelineTabs.xaml` имеют корень `UserControl`. `PageManager` находит уже существующий native-контрол по `x:Class` и вызывает `ReplaceTemplate`. Контрол строит новый шаблон, проверяет обязательные элементы, переносит scroll/pan и меняет только внутреннее content-дерево. Сам C++-экземпляр остаётся прежним.
 
-В шаблоне `InteractiveList` должны сохраняться контракты `interactiveListScrollViewer`, `interactiveListItems` и `interactiveListGestureTarget`.
+В шаблоне `AlarmList` должны сохраняться контракты `interactiveListScrollViewer`, `interactiveListItems` и `interactiveListGestureTarget`.
 
 ## prepareTree и состояние UI
 

@@ -99,8 +99,9 @@ internal sealed class MarkupEditorController {
         this.isUpdating = true;
         try {
             this.editor.Text = text;
-            this.editor.CaretOffset = text.Length;
-            this.editor.SelectionStart = text.Length;
+            var offset = Math.Min(text.Length, this.editor.Document.TextLength);
+            this.editor.CaretOffset = offset;
+            this.editor.SelectionStart = offset;
             this.editor.SelectionLength = 0;
             this.editor.Document.UndoStack.ClearAll();
         }

@@ -1,21 +1,34 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
-#endif
-#include <XamlRuntime/DependentProperty.h>
 #include <XamlRuntime/XamlLayout.h>
 
-#include "!Generated/MobileClock.UI/Xaml/Controls/InteractiveList.xaml.h"
-#include "MobileClock.UI/Controls/PannableList.h"
+#include "MobileClock.UI/Controls/ScrollableList.h"
 
 #include <chrono>
+#include <cstddef>
 #include <functional>
-#include <memory>
+#include <string_view>
 #include <vector>
 
 namespace mobileclock::ui::controls {
-    class InteractiveList final : public PannableList {
+    class InteractiveList : public ScrollableList {
     public:
+        InteractiveList() = default;
+        ~InteractiveList() override = default;
+
+    protected:
+        void SetRemoveHandler(std::function<bool(const void*)> value);
+        bool RequestRemoval(xaml::Element& element);
+
+        virtual GestureHandling ResolveInteractiveGesture(
+            const PanState& state,
+            GestureDirection direction) const = 0;
+        virtual void BeginInteractiveGesture(const PanState& state) = 0;
+        virtual void UpdateInteractiveGesture(const PanState& state) = 0;
+        virtual bool EndInteractiveGesture(const PanState& state, xaml::AnimationController& animations) = 0;
+        virtual void CancelInteractiveGesture(xaml::Element& element) = 0;
+        virtual std::string_view ListViewId() const = 0;
+
+    private:
         struct RemovalState {
             std::vector<xaml::Rect> previousBounds;
             xaml::Size scrollExtent;
@@ -26,67 +39,34 @@ namespace mobileclock::ui::controls {
             bool isAtBottom = false;
         };
 
-        InteractiveList() = default;
-        ~InteractiveList() override = default;
-
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         //
-        // IRuntimeReloadableControl
+        // IGestureTarget
         //
-        std::string_view RuntimeClassName() const override;
-        bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
-        static void PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings);
-#endif
-
-        template <typename TViewModel, typename TItemsSource>
-        static std::unique_ptr<InteractiveList> Create(
-            TViewModel& viewModel,
-            const TItemsSource& itemsSource,
-            xaml::BindingScope& bindings) {
-            auto control = std::make_unique<InteractiveList>();
-            control->SetItemsSource(itemsSource);
-            control->removeHandler = [&viewModel](const void* dataContext) { return viewModel.RemoveItem(dataContext); };
-            control->InitializeComponent(
-                xaml::generated::InteractiveListXaml::BuildContent(viewModel, itemsSource, bindings));
-            return control;
-        }
-
-        const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
-
-        bool CanHandlePan(const xaml::Element& element) const override;
-        bool IsVerticalPan() const override;
-        void BeginPan(const PanState& state) override;
-        void UpdatePan(const PanState& state) override;
-        bool EndPan(const PanState& state, xaml::AnimationController& animations) override;
-        void CancelPan(xaml::Element& element) override;
+        GestureHandling ResolveGesture(const PanState& state, GestureDirection direction) const override;
+        void BeginGesture(const PanState& state) override;
+        void UpdateGesture(const PanState& state) override;
+        bool EndGesture(const PanState& state, xaml::AnimationController& animations) override;
+        void CancelGesture(xaml::Element& element) override;
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
-    private:
-        std::string_view ScrollViewerId() const override;
-        void SetRemoveHandler(std::function<bool(const void*)> value);
         const void* FindItemDataContext(xaml::Element& element) const;
-        bool BeginRemoval(const void* dataContext);
         RemovalState CaptureRemovalState(const void* dataContext) const;
-        void Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
-        void RestoreViewportAndAnimate(const RemovalState& state, xaml::Element& pageRoot, xaml::AnimationController& animations, std::chrono::milliseconds duration);
-        template <typename TItemsSource>
-        void SetItemsSource(const TItemsSource& value) {
-            this->itemsSource.Set(static_cast<const void*>(&value));
-        }
-
+        void UpdateRemoval(xaml::Element& pageRoot, xaml::AnimationController& animations);
+        void RestoreViewportAndAnimate(
+            const RemovalState& state,
+            xaml::Element& pageRoot,
+            xaml::AnimationController& animations,
+            std::chrono::milliseconds duration);
         void RestoreViewport(const RemovalState& state, xaml::Element& pageRoot);
         void AnimateRemainingItems(
             const RemovalState& state,
             xaml::AnimationController& animations,
             std::chrono::milliseconds duration);
-        xaml::DependentProperty<const void*> itemsSource;
+
+    private:
         std::function<bool(const void*)> removeHandler;
         const void* pendingRemoval = nullptr;
         RemovalState pendingRemovalState;
         std::chrono::steady_clock::time_point pendingRemovalAt;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

@@ -41,13 +41,12 @@ namespace mobileclock::ui::controls {
         //
         // IGestureTarget
         //
-        bool CanHandlePan(const xaml::Element& element) const override;
-        bool IsVerticalPan() const override;
         xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
-        void BeginPan(const PanState& state) override;
-        void UpdatePan(const PanState& state) override;
-        bool EndPan(const PanState& state, xaml::AnimationController& animations) override;
-        void CancelPan(xaml::Element& element) override;
+        GestureHandling ResolveGesture(const PanState& state, GestureDirection direction) const override;
+        void BeginGesture(const PanState& state) override;
+        void UpdateGesture(const PanState& state) override;
+        bool EndGesture(const PanState& state, xaml::AnimationController& animations) override;
+        void CancelGesture(xaml::Element& element) override;
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
     private:

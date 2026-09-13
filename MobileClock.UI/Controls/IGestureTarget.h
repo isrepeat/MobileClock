@@ -5,6 +5,24 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
+    enum class GestureDirection {
+        none,
+        up,
+        down,
+        left,
+        right,
+        upLeft,
+        upRight,
+        downLeft,
+        downRight,
+    };
+
+    enum class GestureHandling {
+        ignored,
+        scroll,
+        captured,
+    };
+
     class IGestureTarget {
     public:
         struct PanState {
@@ -20,17 +38,19 @@ namespace mobileclock::ui {
 
         virtual ~IGestureTarget();
 
-        static IGestureTarget* Find(const xaml::Element& element);
+        static IGestureTarget* Find(
+            const xaml::Element& element,
+            const PanState& state,
+            GestureDirection direction);
         static xaml::Element* FindContainingScrollViewer(const xaml::Element& element);
         static void Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
 
-        virtual bool CanHandlePan(const xaml::Element& element) const = 0;
-        virtual bool IsVerticalPan() const;
         virtual xaml::Element* FindScrollViewer(const xaml::Element& element) const = 0;
-        virtual void BeginPan(const PanState& state) = 0;
-        virtual void UpdatePan(const PanState& state) = 0;
-        virtual bool EndPan(const PanState& state, xaml::AnimationController& animations) = 0;
-        virtual void CancelPan(xaml::Element& element) = 0;
+        virtual GestureHandling ResolveGesture(const PanState& state, GestureDirection direction) const;
+        virtual void BeginGesture(const PanState& state);
+        virtual void UpdateGesture(const PanState& state);
+        virtual bool EndGesture(const PanState& state, xaml::AnimationController& animations);
+        virtual void CancelGesture(xaml::Element& element);
         virtual void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) = 0;
 
     protected:

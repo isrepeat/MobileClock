@@ -2,6 +2,8 @@
 #include <XamlRuntime/InteractionController.h>
 #include <XamlRuntime/ScrollController.h>
 
+#include "MobileClock.UI/Controls/IGestureTarget.h"
+
 #include <string>
 
 namespace xaml {
@@ -10,8 +12,6 @@ namespace xaml {
 }
 
 namespace mobileclock::ui {
-    class IGestureTarget;
-
     class InputDispatcher final {
     public:
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -22,6 +22,7 @@ namespace mobileclock::ui {
             float downY = 0;
             float currentX = 0;
             float currentY = 0;
+            GestureDirection direction = GestureDirection::none;
             bool active = false;
         };
         RuntimePanState CaptureRuntimePan() const;
@@ -34,11 +35,10 @@ namespace mobileclock::ui {
         bool Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
 
     private:
-        enum class GestureAxis {
+        enum class ActiveGesture {
             none,
-            vertical,
-            horizontal,
-            verticalPan,
+            scroll,
+            target,
         };
 
     private:
@@ -52,6 +52,7 @@ namespace mobileclock::ui {
         float touchDownY = 0.0f;
         float lastTouchX = 0.0f;
         float lastTouchY = 0.0f;
-        GestureAxis gestureAxis = GestureAxis::none;
+        ActiveGesture activeGesture = ActiveGesture::none;
+        GestureDirection gestureDirection = GestureDirection::none;
     };
 }

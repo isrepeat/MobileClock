@@ -53,19 +53,17 @@ namespace mobileclock::ui::controls {
     //
     // IGestureTarget
     //
-    bool AlarmActionsMenu::CanHandlePan(const xaml::Element& element) const {
-        return this->Owns(element);
-    }
-
-    bool AlarmActionsMenu::IsVerticalPan() const {
-        return true;
-    }
-
     xaml::Element* AlarmActionsMenu::FindScrollViewer(const xaml::Element&) const {
         return nullptr;
     }
 
-    void AlarmActionsMenu::BeginPan(const PanState&) {
+    GestureHandling AlarmActionsMenu::ResolveGesture(const PanState& state, GestureDirection direction) const {
+        return this->Owns(state.target)
+            && (direction == GestureDirection::up || direction == GestureDirection::down)
+            ? GestureHandling::captured : GestureHandling::ignored;
+    }
+
+    void AlarmActionsMenu::BeginGesture(const PanState&) {
         auto* panel = this->FindElement("alarmActionsPanel");
         this->panStartHeight = panel->Height();
         auto* host = this->FindElement("alarmActionsHost");
@@ -77,7 +75,7 @@ namespace mobileclock::ui::controls {
         }
     }
 
-    void AlarmActionsMenu::UpdatePan(const PanState& state) {
+    void AlarmActionsMenu::UpdateGesture(const PanState& state) {
         const float collapsed = this->StateValue(
             "Collapsed", "alarmActionsPanel", xaml::AnimatedProperty::height);
         const float expanded = this->StateValue(
@@ -86,8 +84,8 @@ namespace mobileclock::ui::controls {
         this->SetDragProgress(std::clamp((height - collapsed) / (expanded - collapsed), 0.0f, 1.0f));
     }
 
-    bool AlarmActionsMenu::EndPan(const PanState& state, xaml::AnimationController&) {
-        this->UpdatePan(state);
+    bool AlarmActionsMenu::EndGesture(const PanState& state, xaml::AnimationController&) {
+        this->UpdateGesture(state);
         const float collapsed = this->StateValue(
             "Collapsed", "alarmActionsPanel", xaml::AnimatedProperty::height);
         const float expanded = this->StateValue(
@@ -100,7 +98,7 @@ namespace mobileclock::ui::controls {
         return true;
     }
 
-    void AlarmActionsMenu::CancelPan(xaml::Element&) {
+    void AlarmActionsMenu::CancelGesture(xaml::Element&) {
         this->ApplyState(false);
     }
 

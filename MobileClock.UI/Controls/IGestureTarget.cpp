@@ -16,11 +16,13 @@ namespace mobileclock::ui {
         std::erase(_details::gestureTargets, this);
     }
 
-    IGestureTarget* IGestureTarget::Find(const xaml::Element& element) {
+    IGestureTarget* IGestureTarget::Find(
+        const xaml::Element& element,
+        const PanState& state,
+        GestureDirection direction) {
         for (IGestureTarget* const target : _details::gestureTargets) {
-            // Owns identifies the C++ owner by traversing its XAML content from
-            // the control down to the hit-tested element.
-            if (target->Owns(element) && target->CanHandlePan(element)) {
+            if (target->Owns(element)
+                && target->ResolveGesture(state, direction) != GestureHandling::ignored) {
                 return target;
             }
         }
@@ -28,8 +30,14 @@ namespace mobileclock::ui {
     }
 
     xaml::Element* IGestureTarget::FindContainingScrollViewer(const xaml::Element& element) {
-        IGestureTarget* const target = Find(element);
-        return target == nullptr ? nullptr : target->FindScrollViewer(element);
+        for (IGestureTarget* const target : _details::gestureTargets) {
+            if (target->Owns(element)) {
+                if (xaml::Element* const scrollViewer = target->FindScrollViewer(element)) {
+                    return scrollViewer;
+                }
+            }
+        }
+        return nullptr;
     }
 
     void IGestureTarget::Update(xaml::Element& pageRoot, xaml::AnimationController& animations) {
@@ -42,8 +50,21 @@ namespace mobileclock::ui {
         }
     }
 
-    bool IGestureTarget::IsVerticalPan() const {
+    GestureHandling IGestureTarget::ResolveGesture(const PanState&, GestureDirection) const {
+        return GestureHandling::ignored;
+    }
+
+    void IGestureTarget::BeginGesture(const PanState&) {
+    }
+
+    void IGestureTarget::UpdateGesture(const PanState&) {
+    }
+
+    bool IGestureTarget::EndGesture(const PanState&, xaml::AnimationController&) {
         return false;
+    }
+
+    void IGestureTarget::CancelGesture(xaml::Element&) {
     }
 
     void IGestureTarget::RegisterGestureTarget() {

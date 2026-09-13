@@ -27,11 +27,16 @@ namespace mobileclock::ui {
 
         class Melody final {
         public:
-            Melody(std::string name, std::string uri, xaml::Element::Command selectCommand);
+            Melody(
+                std::string name,
+                std::string uri,
+                xaml::Element::Command selectCommand,
+                xaml::Element::Command deleteCommand);
 
             const std::string& Name() const;
             const std::string& Uri() const;
             xaml::Element::Command SelectCommand() const;
+            xaml::Element::Command DeleteCommand() const;
 
             void SetName(std::string value);
 
@@ -39,6 +44,7 @@ namespace mobileclock::ui {
             std::string name;
             std::string uri;
             xaml::Element::Command selectCommand;
+            xaml::Element::Command deleteCommand;
         };
 
         explicit AddAlarmPageViewModel(PageContext& context);
@@ -54,13 +60,12 @@ namespace mobileclock::ui {
         //
         // IGestureTarget
         //
-        bool CanHandlePan(const xaml::Element& element) const override;
-        bool IsVerticalPan() const override;
         xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
-        void BeginPan(const PanState& state) override;
-        void UpdatePan(const PanState& state) override;
-        bool EndPan(const PanState& state, xaml::AnimationController& animations) override;
-        void CancelPan(xaml::Element& element) override;
+        GestureHandling ResolveGesture(const PanState& state, GestureDirection direction) const override;
+        void BeginGesture(const PanState& state) override;
+        void UpdateGesture(const PanState& state) override;
+        bool EndGesture(const PanState& state, xaml::AnimationController& animations) override;
+        void CancelGesture(xaml::Element& element) override;
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
         //
@@ -73,6 +78,7 @@ namespace mobileclock::ui {
         const AlarmSettings& Settings() const;
         void AddMelody(std::string name, std::string uri);
         void SetMelody(std::string name, std::string uri);
+        void DeleteMelody(std::string_view uri);
         const xaml::ObservableCollection<Melody>& Melodies() const;
         void ChooseAlarmMelody();
         void NavigateToMain();

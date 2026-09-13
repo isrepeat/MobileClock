@@ -1,16 +1,13 @@
 #include "MobileClock.UI/Controls/InteractiveList.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
-#include <Helpers.Logging/Logging.h>
-#endif
 #include <XamlRuntime/Animation.h>
+#include <XamlRuntime/XamlLayout.h>
 
 #include <algorithm>
-#include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mobileclock::ui::controls::_details {
-    constexpr float PanCompletionThreshold = 180.0f;
     constexpr float ScrollPositionTolerance = 1.0f;
 
     bool FindDataContext(
@@ -32,182 +29,56 @@ namespace mobileclock::ui::controls::_details {
         }
         return false;
     }
-
-    xaml::Element* FindElement(xaml::Element& element, std::string_view id) {
-        if (element.Id() == id) {
-            return &element;
-        }
-        for (const std::unique_ptr<xaml::Element>& child : element.Children()) {
-            if (xaml::Element* const found = FindElement(*child, id)) {
-                return found;
-            }
-        }
-        return nullptr;
-    }
-
 }
+
 namespace mobileclock::ui::controls {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    //
-    // IRuntimeReloadableControl
-    //
-    std::string_view InteractiveList::RuntimeClassName() const {
-        return "mobileclock::ui::controls::InteractiveList";
-    }
-
-    bool InteractiveList::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
-        try {
-            const auto& content = templateNode.name == "UserControl" ? templateNode.children.at(0) : templateNode;
-            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(content, context,
-                {this->Bounds().width, this->Bounds().height});
-            xaml::Element* const newList = _details::FindElement(*result.root, "interactiveListItems");
-            xaml::Element* const newScroll = _details::FindElement(*result.root, "interactiveListScrollViewer");
-              if (newList == nullptr || newScroll == nullptr || newList->Type() != xaml::ElementType::listView
-                  || newScroll->Type() != xaml::ElementType::scrollViewer) {
-                throw std::invalid_argument("InteractiveList requires interactiveListItems and interactiveListScrollViewer");
-              }
-              // Прокрутка хранится у старого ScrollViewer, который будет уничтожен
-              // вместе с шаблоном, поэтому переносим её до ReplaceContent.
-              if (const auto* scroll = this->FindElement("interactiveListScrollViewer")) {
-                newScroll->SetHorizontalOffset(scroll->HorizontalOffset());
-                newScroll->SetVerticalOffset(scroll->VerticalOffset());
-            }
-            if (context.prepareTree) {
-                context.prepareTree(*result.root);
-            }
-              if (context.beforeCommit) {
-                  context.beforeCommit();
-              }
-              // Содержимое и подписки меняются только после успешного построения,
-              // валидации обязательных элементов и подготовки анимаций.
-              this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
-            diagnostics.clear();
-            return true;
-        } catch (const std::exception& error) {
-            diagnostics = error.what();
-            return false;
-        }
-    }
-
-    //
-    // API
-    //
-    void InteractiveList::PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
-        // Only lists own the item subscriptions transferred by this operation.
-        // Moving other controls leaves their bindings attached to a discarded instance.
-        std::vector<InteractiveList*> oldControls;
-        std::vector<InteractiveList*> newControls;
-        const auto collect = [](auto&& self, xaml::Element& node, std::vector<InteractiveList*>& controls) -> void {
-            if (auto* control = dynamic_cast<InteractiveList*>(&node)) {
-                controls.push_back(control);
-                return;
-            }
-            for (const auto& child : node.Children()) {
-                self(self, *child, controls);
-            }
-        };
-        collect(collect, previous, oldControls);
-        collect(collect, replacement, newControls);
-        for (auto* next : newControls) {
-            const auto found = std::find_if(oldControls.begin(), oldControls.end(), [next](const auto* old) {
-                return old != nullptr && old->Id() == next->Id() && typeid(*old) == typeid(*next);
-            });
-            if (found != oldControls.end()) {
-                (*found)->CopyLayoutFrom(*next);
-                bindings.RetargetRuntimeElement(*next, **found);
-                (*found)->SwapTreePosition(*next);
-                *found = nullptr;
-            }
-        }
-    }
-#endif
-    //
-    // API
-    //
-    const xaml::DependentProperty<const void*>& InteractiveList::ItemsSourceProperty() const {
-        return this->itemsSource;
-    }
-
     //
     // IGestureTarget
     //
-    bool InteractiveList::CanHandlePan(const xaml::Element& element) const {
-        // A list owns scroll bars, switches and other children too; only this
-        // surface is allowed to begin the swipe-to-dismiss gesture.
-        return element.Id() == "interactiveListGestureTarget";
+    GestureHandling InteractiveList::ResolveGesture(const PanState& state, GestureDirection direction) const {
+        return this->ResolveInteractiveGesture(state, direction);
     }
 
-    bool InteractiveList::IsVerticalPan() const {
-        return false;
+    void InteractiveList::BeginGesture(const PanState& state) {
+        this->BeginInteractiveGesture(state);
     }
 
-    void InteractiveList::BeginPan(const PanState& state) {
-        // This list does not need additional state before its first live offset.
-        static_cast<void>(state);
+    void InteractiveList::UpdateGesture(const PanState& state) {
+        this->UpdateInteractiveGesture(state);
     }
 
-    void InteractiveList::UpdatePan(const PanState& state) {
-        // The target follows the pointer until EndPan commits or returns it.
-        state.target.SetRenderOffsetX(state.currentX - state.downX);
+    bool InteractiveList::EndGesture(const PanState& state, xaml::AnimationController& animations) {
+        return this->EndInteractiveGesture(state, animations);
     }
 
-    bool InteractiveList::EndPan(const PanState& state, xaml::AnimationController& animations) {
-        const float horizontalDistance = state.currentX - state.downX;
-        if (std::abs(horizontalDistance) < _details::PanCompletionThreshold) {
-            // A short swipe is cancelled visually and leaves the ViewModel intact.
-            animations.Animate(
-                state.target,
-                xaml::AnimatedProperty::renderOffsetX,
-                state.target.RenderOffsetX(),
-                0.0f,
-                std::chrono::milliseconds(180));
-            return false;
-        }
-        const void* const dataContext = this->FindItemDataContext(state.target);
-        const bool wasHandled = this->BeginRemoval(dataContext);
-        if (!wasHandled) {
-            // Do not leave the item displaced when its model cannot be removed.
-            animations.Animate(
-                state.target,
-                xaml::AnimatedProperty::renderOffsetX,
-                state.target.RenderOffsetX(),
-                0.0f,
-                std::chrono::milliseconds(180));
-            return false;
-        }
-        const xaml::Rect rootBounds = state.root.Bounds();
-        const xaml::Rect targetBounds = state.target.Bounds();
-        const float targetOffset = horizontalDistance < 0.0f
-            ? -targetBounds.x - targetBounds.width
-            : rootBounds.width - targetBounds.x;
-        // Keep the 220 ms exit animation aligned with the delayed model removal.
-        animations.Animate(
-            state.target,
-            xaml::AnimatedProperty::renderOffsetX,
-            state.target.RenderOffsetX(),
-            targetOffset,
-            std::chrono::milliseconds(220));
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        LOG_DEBUG(
-            "MobileClock.InteractiveList",
-            "Pan target='{}', distance={}, itemDataContext={}, removalStarted={}",
-            state.target.Id(),
-            horizontalDistance,
-            dataContext != nullptr,
-            wasHandled);
-#endif
-        return wasHandled;
-    }
-
-    void InteractiveList::CancelPan(xaml::Element& element) {
-        // Cancellation has no animation controller; restore a safe visual state.
-        element.SetRenderOffsetX(0.0f);
+    void InteractiveList::CancelGesture(xaml::Element& element) {
+        this->CancelInteractiveGesture(element);
     }
 
     void InteractiveList::UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) {
-        this->Update(pageRoot, animations);
+        this->UpdateRemoval(pageRoot, animations);
+    }
+
+    //
+    // Internal
+    //
+    void InteractiveList::SetRemoveHandler(std::function<bool(const void*)> value) {
+        this->removeHandler = std::move(value);
+    }
+
+    bool InteractiveList::RequestRemoval(xaml::Element& element) {
+        if (this->pendingRemoval != nullptr) {
+            return false;
+        }
+        const void* const dataContext = this->FindItemDataContext(element);
+        const RemovalState state = this->CaptureRemovalState(dataContext);
+        if (!state.isPresent) {
+            return false;
+        }
+        this->pendingRemoval = dataContext;
+        this->pendingRemovalState = state;
+        this->pendingRemovalAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(220);
+        return this->pendingRemoval != nullptr;
     }
 
     const void* InteractiveList::FindItemDataContext(xaml::Element& element) const {
@@ -218,39 +89,10 @@ namespace mobileclock::ui::controls {
         return nullptr;
     }
 
-    bool InteractiveList::BeginRemoval(const void* dataContext) {
-        if (this->pendingRemoval != nullptr) {
-            return false;
-        }
-        const RemovalState state = this->CaptureRemovalState(dataContext);
-        if (!state.isPresent) {
-            return false;
-        }
-        this->pendingRemoval = dataContext;
-        this->pendingRemovalState = state;
-        this->pendingRemovalAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(220);
-        return true;
-    }
-
-    void InteractiveList::Update(xaml::Element& pageRoot, xaml::AnimationController& animations) {
-        if (this->pendingRemoval == nullptr || std::chrono::steady_clock::now() < this->pendingRemovalAt) {
-            return;
-        }
-        const void* const dataContext = this->pendingRemoval;
-        const RemovalState state = std::move(this->pendingRemovalState);
-        this->pendingRemoval = nullptr;
-        if (this->removeHandler && this->removeHandler(dataContext)) {
-            this->RestoreViewportAndAnimate(state, pageRoot, animations, std::chrono::milliseconds(840));
-        }
-    }
-
-    //
-    // Internal
-    //
     InteractiveList::RemovalState InteractiveList::CaptureRemovalState(const void* dataContext) const {
-        xaml::Element* const list = this->FindElement("interactiveListItems");
-        xaml::Element* const scrollViewer = this->FindElement("interactiveListScrollViewer");
-        if (list == nullptr || scrollViewer == nullptr) {
+        xaml::Element* const list = this->FindElement(this->ListViewId());
+        xaml::Element* const scrollViewer = this->FindElement(this->ScrollViewerId());
+        if (list == nullptr || scrollViewer == nullptr || dataContext == nullptr) {
             return {};
         }
         RemovalState state;
@@ -265,15 +107,23 @@ namespace mobileclock::ui::controls {
                 state.isPresent = true;
             }
         }
-        const float maximumVerticalOffset = std::max(0.0f,
-            state.scrollExtent.height - scrollViewer->Viewport().height);
-        const float bottomActivationRange = state.previousBounds.empty()
-            ? 0.0f
-            : state.previousBounds.back().height;
+        const float maximumVerticalOffset = std::max(0.0f, state.scrollExtent.height - scrollViewer->Viewport().height);
+        const float bottomActivationRange = state.previousBounds.empty() ? 0.0f : state.previousBounds.back().height;
         state.isAtBottom = maximumVerticalOffset > 0.0f
-            && maximumVerticalOffset - state.verticalOffset
-                <= bottomActivationRange + _details::ScrollPositionTolerance;
+            && maximumVerticalOffset - state.verticalOffset <= bottomActivationRange + _details::ScrollPositionTolerance;
         return state;
+    }
+
+    void InteractiveList::UpdateRemoval(xaml::Element& pageRoot, xaml::AnimationController& animations) {
+        if (this->pendingRemoval == nullptr || std::chrono::steady_clock::now() < this->pendingRemovalAt) {
+            return;
+        }
+        const void* const dataContext = this->pendingRemoval;
+        const RemovalState state = std::move(this->pendingRemovalState);
+        this->pendingRemoval = nullptr;
+        if (this->removeHandler && this->removeHandler(dataContext)) {
+            this->RestoreViewportAndAnimate(state, pageRoot, animations, std::chrono::milliseconds(840));
+        }
     }
 
     void InteractiveList::RestoreViewportAndAnimate(
@@ -288,12 +138,8 @@ namespace mobileclock::ui::controls {
         this->AnimateRemainingItems(state, animations, duration);
     }
 
-    void InteractiveList::SetRemoveHandler(std::function<bool(const void*)> value) {
-        this->removeHandler = std::move(value);
-    }
-
     void InteractiveList::RestoreViewport(const RemovalState& state, xaml::Element& pageRoot) {
-        xaml::Element* const scrollViewer = this->FindElement("interactiveListScrollViewer");
+        xaml::Element* const scrollViewer = this->FindElement(this->ScrollViewerId());
         if (scrollViewer == nullptr) {
             return;
         }
@@ -314,15 +160,13 @@ namespace mobileclock::ui::controls {
         const RemovalState& state,
         xaml::AnimationController& animations,
         std::chrono::milliseconds duration) {
-        xaml::Element* const list = this->FindElement("interactiveListItems");
-        xaml::Element* const scrollViewer = this->FindElement("interactiveListScrollViewer");
+        xaml::Element* const list = this->FindElement(this->ListViewId());
+        xaml::Element* const scrollViewer = this->FindElement(this->ScrollViewerId());
         if (list == nullptr || state.removedIndex >= state.previousBounds.size()) {
             return;
         }
-        if (scrollViewer != nullptr) {
-            if (!state.isAtBottom) {
-                animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
-            }
+        if (scrollViewer != nullptr && !state.isAtBottom) {
+            animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
         }
         const auto& items = list->Children();
         const size_t count = std::min(items.size(), state.previousBounds.size() - 1);
@@ -334,9 +178,5 @@ namespace mobileclock::ui::controls {
             item.SetRenderOffsetY(offsetY);
             animations.Animate(item, xaml::AnimatedProperty::renderOffsetY, offsetY, 0.0f, duration);
         }
-    }
-
-    std::string_view InteractiveList::ScrollViewerId() const {
-        return "interactiveListScrollViewer";
     }
 }
