@@ -4,8 +4,10 @@
 #include "!Generated/MobileClock.UI/Xaml/Controls/AlarmMelodyList.xaml.h"
 #include "MobileClock.UI/Controls/InteractiveList.h"
 
-#include <memory>
+#include <type_traits>
 #include <string_view>
+#include <functional>
+#include <memory>
 
 namespace mobileclock::ui::controls {
     class AlarmMelodyList final : public InteractiveList {
@@ -29,10 +31,13 @@ namespace mobileclock::ui::controls {
             control->itemsSource.Set(static_cast<const void*>(&itemsSource));
             control->InitializeComponent(
                 xaml::generated::AlarmMelodyListXaml::BuildContent(viewModel, itemsSource, bindings));
+            using Item = std::remove_cvref_t<decltype(*itemsSource.begin())>;
+            control->SetSelectionPredicate([&viewModel](const void* dataContext) {
+                const auto* item = static_cast<const Item*>(dataContext);
+                return item != nullptr && item->Id() == viewModel.Settings().melodyId;
+            });
             return control;
         }
-
-        const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         //
@@ -41,9 +46,15 @@ namespace mobileclock::ui::controls {
         std::string_view RuntimeClassName() const override;
 #endif
 
+        const xaml::DependentProperty<const void*>& ItemsSourceProperty() const;
+        void SetSelectionPredicate(std::function<bool(const void*)> value);
+
     private:
         std::string_view ScrollViewerId() const override;
         std::string_view ListViewId() const override;
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        void OnTemplateReplaced() override;
+#endif
 
         //
         // InteractiveList
@@ -58,6 +69,7 @@ namespace mobileclock::ui::controls {
 
     private:
         xaml::DependentProperty<const void*> itemsSource;
+        std::function<bool(const void*)> selectionPredicate;
         xaml::Element* openedItem = nullptr;
     };
 }

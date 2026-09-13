@@ -7,6 +7,7 @@
 #include <XamlRuntime/Binding.h>
 
 #include "UI/ISerializable.h"
+#include "UI/Pages/AlarmViewModel.h"
 #include "UI/PageRegistry.h"
 #include "UI/Navigation.h"
 
@@ -25,31 +26,6 @@ namespace mobileclock::ui {
     public:
         inline static constexpr std::string_view PageName = "MainPage";
         inline static constexpr std::string_view PreviewGraphTitle = "⌂  Главная";
-
-        class Alarm final {
-        public:
-            Alarm(std::string time, std::string repeat, bool isEnabled);
-            explicit Alarm(const AlarmSettings& settings);
-
-            const AlarmSettings& Settings() const;
-
-            const std::string& Time() const;
-            const std::string& Repeat() const;
-            bool IsEnabled() const;
-            void SetIsEnabled(bool value);
-            xaml::Element::Command AlarmBlockCommand() const;
-            xaml::Element::Command ToggleAlarmCommand() const;
-            void SetAlarmBlockCommand(xaml::Element::Command value);
-            void SetToggleAlarmCommand(xaml::Element::Command value);
-
-        private:
-            AlarmSettings settings;
-            std::string time;
-            std::string repeat;
-            bool isEnabled = false;
-            xaml::Element::Command alarmBlockCommand = []() {};
-            xaml::Element::Command toggleAlarmCommand;
-        };
 
         enum class Property {
             clockText,
@@ -82,10 +58,10 @@ namespace mobileclock::ui {
         void SetClockText(std::string value);
         const std::string& PackageVersion() const;
         const std::string& Status() const;
-        const xaml::ObservableCollection<Alarm>& Alarms() const;
+        const xaml::ObservableCollection<AlarmViewModel>& Alarms() const;
 
-        void AddAlarm(const AlarmSettings& settings);
-        bool UpdateAlarm(const void* dataContext, const AlarmSettings& settings);
+        void AddAlarm(const mobileclock::ui::Alarm& alarmSettings);
+        bool UpdateAlarm(const void* dataContext, const mobileclock::ui::Alarm& alarmSettings);
         void CreateAlarm();
         void EditAlarm(const void* dataContext);
         void NavigateToSettings();
@@ -110,14 +86,16 @@ namespace mobileclock::ui {
 
     private:
         void NotifyPropertyChanged(Property property);
-        void ConfigureAlarm(Alarm& alarm);
+        void ConfigureAlarm(AlarmViewModel& alarm);
+        void SetAlarmEnabled(AlarmViewModel& alarm, bool value);
+        bool PersistAlarms();
 
     private:
         PageContext& context;
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
-        xaml::ObservableCollection<Alarm> alarms{
+        xaml::ObservableCollection<AlarmViewModel> alarms{
             {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
             {"06:18", "Сб, Вс", false},
             {"06:30", "Ежедневно", true},
@@ -133,6 +111,6 @@ namespace mobileclock::ui {
         xaml::Element::Command toggleAlarmCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
-        const Alarm* alarmBeingEdited = nullptr;
+        const AlarmViewModel* alarmBeingEdited = nullptr;
     };
 }

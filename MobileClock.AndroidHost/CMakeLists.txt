@@ -78,7 +78,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../UtilityHelpersLib" UtilityHelpe
 # Единственная нативная библиотека приложения. Gradle лишь упаковывает готовый
 # .so, а компиляция и линковка выполняются этим CMake-проектом.
 file(GLOB_RECURSE mobileclock_xaml_source CONFIGURE_DEPENDS
-    "${mobileclock_project_root}/MobileClock.Application/UI/*.xaml"
+    "${mobileclock_project_root}/MobileClock.Application/*.xaml"
     "${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.UI/*.xaml"
 )
 file(GLOB_RECURSE mobileclock_xaml_generated CONFIGURE_DEPENDS
@@ -164,17 +164,13 @@ set_source_files_properties(${mobileclock_application_resource_files} PROPERTIES
 set(mobileclock_application_header_files ${mobileclock_header_files})
 list(FILTER mobileclock_application_header_files EXCLUDE REGEX "/MobileClock\\.UI/")
 list(FILTER mobileclock_application_header_files EXCLUDE REGEX "/MobileClock\\.UI\\.NativeBridge/")
-set(mobileclock_ui_header_files ${mobileclock_application_header_files})
-list(FILTER mobileclock_ui_header_files INCLUDE REGEX "/UI/")
 set(mobileclock_page_xaml_source ${mobileclock_xaml_source})
-list(FILTER mobileclock_page_xaml_source INCLUDE REGEX "/UI/")
+list(FILTER mobileclock_page_xaml_source INCLUDE REGEX "/MobileClock\.Application/")
 set(mobileclock_ui_control_xaml_source ${mobileclock_xaml_source})
 list(FILTER mobileclock_ui_control_xaml_source INCLUDE REGEX "/MobileClock\.UI/")
 source_group("Resources\\Icons" FILES ${mobileclock_icon_files})
 source_group("Resources\\Fonts" FILES ${mobileclock_font_files})
-source_group("Header Files" FILES ${mobileclock_application_header_files})
-source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "UI" FILES
-    ${mobileclock_ui_header_files}
+source_group(TREE "${mobileclock_project_root}/MobileClock.Application" FILES
     ${mobileclock_page_xaml_source}
 )
 source_group(TREE "${mobileclock_generated_root}" PREFIX "" FILES
@@ -253,10 +249,10 @@ target_link_libraries(mobileclock_ui PUBLIC
 # Application — общий platform-neutral runtime. Android и desktop previewer
 # подключают эту библиотеку, но не создают Element tree самостоятельно.
 file(GLOB_RECURSE mobileclock_application_runtime_source_files CONFIGURE_DEPENDS
-    "${mobileclock_project_root}/MobileClock.Application/UI/*.cpp"
-    "${mobileclock_project_root}/MobileClock.Application/UI/*.h"
+    "${mobileclock_project_root}/MobileClock.Application/*.cpp"
+    "${mobileclock_project_root}/MobileClock.Application/*.h"
 )
-source_group(TREE "${mobileclock_project_root}/MobileClock.Application/UI" PREFIX "UI" FILES
+source_group(TREE "${mobileclock_project_root}/MobileClock.Application" FILES
     ${mobileclock_application_runtime_source_files}
 )
 add_library(mobileclock_application STATIC
@@ -280,6 +276,7 @@ target_include_directories(mobileclock_application PUBLIC
     "${mobileclock_project_root}"
     "${mobileclock_project_root}/MobileClock.Application"
     "${mobileclock_generated_build_dir}"
+    "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared"
 )
 set_target_properties(mobileclock_application PROPERTIES
     CXX_STANDARD 20
@@ -306,6 +303,7 @@ if (ANDROID)
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${mobileclock_project_root}"
         "${mobileclock_generated_build_dir}"
+        "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared"
     )
     # Явно фиксируем стандарт: это избавляет от расхождений между NDK, Ninja и IDE.
     set_target_properties(mobileclock_android_host PROPERTIES

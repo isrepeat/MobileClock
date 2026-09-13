@@ -3,9 +3,10 @@
 #include <utility>
 
 namespace mobileclock::ui {
-    AppSessionController::AppSessionController(ApplicationStorage& storage)
-        : storage(storage)
-        , session(*this, storage) {
+    AppSessionController::AppSessionController(AlarmRepository& alarmRepository, AlarmMelodyRepository& alarmMelodyRepository)
+        : alarmRepository(alarmRepository)
+        , alarmMelodyRepository(alarmMelodyRepository)
+        , session(*this, alarmRepository, alarmMelodyRepository) {
     }
 
     //
@@ -22,18 +23,16 @@ namespace mobileclock::ui {
             this->Emit(signal, data);
             return;
         case AppSessionSignal::resetAlarmMelodySelection: {
-            auto edit = this->storage.Edit();
-            edit->alarmMelodies.clear();
-            if (edit.Commit()) {
+            if (this->alarmMelodyRepository.ClearMelodies()) {
                 this->Emit(signal, data);
             }
             return;
         }
         case AppSessionSignal::restoreAlarmMelody:
-            this->session.AddAlarmMelody(std::move(data.value), std::move(data.additionalValue));
+            this->session.AddAlarmMelody({std::move(data.value), std::move(data.additionalValue)});
             return;
         case AppSessionSignal::alarmMelodySelected:
-            this->session.SetAlarmMelody(std::move(data.value), std::move(data.additionalValue));
+            this->session.SetAlarmMelody({std::move(data.value), std::move(data.additionalValue)});
             return;
         case AppSessionSignal::setStatus:
             this->session.SetStatus(std::move(data.value));

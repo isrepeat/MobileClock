@@ -8,6 +8,7 @@
 
 #include "MobileClock.UI/Controls/IGestureTarget.h"
 #include "UI/ISerializable.h"
+#include "UI/Pages/AlarmMelodyViewModel.h"
 #include "UI/PageRegistry.h"
 
 #include <memory>
@@ -24,28 +25,6 @@ namespace mobileclock::ui {
     public:
         inline static constexpr std::string_view PageName = "AddAlarmPage";
         inline static constexpr std::string_view PreviewGraphTitle = "Новый будильник";
-
-        class Melody final {
-        public:
-            Melody(
-                std::string name,
-                std::string uri,
-                xaml::Element::Command selectCommand,
-                xaml::Element::Command deleteCommand);
-
-            const std::string& Name() const;
-            const std::string& Uri() const;
-            xaml::Element::Command SelectCommand() const;
-            xaml::Element::Command DeleteCommand() const;
-
-            void SetName(std::string value);
-
-        private:
-            std::string name;
-            std::string uri;
-            xaml::Element::Command selectCommand;
-            xaml::Element::Command deleteCommand;
-        };
 
         explicit AddAlarmPageViewModel(PageContext& context);
         ~AddAlarmPageViewModel() override = default;
@@ -75,11 +54,11 @@ namespace mobileclock::ui {
         bool OnNavigatingTo(const NavigationRequest& request, std::unique_ptr<NavigationState> state) override;
 
         void Reset();
-        const AlarmSettings& Settings() const;
-        void AddMelody(std::string name, std::string uri);
-        void SetMelody(std::string name, std::string uri);
+        const Alarm& Settings() const;
+        void AddMelody(AlarmMelody alarmMelody);
+        void SetMelody(AlarmMelody alarmMelody);
         void DeleteMelody(std::string_view uri);
-        const xaml::ObservableCollection<Melody>& Melodies() const;
+        const xaml::ObservableCollection<AlarmMelodyViewModel>& Melodies() const;
         void ChooseAlarmMelody();
         void NavigateToMain();
         void Initialize(xaml::Size availableSize);
@@ -100,7 +79,7 @@ namespace mobileclock::ui {
         bool Owns(const xaml::Element& element) const override;
 
         void ConnectControls();
-        void OnStorageChange(const StorageChange& change);
+        void OnRepositoryChange();
         void RemoveMelody(std::string_view uri);
         void Refresh();
         void RefreshSaveButton();
@@ -112,10 +91,10 @@ namespace mobileclock::ui {
 
     private:
         PageContext& context;
-        AlarmSettings settings;
-        AlarmSettings initialSettings;
-        xaml::ObservableCollection<Melody> melodies;
-        ApplicationStorage::Unsubscribe storageSubscription;
+        Alarm settings;
+        Alarm initialSettings;
+        xaml::ObservableCollection<AlarmMelodyViewModel> melodies;
+        AlarmMelodyRepository::Unsubscribe storageSubscription;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -129,6 +108,6 @@ namespace mobileclock::ui {
         bool saved = false;
         bool isEditing = false;
         bool hasChanges = false;
-        const void* editingAlarm = nullptr;
+        std::string editingAlarmId;
     };
 }

@@ -1,5 +1,8 @@
+#include "NativeRenderer.h"
+
 #include <Helpers.Logging/Logging.h>
 #include <ESRenderer/OpenGlRenderer.h>
+#include <JsonParser/json_struct/json_struct.h>
 #include <android/native_window_jni.h>
 #include <android/native_window.h>
 #include <android/input.h>
@@ -7,41 +10,66 @@
 
 #include "MobileClock.Presentation/Registrations.h"
 #include "Renderer/AndroidCommandDispatcher.h"
+#include "Storage/AlarmRepository.h"
 #include "UI/AppSessionController.h"
-#include "NativeRenderer.h"
 #include "AssetsManager.h"
 
 #include <filesystem>
 #include <stdexcept>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace mobileclock::renderer {
     struct NativeRenderer::State {
-        State()
-            : appSessionController(storage) {
-            this->appSessionController.SetHostEventHandler([this](
-                mobileclock::ui::AppSessionSignal signal,
-                const mobileclock::ui::AppSessionSignalData& data) {
-                this->commandDispatcher.Dispatch(signal, data);
-            });
-        }
-
         EGLDisplay display = EGL_NO_DISPLAY;
         EGLSurface surface = EGL_NO_SURFACE;
         EGLContext context = EGL_NO_CONTEXT;
         ANativeWindow* window = nullptr;
         std::unique_ptr<AssetsManager> assetsManager;
         AndroidCommandDispatcher commandDispatcher;
-        mobileclock::ui::ApplicationStorage storage;
-        mobileclock::ui::AppSessionController appSessionController;
+        std::unique_ptr<mobileclock::ui::ApplicationStateStore> stateStore;
+        std::unique_ptr<mobileclock::ui::AlarmRepository> alarmRepository;
+        std::unique_ptr<mobileclock::ui::AlarmMelodyRepository> alarmMelodyRepository;
+        std::unique_ptr<mobileclock::ui::AppSessionController> appSessionController;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
         bool isSessionInitialized = false;
     };
 }
 
 namespace mobileclock::renderer::_details {
+    mobileclock::ui::ApplicationStateDocument LoadStorage(const std::filesystem::path& path) {
+        std::ifstream stream(path, std::ios::binary);
+        if (!stream) {
+            return {};
+        }
+        const std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+        mobileclock::ui::ApplicationStateDocument document;
+        JS::ParseContext context(json.data(), json.size());
+        return context.parseTo(document) == JS::Error::NoError
+            ? document : mobileclock::ui::ApplicationStateDocument{};
+    }
+
+    bool SaveStorage(const std::filesystem::path& path, const mobileclock::ui::ApplicationStateDocument& data) {
+        const std::filesystem::path temporaryPath = path.string() + ".tmp";
+        {
+            std::ofstream stream(temporaryPath, std::ios::binary | std::ios::trunc);
+            stream << JS::serializeStruct(data);
+            stream.flush();
+            if (!stream) {
+                return false;
+            }
+        }
+        std::error_code error;
+        std::filesystem::rename(temporaryPath, path, error);
+        if (error) {
+            std::filesystem::remove(path, error);
+            error.clear();
+            std::filesystem::rename(temporaryPath, path, error);
+        }
+        return !error;
+    }
     // Схема кадра для Button с renderer="wave-outline":
     // Choreographer.doFrame()
     // └─ NativeRenderSurfaceView.doFrame()
@@ -70,8 +98,8 @@ namespace mobileclock::renderer::_details {
             return;
         }
         state.renderer->BeginFrame();
-        state.appSessionController.Session().Update();
-        state.appSessionController.Session().Render(*state.renderer);
+        state.appSessionController->Session().Update();
+        state.appSessionController->Session().Render(*state.renderer);
         eglSwapBuffers(state.display, state.surface);
     }
 
@@ -102,7 +130,7 @@ namespace mobileclock::renderer::_details {
         state.window = nullptr;
     }
 
-}
+} // namespace _details
 
 namespace mobileclock::renderer {
     NativeRenderer::NativeRenderer()
@@ -125,6 +153,20 @@ namespace mobileclock::renderer {
             std::filesystem::path(utf8Path),
         });
         utility_helpers::logging::Initialize("MobileClock");
+        const auto storagePath = std::filesystem::path(utf8Path).parent_path().parent_path() / "mobileclock-state.json";
+        this->state->stateStore = std::make_unique<mobileclock::ui::ApplicationStateStore>(
+            _details::LoadStorage(storagePath),
+            [storagePath](const mobileclock::ui::ApplicationStateDocument& data) {
+                return _details::SaveStorage(storagePath, data);
+            });
+        this->state->alarmRepository = std::make_unique<mobileclock::ui::AlarmRepository>(*this->state->stateStore);
+        this->state->alarmMelodyRepository = std::make_unique<mobileclock::ui::AlarmMelodyRepository>(*this->state->stateStore);
+        this->state->appSessionController = std::make_unique<mobileclock::ui::AppSessionController>(*this->state->alarmRepository, *this->state->alarmMelodyRepository);
+        this->state->appSessionController->SetHostEventHandler([this](
+            mobileclock::ui::AppSessionSignal signal,
+            const mobileclock::ui::AppSessionSignalData& data) {
+            this->state->commandDispatcher.Dispatch(signal, data);
+        });
         env->ReleaseStringUTFChars(javaLogFilePath, utf8Path);
     }
 
@@ -159,7 +201,7 @@ namespace mobileclock::renderer {
             env->ReleaseStringUTFChars(javaValue, value);
             return;
         }
-        this->state->appSessionController.Dispatch(
+        this->state->appSessionController->Dispatch(
             static_cast<mobileclock::ui::AppSessionSignal>(javaSignal),
             {value, additionalValue});
         env->ReleaseStringUTFChars(javaAdditionalValue, additionalValue);
@@ -214,9 +256,9 @@ namespace mobileclock::renderer {
             static_cast<float>(height),
         };
         if (state.isSessionInitialized) {
-            state.appSessionController.Session().Resize(availableSize);
+            state.appSessionController->Session().Resize(availableSize);
         } else {
-            state.appSessionController.Session().Initialize(availableSize);
+            state.appSessionController->Session().Initialize(availableSize);
             state.isSessionInitialized = true;
         }
         const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Roboto-Regular.ttf");
@@ -246,23 +288,23 @@ namespace mobileclock::renderer {
     void NativeRenderer::Touch(jint action, jfloat x, jfloat y) {
         if (action == AMOTION_EVENT_ACTION_DOWN) {
             LOG_DEBUG("MobileClock.Touch", "Touch down received: point=({}, {})", x, y);
-            this->state->appSessionController.Session().PointerDown(x, y);
+            this->state->appSessionController->Session().PointerDown(x, y);
             return;
         }
         if (action == AMOTION_EVENT_ACTION_CANCEL) {
             LOG_DEBUG("MobileClock.Touch", "Touch cancelled");
-            this->state->appSessionController.Session().CancelPointer();
+            this->state->appSessionController->Session().CancelPointer();
             return;
         }
         if (action == AMOTION_EVENT_ACTION_MOVE) {
-            this->state->appSessionController.Session().PointerMove(x, y);
+            this->state->appSessionController->Session().PointerMove(x, y);
             return;
         }
         if (action != AMOTION_EVENT_ACTION_UP) {
             return;
         }
         LOG_DEBUG("MobileClock.Touch", "Touch up received: point=({}, {})", x, y);
-        this->state->appSessionController.Session().PointerUp(x, y);
+        this->state->appSessionController->Session().PointerUp(x, y);
     }
 
     void NativeRenderer::Render() {

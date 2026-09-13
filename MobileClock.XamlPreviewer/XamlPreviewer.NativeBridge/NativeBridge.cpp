@@ -1,5 +1,4 @@
-#include <Helpers.Logging/Logging.h>
-#include <HelpersNew/Geometry/ContainsPoint.h>
+#include "NativeBridge.h"
 
 #include <XamlRuntime/InteractionController.h>
 #include <XamlRuntime/ScrollController.h>
@@ -8,7 +7,11 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
-#include <JsonParser/JsonParser.h>
+
+#include <HelpersNew/Geometry/ContainsPoint.h>
+#include <Helpers.Logging/Logging.h>
+
+#include <JsonParser/json_struct/json_struct.h>
 #include <Windows.h>
 
 #ifdef DrawText
@@ -16,16 +19,16 @@
 #endif
 
 #include "../../MobileClock.Application/UI/AppSessionController.h"
+#include "../../MobileClock.Application/Storage/AlarmRepository.h"
 #include "../../MobileClock.Presentation/PreviewSession.h"
 #include "AngleRenderSurface.h"
-#include "NativeBridge.h"
 
 #include <unordered_map>
 #include <string_view>
 #include <filesystem>
-#include <functional>
 #include <algorithm>
 #include <stdexcept>
+#include <functional>
 #include <fstream>
 #include <cstring>
 #include <format>
@@ -35,17 +38,6 @@
 #include <string>
 #include <vector>
 #include <cmath>
-
-JS_OBJECT_EXTERNAL(
-    mobileclock::ui::AlarmMelody,
-    JS_MEMBER_ALIASES(name, "Name", "name"),
-    JS_MEMBER_ALIASES(uri, "Uri", "uri")
-);
-
-JS_OBJECT_EXTERNAL(
-    mobileclock::ui::ApplicationStorageData,
-    JS_MEMBER_ALIASES(alarmMelodies, "AlarmMelodies", "alarm_melodies")
-);
 
 namespace xaml::bridge::_details {
     bool SameSourcePath(std::string_view left, std::string_view right) {
@@ -170,7 +162,7 @@ namespace xaml::bridge::_details {
         return false;
     }
 
-}
+} // namespace _details
 
 namespace xaml::bridge {
     class RecordingBackend final : public IRenderBackend {
@@ -316,26 +308,19 @@ namespace mobileclock::preview::_details {
         //
         // API
         //
-        ui::ApplicationStorageData Load() const {
+        ui::ApplicationStateDocument Load() const {
             std::ifstream stream(this->path, std::ios::binary);
             if (!stream) {
                 return {};
             }
             const std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
-            ui::ApplicationStorageData state;
+            ui::ApplicationStateDocument document;
             JS::ParseContext context(json.data(), json.size());
-            if (context.parseTo(state) != JS::Error::NoError) {
-                LOG_WARNING("XamlPreviewer.State", "Ignoring invalid previewer state '{}': {}", this->path.string(), context.makeErrorString());
-                return {};
-            }
-            return state;
+            return context.parseTo(document) == JS::Error::NoError
+                ? document : ui::ApplicationStateDocument{};
         }
 
-        bool Save(const ui::ApplicationStorageData& data) const {
-            if (data.alarmMelodies.empty()) {
-                this->Clear();
-                return true;
-            }
+        bool Save(const ui::ApplicationStateDocument& data) const {
             return this->Write(data);
         }
 
@@ -350,29 +335,45 @@ namespace mobileclock::preview::_details {
             }
         }
 
-        bool Write(const ui::ApplicationStorageData& data) const {
-            std::ofstream stream(this->path, std::ios::binary | std::ios::trunc);
+        bool Write(const ui::ApplicationStateDocument& data) const {
+            const std::filesystem::path temporaryPath = this->path.string() + ".tmp";
+            std::ofstream stream(temporaryPath, std::ios::binary | std::ios::trunc);
             if (!stream) {
                 LOG_WARNING("XamlPreviewer.State", "Cannot save previewer state '{}'", this->path.string());
                 return false;
             }
             stream << JS::serializeStruct(data);
-            return static_cast<bool>(stream);
+            stream.flush();
+            if (!stream) {
+                LOG_WARNING("XamlPreviewer.State", "Cannot flush previewer state '{}'", temporaryPath.string());
+                return false;
+            }
+            stream.close();
+            if (MoveFileExW(
+                temporaryPath.c_str(),
+                this->path.c_str(),
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
+                LOG_WARNING("XamlPreviewer.State", "Cannot replace previewer state '{}'", this->path.string());
+                return false;
+            }
+            return true;
         }
 
     private:
         std::filesystem::path path;
     };
 
-}
+} // namespace _details
 
 struct mc_session {
     explicit mc_session(int width, int height)
         : stateStorage(mobileclock::preview::_details::PreviewerStatePath())
-        , storage(stateStorage.Load(), [this](const mobileclock::ui::ApplicationStorageData& data) {
+        , stateStore(stateStorage.Load(), [this](const mobileclock::ui::ApplicationStateDocument& data) {
             return this->stateStorage.Save(data);
         })
-        , appSessionController(storage)
+        , alarmRepository(stateStore)
+        , alarmMelodyRepository(stateStore)
+        , appSessionController(alarmRepository, alarmMelodyRepository)
         , width(width)
         , height(height) {
         if (width <= 0 || height <= 0) {
@@ -395,7 +396,9 @@ struct mc_session {
     }
 
     mobileclock::preview::_details::PreviewerStateStorage stateStorage;
-    mobileclock::ui::ApplicationStorage storage;
+    mobileclock::ui::ApplicationStateStore stateStore;
+    mobileclock::ui::AlarmRepository alarmRepository;
+    mobileclock::ui::AlarmMelodyRepository alarmMelodyRepository;
     mobileclock::ui::AppSessionController appSessionController;
     int width;
     int height;
@@ -449,7 +452,7 @@ namespace mobileclock::preview::_details {
         }
         element.SetSelectedWireframe(session.selectedWireframe);
     }
-}
+} // namespace _details
 
 const char* xr_last_error(void) {
     return xaml::bridge::lastError.c_str();

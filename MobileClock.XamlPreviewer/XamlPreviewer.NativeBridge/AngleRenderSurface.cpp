@@ -33,7 +33,7 @@ namespace xaml::bridge::_details {
         return display.get();
     }
 
-}
+} // namespace _details
 
 namespace xaml::bridge {
     class AngleRenderSurface::Implementation {

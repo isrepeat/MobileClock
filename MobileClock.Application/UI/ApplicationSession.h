@@ -14,7 +14,7 @@ namespace mobileclock::ui {
     // но не создают страницы, bindings или animation registry самостоятельно.
     class ApplicationSession final {
     public:
-        ApplicationSession(AppSessionController& appSessionController, ApplicationStorage& storage);
+        ApplicationSession(AppSessionController& appSessionController, AlarmRepository& alarmRepository, AlarmMelodyRepository& alarmMelodyRepository);
         ~ApplicationSession() = default;
 
         ApplicationSession(const ApplicationSession&) = delete;
@@ -27,8 +27,8 @@ namespace mobileclock::ui {
         std::string_view CurrentPageName() const;
         bool IsTransitioning() const;
         void SetStatus(std::string value);
-        void AddAlarmMelody(std::string name, std::string uri);
-        void SetAlarmMelody(std::string name, std::string uri);
+        void AddAlarmMelody(AlarmMelody alarmMelody);
+        void SetAlarmMelody(AlarmMelody alarmMelody);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
         bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);

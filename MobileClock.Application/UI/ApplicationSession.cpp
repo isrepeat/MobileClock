@@ -5,8 +5,8 @@
 #include <utility>
 
 namespace mobileclock::ui {
-    ApplicationSession::ApplicationSession(AppSessionController& appSessionController, ApplicationStorage& storage)
-        : pageManager(appSessionController, storage)
+    ApplicationSession::ApplicationSession(AppSessionController& appSessionController, AlarmRepository& alarmRepository, AlarmMelodyRepository& alarmMelodyRepository)
+        : pageManager(appSessionController, alarmRepository, alarmMelodyRepository)
         , renderers() {
         mobileclock::presentation::RegisterRenderers(this->renderers);
     }
@@ -42,12 +42,12 @@ namespace mobileclock::ui {
         this->pageManager.SetStatus(std::move(value));
     }
 
-    void ApplicationSession::AddAlarmMelody(std::string name, std::string uri) {
-        this->pageManager.AddAlarmMelody(std::move(name), std::move(uri));
+    void ApplicationSession::AddAlarmMelody(AlarmMelody alarmMelody) {
+        this->pageManager.AddAlarmMelody(std::move(alarmMelody));
     }
 
-    void ApplicationSession::SetAlarmMelody(std::string name, std::string uri) {
-        this->pageManager.SetAlarmMelody(std::move(name), std::move(uri));
+    void ApplicationSession::SetAlarmMelody(AlarmMelody alarmMelody) {
+        this->pageManager.SetAlarmMelody(std::move(alarmMelody));
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

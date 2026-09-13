@@ -1,29 +1,31 @@
 #include "UI/Pages/MainPageViewModel.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include "MobileClock.UI/Controls/AlarmActionsMenu.h"
-#include "MobileClock.UI/Controls/TimelineTabs.h"
-#include "MobileClock.UI/Controls/AlarmList.h"
-#endif
-
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
-#include <JsonParser/JsonParser.h>
+#include <JsonParser/json_struct/json_struct.h>
 #endif
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/MainPage.xaml.h"
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#include "MobileClock.UI/Controls/AlarmActionsMenu.h"
+#include "MobileClock.UI/Controls/TimelineTabs.h"
+#include "MobileClock.UI/Controls/AlarmList.h"
+#endif
 #include "!Generated/Build/BuildVersion.h"
-#include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/Pages/AddAlarmPageViewModel.h"
+#include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/AppSessionController.h"
 #include "UI/NavigationStates.h"
 
-#include <stdexcept>
 #include <algorithm>
+#include <stdexcept>
+#include <atomic>
+#include <chrono>
 #include <format>
+#include <tuple>
 #include <ctime>
 
 namespace mobileclock::ui::_details {
@@ -32,8 +34,9 @@ namespace mobileclock::ui::_details {
         std::string Time;
         std::string Repeat;
         bool IsEnabled = false;
+        AlarmMelody Melody;
 
-        JS_OBJECT(JS_MEMBER(Time), JS_MEMBER(Repeat), JS_MEMBER(IsEnabled));
+        JS_OBJECT(JS_MEMBER(Time), JS_MEMBER(Repeat), JS_MEMBER(IsEnabled), JS_MEMBER(Melody));
     };
 
     struct MainPagePreviewScenario final {
@@ -52,7 +55,7 @@ namespace mobileclock::ui::_details {
 #endif
     }
 
-}
+} // namespace _details
 
 namespace mobileclock::ui {
     MainPageViewModel::MainPageViewModel(PageContext& context)
@@ -73,84 +76,15 @@ namespace mobileclock::ui {
         , uploadScreenshotCommand([&context]() {
             context.appSessionController.Dispatch(AppSessionSignal::uploadScreenshot, {});
         }) {
-        for (Alarm& alarm : this->alarms) {
-            this->ConfigureAlarm(alarm);
-        }
-    }
-
-    MainPageViewModel::Alarm::Alarm(std::string time, std::string repeat, bool isEnabled)
-        : time(std::move(time))
-        , repeat(std::move(repeat))
-        , isEnabled(isEnabled) {
-        if (this->time.size() == 5) {
-            this->settings.hour = (this->time[0] - '0') * 10 + this->time[1] - '0';
-            this->settings.minute = (this->time[3] - '0') * 10 + this->time[4] - '0';
-        }
-        this->settings.days.fill(this->repeat == "Ежедневно");
-        constexpr std::array<std::string_view, 7> names{"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
-        for (size_t index = 0; index < names.size(); ++index) {
-            this->settings.days[index] = this->settings.days[index] || this->repeat.find(names[index]) != std::string::npos;
-        }
-    }
-
-    MainPageViewModel::Alarm::Alarm(const AlarmSettings& settings)
-        : settings(settings)
-        , time(std::format("{:02}:{:02}", settings.hour, settings.minute))
-        , isEnabled(true) {
-        constexpr std::array<std::string_view, 7> names{"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
-        for (size_t index = 0; index < settings.days.size(); ++index) {
-            if (settings.days[index]) {
-                if (!this->repeat.empty()) {
-                    this->repeat += ", ";
-                }
-                this->repeat += names[index];
+        if (!this->context.alarmRepository.Alarms().empty()) {
+            this->alarms.Clear();
+            for (const mobileclock::ui::Alarm& alarm : this->context.alarmRepository.Alarms()) {
+                this->alarms.EmplaceBack(alarm.id, alarm, alarm.isEnabled);
             }
         }
-        if (this->repeat.empty()) {
-            this->repeat = "Однократно";
+        for (AlarmViewModel& alarm : this->alarms) {
+            this->ConfigureAlarm(alarm);
         }
-        else if (std::all_of(settings.days.begin(), settings.days.end(), [](bool day) { return day; })) {
-            this->repeat = "Ежедневно";
-        }
-    }
-
-    //
-    // API
-    //
-    const AlarmSettings& MainPageViewModel::Alarm::Settings() const {
-        return this->settings;
-    }
-
-    const std::string& MainPageViewModel::Alarm::Time() const {
-        return this->time;
-    }
-
-    const std::string& MainPageViewModel::Alarm::Repeat() const {
-        return this->repeat;
-    }
-
-    bool MainPageViewModel::Alarm::IsEnabled() const {
-        return this->isEnabled;
-    }
-
-    void MainPageViewModel::Alarm::SetIsEnabled(bool value) {
-        this->isEnabled = value;
-    }
-
-    xaml::Element::Command MainPageViewModel::Alarm::AlarmBlockCommand() const {
-        return this->alarmBlockCommand;
-    }
-
-    xaml::Element::Command MainPageViewModel::Alarm::ToggleAlarmCommand() const {
-        return this->toggleAlarmCommand;
-    }
-
-    void MainPageViewModel::Alarm::SetAlarmBlockCommand(xaml::Element::Command value) {
-        this->alarmBlockCommand = std::move(value);
-    }
-
-    void MainPageViewModel::Alarm::SetToggleAlarmCommand(xaml::Element::Command value) {
-        this->toggleAlarmCommand = std::move(value);
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -167,7 +101,11 @@ namespace mobileclock::ui {
         if (scenario.Alarms) {
             this->alarms.Clear();
             for (const _details::PreviewAlarm& alarmValue : *scenario.Alarms) {
-                Alarm& alarm = this->alarms.EmplaceBack(alarmValue.Time, alarmValue.Repeat, alarmValue.IsEnabled);
+                AlarmViewModel& alarm = this->alarms.EmplaceBack(
+                    alarmValue.Time,
+                    alarmValue.Repeat,
+                    alarmValue.IsEnabled,
+                    alarmValue.Melody);
                 this->ConfigureAlarm(alarm);
             }
         }
@@ -183,14 +121,21 @@ namespace mobileclock::ui {
     //
     std::unique_ptr<NavigationState> MainPageViewModel::OnNavigatingFrom(const NavigationRequest& request) {
         if (request.trigger == NavigationTrigger::editAlarm && this->alarmBeingEdited != nullptr) {
-            const Alarm* const alarm = this->alarmBeingEdited;
+            const AlarmViewModel* const alarm = this->alarmBeingEdited;
             this->alarmBeingEdited = nullptr;
-            return std::make_unique<AlarmEditNavigationState>(alarm, alarm->Settings());
+            return std::make_unique<AlarmEditNavigationState>(alarm->Id(), alarm->Settings());
         }
         return {};
     }
 
     bool MainPageViewModel::OnNavigatingTo(const NavigationRequest&, std::unique_ptr<NavigationState>) {
+        if (!this->context.alarmRepository.Alarms().empty()) {
+            this->alarms.Clear();
+            for (const mobileclock::ui::Alarm& alarm : this->context.alarmRepository.Alarms()) {
+                AlarmViewModel& value = this->alarms.EmplaceBack(alarm.id, alarm, alarm.isEnabled);
+                this->ConfigureAlarm(value);
+            }
+        }
         return true;
     }
 
@@ -217,32 +162,22 @@ namespace mobileclock::ui {
         return this->status;
     }
 
-    const xaml::ObservableCollection<MainPageViewModel::Alarm>& MainPageViewModel::Alarms() const {
+    const xaml::ObservableCollection<AlarmViewModel>& MainPageViewModel::Alarms() const {
         return this->alarms;
     }
 
-    void MainPageViewModel::AddAlarm(const AlarmSettings& settings) {
-        Alarm& alarm = this->alarms.EmplaceBack(settings);
-        this->ConfigureAlarm(alarm);
+    void MainPageViewModel::AddAlarm(const mobileclock::ui::Alarm& alarmSettings) {
+        if (this->context.alarmRepository.CreateAlarm(alarmSettings)) {
+            this->OnNavigatingTo({}, {});
+        }
     }
 
-    bool MainPageViewModel::UpdateAlarm(const void* dataContext, const AlarmSettings& settings) {
-        std::vector<std::pair<AlarmSettings, bool>> values;
-        bool wasUpdated = false;
-        for (const Alarm& alarm : this->alarms) {
-            values.emplace_back(&alarm == dataContext ? settings : alarm.Settings(), alarm.IsEnabled());
-            wasUpdated = wasUpdated || &alarm == dataContext;
-        }
-        if (!wasUpdated) {
+    bool MainPageViewModel::UpdateAlarm(const void* dataContext, const mobileclock::ui::Alarm& alarmSettings) {
+        const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [dataContext](const AlarmViewModel& value) { return &value == dataContext; });
+        if (alarm == this->alarms.end() || !this->context.alarmRepository.UpdateAlarm(alarm->Id(), alarmSettings)) {
             return false;
         }
-        this->alarms.Clear();
-        for (const auto& [value, isEnabled] : values) {
-            Alarm& alarm = this->alarms.EmplaceBack(value);
-            alarm.SetIsEnabled(isEnabled);
-            this->ConfigureAlarm(alarm);
-        }
-        return true;
+        this->OnNavigatingTo({}, {}); return true;
     }
 
     void MainPageViewModel::CreateAlarm() {
@@ -250,7 +185,7 @@ namespace mobileclock::ui {
     }
 
     void MainPageViewModel::EditAlarm(const void* dataContext) {
-        const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [dataContext](const Alarm& value) {
+        const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [dataContext](const AlarmViewModel& value) {
             return &value == dataContext;
         });
         if (alarm == this->alarms.end()) {
@@ -318,14 +253,14 @@ namespace mobileclock::ui {
         const auto iterator = std::find_if(
             this->alarms.begin(),
             this->alarms.end(),
-            [dataContext](const Alarm& alarm) {
+            [dataContext](const AlarmViewModel& alarm) {
                 return &alarm == dataContext;
             });
         if (iterator == this->alarms.end()) {
             return false;
         }
-        this->alarms.Erase(iterator);
-        return true;
+        if (!this->context.alarmRepository.RemoveAlarm(iterator->Id())) { return false; }
+        this->alarms.Erase(iterator); return true;
     }
 
     void MainPageViewModel::Update() {
@@ -386,15 +321,15 @@ namespace mobileclock::ui {
         // collection.count и collection.at пока не подключены RuntimeTreeBuilder.
         // Текущий путь через collection.bind вызывает SetItemsSource, который сам
         // получает размер коллекции и элементы из this->alarms.
-        collection.itemBindings = [](const void* value) {
-            const auto* alarm = static_cast<const Alarm*>(value);
+        collection.itemBindings = [this](const void* value) {
+            const auto* alarm = static_cast<const AlarmViewModel*>(value);
             auto item = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
             item->AddText("Time", [alarm]() { return alarm == nullptr ? "" : alarm->Time(); });
             item->AddText("Repeat", [alarm]() { return alarm == nullptr ? "" : alarm->Repeat(); });
             item->AddBoolean("IsEnabled", [alarm]() { return alarm != nullptr && alarm->IsEnabled(); }, {},
                 [alarm](bool value) {
                     if (alarm != nullptr) {
-                        const_cast<Alarm*>(alarm)->SetIsEnabled(value);
+                        this->SetAlarmEnabled(*const_cast<AlarmViewModel*>(alarm), value);
                     }
                 });
             item->AddCommand("AlarmBlockCommand", alarm == nullptr ? xaml::Element::Command{} : alarm->AlarmBlockCommand());
@@ -440,10 +375,21 @@ namespace mobileclock::ui {
         }
     }
 
-    void MainPageViewModel::ConfigureAlarm(Alarm& alarm) {
+    void MainPageViewModel::ConfigureAlarm(AlarmViewModel& alarm) {
         alarm.SetAlarmBlockCommand([this, &alarm]() {
             this->EditAlarm(&alarm);
         });
         alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+    }
+
+    void MainPageViewModel::SetAlarmEnabled(AlarmViewModel& alarm, bool value) {
+        if (alarm.IsEnabled() == value) {
+            return;
+        }
+        if (this->context.alarmRepository.SetAlarmEnabled(alarm.Id(), value)) { alarm.SetIsEnabled(value); }
+    }
+
+    bool MainPageViewModel::PersistAlarms() {
+        return true;
     }
 }

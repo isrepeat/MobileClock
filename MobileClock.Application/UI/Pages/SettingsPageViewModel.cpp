@@ -2,7 +2,7 @@
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
-#include <JsonParser/JsonParser.h>
+#include <JsonParser/json_struct/json_struct.h>
 #endif
 #include <XamlRuntime/RenderEngine.h>
 
@@ -22,7 +22,7 @@ namespace mobileclock::ui {
 
             JS_OBJECT(JS_MEMBER(Theme), JS_MEMBER(Sound));
         };
-    }
+    } // namespace _details
 #endif
 
     SettingsPageViewModel::SettingsPageViewModel(PageContext& context)

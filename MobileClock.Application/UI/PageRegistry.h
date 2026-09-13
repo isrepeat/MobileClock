@@ -5,8 +5,7 @@
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
-#include "UI/AlarmSettings.h"
-#include "UI/ApplicationStorage.h"
+#include "Storage/AlarmRepository.h"
 #include "UI/Navigation.h"
 
 #include <string_view>
@@ -45,8 +44,8 @@ namespace mobileclock::ui {
     struct PageContext final {
         IPageNavigator& navigator;
         AppSessionController& appSessionController;
-        ApplicationStorage& storage;
-        std::function<bool(const void*, const AlarmSettings&)> saveAlarm;
+        AlarmRepository& alarmRepository;
+        AlarmMelodyRepository& alarmMelodyRepository;
     };
 
     template <typename TViewModel>

@@ -2,6 +2,7 @@
 
 #include <XamlRuntime/Animation.h>
 
+#include <functional>
 #include <algorithm>
 #include <chrono>
 
@@ -13,7 +14,31 @@ namespace mobileclock::ui::controls {
         float RevealWidth(const xaml::Element& element) {
             return element.Bounds().width * RevealRatio;
         }
-    }
+
+        void RefreshSelection(
+            xaml::Element& element,
+            const void* inheritedDataContext,
+            const std::function<bool(const void*)>& selectionPredicate) {
+            const void* const dataContext = element.DataContext() == nullptr
+                ? inheritedDataContext
+                : element.DataContext();
+            if (element.Id() == "melodyListItem") {
+                const bool isSelected = selectionPredicate && selectionPredicate(dataContext);
+                element.SetBackground(isSelected
+                    ? xaml::attr::Color{42.0f / 255, 47.0f / 255, 33.0f / 255, 1}
+                    : xaml::attr::Color{26.0f / 255, 29.0f / 255, 22.0f / 255, 1});
+                element.SetBorderColor(isSelected
+                    ? xaml::attr::Color{224.0f / 255, 182.0f / 255, 77.0f / 255, 1}
+                    : xaml::attr::Color{0, 0, 0, 0});
+                element.SetBorderThickness(isSelected
+                    ? xaml::attr::Thickness{2, 2, 2, 2}
+                    : xaml::attr::Thickness{});
+            }
+            for (const auto& child : element.Children()) {
+                RefreshSelection(*child, dataContext, selectionPredicate);
+            }
+        }
+	} // namespace _details
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     //
@@ -29,6 +54,11 @@ namespace mobileclock::ui::controls {
     //
     const xaml::DependentProperty<const void*>& AlarmMelodyList::ItemsSourceProperty() const {
         return this->itemsSource;
+    }
+
+    void AlarmMelodyList::SetSelectionPredicate(std::function<bool(const void*)> value) {
+        this->selectionPredicate = std::move(value);
+        _details::RefreshSelection(*this, nullptr, this->selectionPredicate);
     }
 
     //
@@ -96,4 +126,10 @@ namespace mobileclock::ui::controls {
     std::string_view AlarmMelodyList::ListViewId() const {
         return "melodyChoices";
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    void AlarmMelodyList::OnTemplateReplaced() {
+        _details::RefreshSelection(*this, nullptr, this->selectionPredicate);
+    }
+#endif
 }

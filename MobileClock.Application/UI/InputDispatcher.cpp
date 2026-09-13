@@ -43,7 +43,7 @@ namespace mobileclock::ui::_details {
         // явно захватить контрол, иначе случайный наклон пальца запустит scroll.
         return direction == GestureDirection::up || direction == GestureDirection::down;
     }
-}
+} // namespace _details
 
 namespace mobileclock::ui {
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

@@ -46,7 +46,7 @@ namespace mobileclock::tests::_details {
         }
         return nullptr;
     }
-}
+} // namespace _details
 
 namespace mobileclock::tests::_details {
 
@@ -71,8 +71,10 @@ namespace mobileclock::tests::_details {
     }
 
     void CheckAlarmForm(const std::string& project) {
-        ui::ApplicationStorage storage;
-        ui::AppSessionController appSessionController(storage);
+        ui::ApplicationStateStore stateStore;
+        ui::AlarmRepository alarmRepository(stateStore);
+        ui::AlarmMelodyRepository alarmMelodyRepository(stateStore);
+        ui::AppSessionController appSessionController(alarmRepository, alarmMelodyRepository);
         ui::ApplicationSession& session = appSessionController.Session();
         session.Initialize({720, 1440});
         session.SetAnimationPlaybackRate(100.0f);
@@ -123,10 +125,10 @@ namespace mobileclock::tests::_details {
             Find(session.Root(), "day" + std::to_string(day))->ExecuteCommand();
         }
         Check(Find(session.Root(), "repeatSummary")->Text() == "Однократно", "No days means once");
-        session.AddAlarmMelody("Morning", "preview://morning");
-        session.AddAlarmMelody("Lone Grass, Solitary Flower", "preview://lone-grass");
+        session.AddAlarmMelody({"Morning", "preview://morning"});
+        session.AddAlarmMelody({"Lone Grass, Solitary Flower", "preview://lone-grass"});
         for (int index = 0; index < 12; ++index) {
-            session.AddAlarmMelody("Test melody " + std::to_string(index), "preview://test-" + std::to_string(index));
+            session.AddAlarmMelody({"Test melody " + std::to_string(index), "preview://test-" + std::to_string(index)});
         }
         xaml::layout(session.Root(), {720, 1440});
         auto* melodyChoices = Find(session.Root(), "melodyChoices");
@@ -151,10 +153,10 @@ namespace mobileclock::tests::_details {
         Check(session.Root().State<xaml::VisualTransform>().offsetX < 0, "Back navigation must enter from the left");
         FinishNavigation(session);
         Check(items->Children().size() == initialCount + 1, "Save must create exactly one alarm");
-        const auto* alarm = static_cast<const ui::MainPageViewModel::Alarm*>(items->Children().back()->DataContext());
+        const auto* alarm = static_cast<const ui::AlarmViewModel*>(items->Children().back()->DataContext());
         Check(alarm != nullptr && alarm->Time() == "00:00", "Saved time");
         Check(alarm->Repeat() == "Однократно", "Saved repeat");
-        Check(alarm->Settings().melody == "Lone Grass, Solitary Flower" && alarm->Settings().vibration, "Saved sound settings");
+        Check(!alarm->Settings().melodyId.empty() && alarm->Settings().vibration, "Saved sound settings");
         Find(session.Root(), "addAlarmButton")->ExecuteCommand();
         Check(Find(session.Root(), "wheel0Row2")->Text() == "07", "New form must reset draft");
         FinishNavigation(session);
@@ -164,7 +166,7 @@ namespace mobileclock::tests::_details {
         Check(session.Root().State<xaml::VisualTransform>().offsetX == 0, "Back transition must finish at zero");
     }
 
-}
+} // namespace _details
 
 int main(int argc, char** argv) {
     using namespace mobileclock::tests::_details;
@@ -176,8 +178,10 @@ int main(int argc, char** argv) {
         Check(ast.children[0].location.line == 2 && ast.children[0].location.column == 1, "Source location");
         Check(ast.children[0].attributes[0].value.find("a & b") == 0, "XML entities");
         CheckAlarmForm(project);
-        mobileclock::ui::ApplicationStorage storage;
-        mobileclock::ui::AppSessionController appSessionController(storage);
+        mobileclock::ui::ApplicationStateStore stateStore;
+        mobileclock::ui::AlarmRepository alarmRepository(stateStore);
+        mobileclock::ui::AlarmMelodyRepository alarmMelodyRepository(stateStore);
+        mobileclock::ui::AppSessionController appSessionController(alarmRepository, alarmMelodyRepository);
         mobileclock::ui::ApplicationSession& session = appSessionController.Session();
         session.Initialize({1080, 1920});
         session.SetAnimationPlaybackRate(100.0f);

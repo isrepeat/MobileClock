@@ -27,7 +27,7 @@ namespace mobileclock::ui {
     public:
         using HostEventHandler = std::function<void(AppSessionSignal, const AppSessionSignalData&)>;
 
-        explicit AppSessionController(ApplicationStorage& storage);
+        AppSessionController(AlarmRepository& alarmRepository, AlarmMelodyRepository& alarmMelodyRepository);
         ~AppSessionController() = default;
 
         AppSessionController(const AppSessionController&) = delete;
@@ -42,7 +42,8 @@ namespace mobileclock::ui {
         void Emit(AppSessionSignal signal, const AppSessionSignalData& data) const;
 
     private:
-        ApplicationStorage& storage;
+        AlarmRepository& alarmRepository;
+        AlarmMelodyRepository& alarmMelodyRepository;
         ApplicationSession session;
         HostEventHandler hostEventHandler;
     };

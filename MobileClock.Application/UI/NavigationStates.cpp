@@ -3,37 +3,32 @@
 #include <utility>
 
 namespace mobileclock::ui {
-    AlarmEditNavigationState::AlarmEditNavigationState(const void* alarm, AlarmSettings settings)
-        : alarm(alarm)
+    AlarmEditNavigationState::AlarmEditNavigationState(std::string alarmId, Alarm settings)
+        : alarmId(std::move(alarmId))
         , settings(std::move(settings)) {
     }
 
     //
     // API
     //
-    const void* AlarmEditNavigationState::Alarm() const {
-        return this->alarm;
+    const std::string& AlarmEditNavigationState::AlarmId() const {
+        return this->alarmId;
     }
 
-    const AlarmSettings& AlarmEditNavigationState::Settings() const {
+    const Alarm& AlarmEditNavigationState::Settings() const {
         return this->settings;
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-    AlarmMelodyNavigationState::AlarmMelodyNavigationState(std::string name, std::string uri)
-        : name(std::move(name))
-        , uri(std::move(uri)) {
+    AlarmMelodyNavigationState::AlarmMelodyNavigationState(AlarmMelody alarmMelody)
+        : alarmMelody(std::move(alarmMelody)) {
     }
 
     //
     // API
     //
-    const std::string& AlarmMelodyNavigationState::Name() const {
-        return this->name;
-    }
-
-    const std::string& AlarmMelodyNavigationState::Uri() const {
-        return this->uri;
+    const AlarmMelody& AlarmMelodyNavigationState::Melody() const {
+        return this->alarmMelody;
     }
 #endif
 }

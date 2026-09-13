@@ -3,12 +3,11 @@
 #include <XamlRuntime/Animation.h>
 
 #include "MobileClock.Presentation/PageTransition.h"
-
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include "UI/Pages/XiaomiThemesPageViewModel.h"
 #endif
-#include "UI/Pages/AddAlarmPageViewModel.h"
 #include "UI/Pages/SettingsPageViewModel.h"
+#include "UI/Pages/AddAlarmPageViewModel.h"
 #include "UI/Pages/MainPageViewModel.h"
 #include "UI/InputDispatcher.h"
 #include "UI/PageRegistry.h"
@@ -25,7 +24,7 @@ namespace xaml {
 namespace mobileclock::ui {
     class PageManager final : public IPageNavigator {
     public:
-        PageManager(AppSessionController& appSessionController, ApplicationStorage& storage);
+        PageManager(AppSessionController& appSessionController, AlarmRepository& alarmRepository, AlarmMelodyRepository& alarmMelodyRepository);
         ~PageManager() = default;
 
         PageManager(const PageManager&) = delete;
@@ -43,8 +42,8 @@ namespace mobileclock::ui {
         void Resize(xaml::Size availableSize);
         void SetAnimationPlaybackRate(float value);
         void SetStatus(std::string value);
-        void AddAlarmMelody(std::string name, std::string uri);
-        void SetAlarmMelody(std::string name, std::string uri);
+        void AddAlarmMelody(AlarmMelody alarmMelody);
+        void SetAlarmMelody(AlarmMelody alarmMelody);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
         bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);

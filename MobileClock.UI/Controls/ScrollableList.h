@@ -6,9 +6,9 @@
 
 #include "MobileClock.UI/Controls/IGestureTarget.h"
 
+#include <string_view>
 #include <memory>
 #include <string>
-#include <string_view>
 
 namespace mobileclock::ui::controls {
     class ScrollableList : public xaml::UserControl, public IGestureTarget
@@ -27,12 +27,18 @@ namespace mobileclock::ui::controls {
         void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+        //
+        // IRuntimeReloadableControl
+        //
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
             const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
 #endif
 
     protected:
         virtual std::string_view ScrollViewerId() const = 0;
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        virtual void OnTemplateReplaced();
+#endif
         xaml::Element* FindElement(std::string_view id) const;
         bool Owns(const xaml::Element& element) const override;
 

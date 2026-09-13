@@ -29,9 +29,19 @@ namespace mobileclock::ui::controls::_details {
         }
         return nullptr;
     }
-}
+} // namespace _details
 
 namespace mobileclock::ui::controls {
+    //
+    // IGestureTarget
+    //
+    xaml::Element* ScrollableList::FindScrollViewer(const xaml::Element& element) const {
+        return this->Owns(element) ? this->FindElement(this->ScrollViewerId()) : nullptr;
+    }
+
+    void ScrollableList::UpdateGestures(xaml::Element&, xaml::AnimationController&) {
+    }
+
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     //
     // IRuntimeReloadableControl
@@ -59,6 +69,7 @@ namespace mobileclock::ui::controls {
             }
             this->ReplaceContent(std::move(result.root));
             this->runtimeBindings = std::move(result.bindings);
+            this->OnTemplateReplaced();
             diagnostics.clear();
             return true;
         } catch (const std::exception& error) {
@@ -66,21 +77,11 @@ namespace mobileclock::ui::controls {
             return false;
         }
     }
+
+    void ScrollableList::OnTemplateReplaced() {
+    }
 #endif
 
-    //
-    // IGestureTarget
-    //
-    xaml::Element* ScrollableList::FindScrollViewer(const xaml::Element& element) const {
-        return this->Owns(element) ? this->FindElement(this->ScrollViewerId()) : nullptr;
-    }
-
-    void ScrollableList::UpdateGestures(xaml::Element&, xaml::AnimationController&) {
-    }
-
-    //
-    // Internal
-    //
     xaml::Element* ScrollableList::FindElement(std::string_view id) const {
         return _details::FindPannableElement(*const_cast<ScrollableList*>(this), id);
     }

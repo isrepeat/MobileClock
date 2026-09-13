@@ -19,17 +19,9 @@
 #include <array>
 
 namespace mobileclock::ui {
-    PageManager::PageManager(AppSessionController& appSessionController, ApplicationStorage& storage)
-        : pageContext{static_cast<IPageNavigator&>(*this), appSessionController, storage}
+    PageManager::PageManager(AppSessionController& appSessionController, AlarmRepository& alarmRepository, AlarmMelodyRepository& alarmMelodyRepository)
+        : pageContext{static_cast<IPageNavigator&>(*this), appSessionController, alarmRepository, alarmMelodyRepository}
         , pages(this->pageContext) {
-        this->pageContext.saveAlarm = [this](const void* alarm, const AlarmSettings& settings) {
-            MainPageViewModel& page = this->pages.Get<MainPageViewModel>();
-            if (alarm != nullptr) {
-                return page.UpdateAlarm(alarm, settings);
-            }
-            page.AddAlarm(settings);
-            return true;
-        };
     }
 
     //
@@ -152,20 +144,13 @@ namespace mobileclock::ui {
         this->pages.Get<MainPageViewModel>().SetStatus(std::move(value));
     }
 
-    void PageManager::AddAlarmMelody(std::string name, std::string uri) {
-        auto edit = this->pageContext.storage.Edit();
-        const auto existing = std::find_if(edit->alarmMelodies.begin(), edit->alarmMelodies.end(), [&uri](const AlarmMelody& melody) {
-            return melody.uri == uri;
-        });
-        if (existing == edit->alarmMelodies.end()) {
-            edit->alarmMelodies.push_back({std::move(name), std::move(uri)});
-            edit.Commit();
-        }
+    void PageManager::AddAlarmMelody(AlarmMelody alarmMelody) {
+        this->pageContext.alarmMelodyRepository.SaveMelody(alarmMelody);
     }
 
-    void PageManager::SetAlarmMelody(std::string name, std::string uri) {
+    void PageManager::SetAlarmMelody(AlarmMelody alarmMelody) {
         AddAlarmPageViewModel& page = this->pages.Get<AddAlarmPageViewModel>();
-        page.SetMelody(std::move(name), std::move(uri));
+        page.SetMelody(std::move(alarmMelody));
     }
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

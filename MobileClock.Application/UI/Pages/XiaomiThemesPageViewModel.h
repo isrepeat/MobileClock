@@ -1,9 +1,10 @@
 #pragma once
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
-#include <XamlRuntime/Binding.h>
 #include <XamlRuntime/XamlLayout.h>
+#include <XamlRuntime/Binding.h>
 
+#include "UI/Pages/AlarmMelodyViewModel.h"
 #include "UI/ISerializable.h"
 #include "UI/PageRegistry.h"
 
@@ -23,27 +24,13 @@ namespace mobileclock::ui {
         inline static constexpr std::string_view PageName = "XiaomiThemesPage";
         inline static constexpr std::string_view PreviewGraphTitle = "Xiaomi Themes";
 
-        class Melody final {
-        public:
-            Melody(std::string name, std::string uri);
-
-            const std::string& Name() const;
-            const std::string& Uri() const;
-
-        private:
-            std::string name;
-            std::string uri;
-        };
-
         explicit XiaomiThemesPageViewModel(PageContext& context);
         ~XiaomiThemesPageViewModel() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         //
         // ISerializable
         //
         bool Deserialize(std::string_view json, std::string& error) override;
-#endif
 
         //
         // INavigationPage
@@ -56,10 +43,8 @@ namespace mobileclock::ui {
         void Update();
         void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
         xaml::Element& Root();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         xaml::runtime::RuntimeBindingContext RuntimeContext();
         void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
-#endif
 
     private:
         void ConnectControls();
@@ -69,13 +54,11 @@ namespace mobileclock::ui {
 
     private:
         PageContext& context;
-        std::vector<Melody> melodies;
+        std::vector<AlarmMelodyViewModel> melodies;
         std::optional<size_t> selectedMelody;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }
 #endif

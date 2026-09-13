@@ -773,7 +773,7 @@ namespace _details {
         Require(list.Children().size() == 2 && list.Children()[0].get() == retained,
             "remove did not retain the following item");
     }
-}
+} // namespace _details
 
 int main() {
     _details::PageTransitions();

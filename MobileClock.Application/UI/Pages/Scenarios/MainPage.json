@@ -5,47 +5,56 @@
       {
         "Time": "06:30",
         "Repeat": "Пн, Вт, Ср, Чт, Пт",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Morning", "Uri": "preview://xiaomi-themes/morning" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Lone Grass, Solitary Flower", "Uri": "preview://xiaomi-themes/lone-grass" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Positive Uplift", "Uri": "preview://xiaomi-themes/positive-uplift" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Under the Moon and Flowers", "Uri": "preview://xiaomi-themes/moon-flowers" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Never Loved Before", "Uri": "preview://xiaomi-themes/never-loved" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Electronic Jubilance", "Uri": "preview://xiaomi-themes/electronic-jubilance" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Vitality Forest", "Uri": "preview://xiaomi-themes/vitality-forest" }
       },
       {
         "Time": "07:15",
         "Repeat": "Каждый день",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Ocean Breeze", "Uri": "preview://demo/ocean-breeze" }
       },
       {
         "Time": "09:00",
         "Repeat": "Сб, Вс",
-        "IsEnabled": false
+        "IsEnabled": false,
+        "Melody": { "Name": "First Light", "Uri": "preview://demo/first-light" }
       }
     ],
     "$interactions": {
@@ -56,7 +65,8 @@
           "value": {
             "Time": "",
             "Repeat": "",
-            "IsEnabled": false
+            "IsEnabled": false,
+            "Melody": { "Name": "Calm Mind", "Uri": "preview://demo/calm-mind" }
           }
         }
       },
@@ -88,17 +98,20 @@
       {
         "Time": "05:10",
         "Repeat": "Пн, Вт, Ср, Чт, Пт",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Soft Bells", "Uri": "preview://demo/soft-bells" }
       },
       {
         "Time": "05:40",
         "Repeat": "Пн, Вт, Ср, Чт, Пт",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "New Day", "Uri": "preview://demo/new-day" }
       },
       {
         "Time": "06:05",
         "Repeat": "Будни",
-        "IsEnabled": false
+        "IsEnabled": false,
+        "Melody": { "Name": "Golden Hour", "Uri": "preview://demo/golden-hour" }
       }
     ],
     "$interactions": {
@@ -109,7 +122,8 @@
           "value": {
             "Time": "",
             "Repeat": "",
-            "IsEnabled": false
+            "IsEnabled": false,
+            "Melody": { "Name": "Forest Walk", "Uri": "preview://demo/forest-walk" }
           }
         }
       },
@@ -141,12 +155,14 @@
       {
         "Time": "08:30",
         "Repeat": "Сб",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "City Lights", "Uri": "preview://demo/city-lights" }
       },
       {
         "Time": "09:15",
         "Repeat": "Вс",
-        "IsEnabled": true
+        "IsEnabled": true,
+        "Melody": { "Name": "Still Waters", "Uri": "preview://demo/still-waters" }
       }
     ],
     "$interactions": {
@@ -157,7 +173,8 @@
           "value": {
             "Time": "",
             "Repeat": "",
-            "IsEnabled": false
+            "IsEnabled": false,
+            "Melody": { "Name": "Sunrise", "Uri": "preview://demo/sunrise" }
           }
         }
       },

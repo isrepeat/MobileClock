@@ -1,31 +1,29 @@
 #pragma once
+#include "Storage/AlarmRepository.h"
 #include "UI/Navigation.h"
-#include "UI/AlarmSettings.h"
 
 #include <string>
 
 namespace mobileclock::ui {
     class AlarmEditNavigationState final : public NavigationState {
     public:
-        AlarmEditNavigationState(const void* alarm, AlarmSettings settings);
+        AlarmEditNavigationState(std::string alarmId, Alarm settings);
 
-        const void* Alarm() const;
-        const AlarmSettings& Settings() const;
+        const std::string& AlarmId() const;
+        const Alarm& Settings() const;
 
     private:
-        const void* alarm = nullptr;
-        AlarmSettings settings;
+        std::string alarmId;
+        Alarm settings;
     };
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
     class AlarmMelodyNavigationState final : public NavigationState {
     public:
-        AlarmMelodyNavigationState(std::string name, std::string uri);
-        const std::string& Name() const;
-        const std::string& Uri() const;
+        explicit AlarmMelodyNavigationState(AlarmMelody alarmMelody);
+        const AlarmMelody& Melody() const;
     private:
-        std::string name;
-        std::string uri;
+        AlarmMelody alarmMelody;
     };
 #endif
 }

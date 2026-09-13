@@ -1,17 +1,15 @@
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include "UI/Pages/XiaomiThemesPageViewModel.h"
+#include "XiaomiThemesPageViewModel.h"
 
 #include <XamlRuntime/RenderEngine.h>
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-#include <JsonParser/JsonParser.h>
-#endif
+#include <JsonParser/json_struct/json_struct.h>
 
 #include "!Generated/MobileClock.Application/Xaml/Pages/XiaomiThemesPage.xaml.h"
 #include "UI/Pages/AddAlarmPageViewModel.h"
 #include "UI/NavigationStates.h"
 
-#include <format>
 #include <utility>
+#include <format>
 
 namespace mobileclock::ui::_details {
     xaml::Element* FindXiaomiThemesElement(xaml::Element& element, std::string_view id) {
@@ -26,7 +24,6 @@ namespace mobileclock::ui::_details {
         return nullptr;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     struct XiaomiThemesPreviewMelody final {
         std::string Name;
         std::string Uri;
@@ -39,35 +36,17 @@ namespace mobileclock::ui::_details {
 
         JS_OBJECT(JS_MEMBER(Melodies));
     };
-#endif
-}
+} // namespace _details
 
 namespace mobileclock::ui {
-    XiaomiThemesPageViewModel::Melody::Melody(std::string name, std::string uri)
-        : name(std::move(name))
-        , uri(std::move(uri)) {
-    }
-
-    //
-    // API
-    //
-    const std::string& XiaomiThemesPageViewModel::Melody::Name() const {
-        return this->name;
-    }
-
-    const std::string& XiaomiThemesPageViewModel::Melody::Uri() const {
-        return this->uri;
-    }
-
     XiaomiThemesPageViewModel::XiaomiThemesPageViewModel(PageContext& context)
         : context(context) {
-        this->melodies.emplace_back("Morning", "preview://xiaomi-themes/morning");
-        this->melodies.emplace_back("Lone Grass, Solitary Flower", "preview://xiaomi-themes/lone-grass");
-        this->melodies.emplace_back("Positive Uplift", "preview://xiaomi-themes/positive-uplift");
+        this->melodies.emplace_back(AlarmMelody{"morning", "Morning", "preview://xiaomi-themes/morning"});
+        this->melodies.emplace_back(AlarmMelody{"lone-grass", "Lone Grass, Solitary Flower", "preview://xiaomi-themes/lone-grass"});
+        this->melodies.emplace_back(AlarmMelody{"positive-uplift", "Positive Uplift", "preview://xiaomi-themes/positive-uplift"});
         this->selectedMelody = 0;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     //
     // ISerializable
     //
@@ -81,7 +60,7 @@ namespace mobileclock::ui {
         if (scenario.Melodies) {
             this->melodies.clear();
             for (const _details::XiaomiThemesPreviewMelody& melody : *scenario.Melodies) {
-                this->melodies.emplace_back(melody.Name, melody.Uri);
+                this->melodies.emplace_back(AlarmMelody{"", melody.Name, melody.Uri});
             }
             this->selectedMelody = this->melodies.empty() ? std::nullopt : std::optional<size_t>{0};
             this->RebuildMelodies();
@@ -89,7 +68,6 @@ namespace mobileclock::ui {
         }
         return true;
     }
-#endif
 
     //
     // INavigationPage
@@ -98,8 +76,8 @@ namespace mobileclock::ui {
         if (request.trigger != NavigationTrigger::applySelectedMelody || !this->selectedMelody) {
             return {};
         }
-        const Melody& melody = this->melodies[*this->selectedMelody];
-        return std::make_unique<AlarmMelodyNavigationState>(melody.Name(), melody.Uri());
+        const AlarmMelodyViewModel& melody = this->melodies[*this->selectedMelody];
+        return std::make_unique<AlarmMelodyNavigationState>(melody.Value());
     }
 
     bool XiaomiThemesPageViewModel::OnNavigatingTo(const NavigationRequest&, std::unique_ptr<NavigationState>) {
@@ -111,9 +89,7 @@ namespace mobileclock::ui {
     //
     void XiaomiThemesPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         this->runtimeBindings.reset();
-#endif
         this->page = xaml::generated::XiaomiThemesPage::Create(*this, this->bindings);
         this->ConnectControls();
         xaml::layout(*this->page, availableSize);
@@ -136,7 +112,6 @@ namespace mobileclock::ui {
         return *this->page;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     xaml::runtime::RuntimeBindingContext XiaomiThemesPageViewModel::RuntimeContext() {
         return {std::make_shared<xaml::runtime::RuntimeBindingRegistry>(), "XiaomiThemesPageViewModel", {}};
     }
@@ -148,7 +123,6 @@ namespace mobileclock::ui {
         this->runtimeBindings = std::move(result.bindings);
         this->ConnectControls();
     }
-#endif
 
     //
     // Internal
