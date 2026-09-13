@@ -15,6 +15,14 @@ namespace mobileclock::renderer::_details {
         return easing == "Linear" || easing == "CubicOut";
     }
 
+    bool ValidDirection(const std::string& direction) {
+        return direction.empty() || direction == "forward" || direction == "backward";
+    }
+
+    bool ValidPhase(const std::string& phase) {
+        return phase.empty() || phase == "enter" || phase == "exit";
+    }
+
     // Расширяет стандартный Wave для кнопки, не заменяя её базовый рендер.
     bool RenderWaveOutline(const xaml::Element& element, xaml::RenderContext<mobileclock::resources::effects::WaveAnimation>& context) {
         if (element.Type() != xaml::ElementType::button) {
@@ -48,17 +56,23 @@ namespace mobileclock::renderer::_details {
         return true;
     }
     bool ConfigurePageTransition(xaml::AnimationContext<mobileclock::resources::effects::PageTransitionAnimation>& context) {
-        if (context.Trigger() != xaml::AnimationTrigger::show && context.Trigger() != xaml::AnimationTrigger::hide) {
+        const bool visualState = context.Trigger() == xaml::AnimationTrigger::visualState;
+        if (!visualState && context.Trigger() != xaml::AnimationTrigger::show
+            && context.Trigger() != xaml::AnimationTrigger::hide) {
             return false;
         }
         const auto* data = context.Parameters().TryGet<mobileclock::presentation::PageTransitionData>();
-        const bool forward = data == nullptr
+        const bool forward = visualState
+            ? context.State().direction == "forward"
+            : data == nullptr
             || data->direction == mobileclock::presentation::NavigationDirection::forward;
-        const bool show = context.Trigger() == xaml::AnimationTrigger::show;
+        const bool show = visualState
+            ? context.State().phase == "enter"
+            : context.Trigger() == xaml::AnimationTrigger::show;
         const float direction = forward ? 1.0f : -1.0f;
         const auto& settings = context.State();
         const float distance = context.Target().Bounds().width * settings.distance;
-        if (context.IsStartingFromHidden()) {
+        if ((visualState && show) || context.IsStartingFromHidden()) {
             context.Transform().offsetX = direction * distance;
         }
         context.AnimateTransform(&xaml::VisualTransform::offsetX, show ? 0.0f : -direction * distance,
@@ -100,6 +114,8 @@ namespace mobileclock::renderer {
             xaml::Option("duration", &PageTransitionAnimation::duration, _details::ValidDuration),
             xaml::Option("distance", &PageTransitionAnimation::distance),
             xaml::Option("easing", &PageTransitionAnimation::easing, _details::ValidEasing),
+            xaml::Option("direction", &PageTransitionAnimation::direction, _details::ValidDirection),
+            xaml::Option("phase", &PageTransitionAnimation::phase, _details::ValidPhase),
         }, _details::ConfigurePageTransition);
         animations.Register<mobileclock::resources::effects::ContainerAnimation>("animationSettingsReveal", {
             xaml::Option("duration", &mobileclock::resources::effects::ContainerAnimation::duration, _details::ValidDuration),

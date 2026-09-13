@@ -31,17 +31,29 @@ namespace mobileclock::ui {
     // IPageNavigator
     //
     bool PageManager::Navigate(std::string_view pageName) {
+        const auto route = std::find_if(Routes().begin(), Routes().end(), [this, pageName](const NavigationRoute& candidate) {
+            return this->currentPage != nullptr && candidate.source == this->currentPage->Name()
+                && candidate.target == pageName;
+        });
+        return this->Navigate(pageName, route == Routes().end()
+            ? presentation::NavigationDirection::forward
+            : route->direction);
+    }
+
+    bool PageManager::Navigate(std::string_view pageName, presentation::NavigationDirection direction) {
         IPage* const page = this->pages.Find(pageName);
         if (page == nullptr || this->currentPage == page || this->isTransitioning) {
             return page != nullptr;
         }
         this->outgoingPage = this->currentPage;
         this->currentPage = page;
+        this->navigationDirection = direction;
         this->pages.ForEach([page](IPage& candidate) {
             candidate.Root().SetVisibility(&candidate == page
                 ? xaml::attr::Visibility::visible
                 : xaml::attr::Visibility::collapsed);
         });
+        SetNavigationVisualStates(this->outgoingPage, *this->currentPage, direction);
         this->isTransitioning = this->pages.IsAnyAnimating();
         return true;
     }
@@ -79,7 +91,7 @@ namespace mobileclock::ui {
                 route->target);
             return false;
         }
-        return this->Navigate(route->target);
+        return this->Navigate(route->target, route->direction);
     }
 
     std::string_view PageManager::CurrentPageName() const {
@@ -103,9 +115,7 @@ namespace mobileclock::ui {
             return xaml::AnimationParameters::Create(presentation::PageTransitionData{
                 this->outgoingPage == nullptr ? "" : std::string(this->outgoingPage->Name()),
                 this->currentPage == nullptr ? "" : std::string(this->currentPage->Name()),
-                this->currentPage == &this->pages.GetPage<MainPageViewModel>()
-                    ? presentation::NavigationDirection::backward
-                    : presentation::NavigationDirection::forward,
+                this->navigationDirection,
             });
         };
         this->pages.ForEach([&](IPage& page) {
@@ -345,8 +355,7 @@ namespace mobileclock::ui {
                 return xaml::AnimationParameters::Create(presentation::PageTransitionData{
                     this->outgoingPage == nullptr ? "" : std::string(this->outgoingPage->Name()),
                     this->currentPage == nullptr ? "" : std::string(this->currentPage->Name()),
-                    this->currentPage == &this->pages.GetPage<MainPageViewModel>()
-                        ? presentation::NavigationDirection::backward : presentation::NavigationDirection::forward});
+                    this->navigationDirection});
             });
             this->animations.Attach(*result.root, registry);
             registry.ValidateTree(*result.root);
@@ -434,26 +443,44 @@ namespace mobileclock::ui {
     //
     // Internal
     //
-    template <typename TSource, typename TTarget, NavigationTrigger TTrigger>
+    template <typename TSource, typename TTarget, NavigationTrigger TTrigger,
+        presentation::NavigationDirection TDirection>
     PageManager::NavigationRoute PageManager::MakeRoute() {
         return {
             TSource::PageName,
             TTrigger,
             TTarget::PageName,
+            TDirection,
         };
+    }
+
+    void PageManager::SetNavigationVisualStates(
+        IPage* outgoing,
+        IPage& current,
+        presentation::NavigationDirection direction) {
+        const std::string_view state = direction == presentation::NavigationDirection::forward
+            ? "Forward" : "Backward";
+        const auto set = [state](IPage& page) {
+            xaml::VisualStateManager::GoToState(page.Root(), "NavigationDirection", "Idle", false);
+            xaml::VisualStateManager::GoToState(page.Root(), "NavigationDirection", std::string(state));
+        };
+        if (outgoing != nullptr) {
+            set(*outgoing);
+        }
+        set(current);
     }
 
     std::span<const PageManager::NavigationRoute> PageManager::Routes() {
         static const std::array routes{
-            MakeRoute<MainPageViewModel, AddAlarmPageViewModel, NavigationTrigger::createAlarm>(),
-            MakeRoute<MainPageViewModel, SettingsPageViewModel, NavigationTrigger::navigateToSettings>(),
-            MakeRoute<AddAlarmPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain>(),
+            MakeRoute<MainPageViewModel, AddAlarmPageViewModel, NavigationTrigger::createAlarm, presentation::NavigationDirection::forward>(),
+            MakeRoute<MainPageViewModel, SettingsPageViewModel, NavigationTrigger::navigateToSettings, presentation::NavigationDirection::forward>(),
+            MakeRoute<AddAlarmPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain, presentation::NavigationDirection::backward>(),
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-            MakeRoute<AddAlarmPageViewModel, XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody>(),
-            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody>(),
-            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection>(),
+            MakeRoute<AddAlarmPageViewModel, XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody, presentation::NavigationDirection::forward>(),
+            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody, presentation::NavigationDirection::backward>(),
+            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection, presentation::NavigationDirection::backward>(),
 #endif
-            MakeRoute<SettingsPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain>(),
+            MakeRoute<SettingsPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain, presentation::NavigationDirection::backward>(),
         };
         return routes;
     }

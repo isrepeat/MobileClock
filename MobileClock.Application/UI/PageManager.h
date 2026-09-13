@@ -2,6 +2,8 @@
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Animation.h>
 
+#include "MobileClock.Presentation/PageTransition.h"
+
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include "UI/Pages/XiaomiThemesPageViewModel.h"
 #endif
@@ -75,12 +77,19 @@ namespace mobileclock::ui {
             std::string_view source;
             NavigationTrigger trigger;
             std::string_view target;
+            presentation::NavigationDirection direction;
         };
 
-        template <typename TSource, typename TTarget, NavigationTrigger TTrigger>
+        template <typename TSource, typename TTarget, NavigationTrigger TTrigger,
+            presentation::NavigationDirection TDirection>
         static NavigationRoute MakeRoute();
 
         static std::span<const NavigationRoute> Routes();
+        bool Navigate(std::string_view pageName, presentation::NavigationDirection direction);
+        static void SetNavigationVisualStates(
+            IPage* outgoing,
+            IPage& current,
+            presentation::NavigationDirection direction);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool ExecutePreviewRoute(std::span<const NavigationRoute*> route, std::string& error);
 #endif
@@ -91,6 +100,7 @@ namespace mobileclock::ui {
         ApplicationPages pages;
         IPage* currentPage = nullptr;
         IPage* outgoingPage = nullptr;
+        presentation::NavigationDirection navigationDirection = presentation::NavigationDirection::forward;
         bool isTransitioning = false;
         xaml::AnimationController animations;
         InputDispatcher inputDispatcher;

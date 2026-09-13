@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?mobileclock-preview-scenario path="Scenarios/XiaomiThemesPage.json"?>
-<Page background="#171813"
+<Page id="xiaomiThemesPage"
+      background="#171813"
       xmlns="urn:mobileclock:xaml">
     <Page.Storyboards>
         <Storyboard trigger="Show">
-            <Animation name="animationPageTransition"
-                       duration="240"
-                       distance="1"
-                       easing="CubicOut"/>
             <FloatAnimation property="opacity"
                             from="0"
                             to="1"
@@ -15,10 +12,6 @@
                             easing="CubicOut"/>
         </Storyboard>
         <Storyboard trigger="Hide">
-            <Animation name="animationPageTransition"
-                       duration="240"
-                       distance="1"
-                       easing="CubicOut"/>
             <FloatAnimation property="opacity"
                             from="Current"
                             to="0"
@@ -26,6 +19,33 @@
                             easing="CubicOut"/>
         </Storyboard>
     </Page.Storyboards>
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup name="NavigationDirection">
+            <VisualState name="Idle"><Storyboard/></VisualState>
+            <VisualState name="Forward">
+                <Storyboard>
+                    <Animation targetName="xiaomiThemesPage"
+                               name="animationPageTransition"
+                               duration="240"
+                               distance="1"
+                               easing="CubicOut"
+                               direction="forward"
+                               phase="enter"/>
+                </Storyboard>
+            </VisualState>
+            <VisualState name="Backward">
+                <Storyboard>
+                    <Animation targetName="xiaomiThemesPage"
+                               name="animationPageTransition"
+                               duration="240"
+                               distance="1"
+                               easing="CubicOut"
+                               direction="backward"
+                               phase="exit"/>
+                </Storyboard>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
     <Grid padding="32 44 32 24"
           verticalAlignment="Stretch"
           horizontalAlignment="Stretch">

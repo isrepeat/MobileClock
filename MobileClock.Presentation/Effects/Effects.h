@@ -11,6 +11,8 @@ namespace mobileclock::resources::effects {
         int duration = 0;
         float distance = 1.0f;
         std::string easing = "CubicOut";
+        std::string direction;
+        std::string phase;
     };
 
     struct WaveAnimation {
