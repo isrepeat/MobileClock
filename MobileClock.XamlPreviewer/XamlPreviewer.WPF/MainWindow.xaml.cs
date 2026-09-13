@@ -152,8 +152,10 @@ public partial class MainWindow : Window {
         this.RefreshPageNames();
         var lastMarkupPath = this.settings.LastMarkupPath;
         if (lastMarkupPath is not null && File.Exists(lastMarkupPath)) {
-            var lastPageName = Path.GetRelativePath(this.settings.XamlDirectory, lastMarkupPath);
-            if (this.PagePicker.Items.Contains(lastPageName)) {
+            var lastPageName = this.GetPagePickerPath(lastMarkupPath);
+            NativeRuntime.xr_log_info(
+                $"Preview restore: saved markup='{lastMarkupPath}', matched page='{lastPageName ?? "<none>"}'");
+            if (lastPageName is not null) {
                 this.PagePicker.SelectedItem = lastPageName;
             } else {
                 this.LoadMarkup(lastMarkupPath);
@@ -680,6 +682,7 @@ public partial class MainWindow : Window {
     }
 
     private void NavigationGraphActivePageChanged(string page) {
+        this.PersistNavigationPage(page);
         if (this.nativeApplicationSession?.IsTransitioning == true) {
             this.deferredNavigationEditorPage = page;
             return;
@@ -688,8 +691,7 @@ public partial class MainWindow : Window {
     }
 
     private void SelectNavigationPageInEditor(string page) {
-        var pagePath = this.PagePicker.Items.Cast<string>().FirstOrDefault(candidate =>
-            string.Equals(Path.GetFileNameWithoutExtension(candidate), page, StringComparison.Ordinal));
+        var pagePath = this.GetMarkupPathForNativePage(page);
         if (pagePath is not null) {
             this.PagePicker.SelectedItem = pagePath;
         }
@@ -910,10 +912,20 @@ public partial class MainWindow : Window {
             return;
         }
         this.PagePicker.ItemsSource = pages;
+        var savedPage = this.settings.LastMarkupPath is null
+            ? null
+            : pages.FirstOrDefault(candidate => string.Equals(
+                Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, candidate)),
+                this.settings.LastMarkupPath,
+                StringComparison.OrdinalIgnoreCase));
+        var mainPage = pages.FirstOrDefault(candidate =>
+            string.Equals(candidate, Path.Combine("Pages", "MainPage.xaml"), StringComparison.OrdinalIgnoreCase));
         this.PagePicker.SelectedItem = pages.Contains(previous)
             ? previous
-            : pages.Contains("Pages/MainPage.xaml")
-                ? "Pages/MainPage.xaml"
+            : savedPage is not null
+                ? savedPage
+                : mainPage is not null
+                    ? mainPage
                 : pages.FirstOrDefault();
         this.RefreshControlNames();
     }
@@ -1090,7 +1102,12 @@ public partial class MainWindow : Window {
 
     private void SaveSettings() {
         this.StoreCollapsedMarkupFoldings();
-        this.settings.LastMarkupPath = this.markupPath;
+        var nativePagePath = this.nativeApplicationSession is null
+            ? null
+            : this.GetMarkupPathForNativePage(this.nativeApplicationSession.CurrentPage);
+        this.settings.LastMarkupPath = nativePagePath is null
+            ? this.markupPath
+            : Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, nativePagePath));
         if (this.WindowState == WindowState.Normal) {
             this.settings.WindowWidth = this.Width;
             this.settings.WindowHeight = this.Height;
@@ -1111,6 +1128,43 @@ public partial class MainWindow : Window {
     private void PersistSettings() {
         if (this.settingsPersistenceReady) {
             this.SaveSettings();
+        }
+    }
+
+    private string? GetMarkupPathForNativePage(string page) {
+        return this.PagePicker.Items.Cast<string>().FirstOrDefault(candidate =>
+            string.Equals(Path.GetFileNameWithoutExtension(candidate), page, StringComparison.Ordinal));
+    }
+
+    private string? GetPagePickerPath(string markupPath) {
+        return this.PagePicker.Items.Cast<string>().FirstOrDefault(candidate => string.Equals(
+            Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, candidate)),
+            markupPath,
+            StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void PersistNavigationPage(string page) {
+        var pagePath = this.GetMarkupPathForNativePage(page);
+        if (pagePath is null) {
+            NativeRuntime.xr_log_info($"Preview navigation: could not map native page='{page}' to a markup file");
+            return;
+        }
+
+        var markupPath = Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, pagePath));
+        if (string.Equals(this.settings.LastMarkupPath, markupPath, StringComparison.Ordinal)) {
+            return;
+        }
+
+        this.settings.LastMarkupPath = markupPath;
+        if (this.settingsPersistenceReady) {
+            this.settings.Save();
+            if (!this.isSettingsDirty) {
+                this.updatingEditors = true;
+                this.SettingsEditor.Text = this.settings.ToJson();
+                this.updatingEditors = false;
+            }
+            NativeRuntime.xr_log_info(
+                $"Preview navigation: saved native page='{page}', markup='{this.settings.LastMarkupPath}'");
         }
     }
 
@@ -1466,9 +1520,14 @@ public partial class MainWindow : Window {
                     this.nativeApplicationSession.CurrentPage);
             }
             var targetPage = this.GetNativeApplicationPageName();
+            if (isNewSession) {
+                NativeRuntime.xr_log_info(
+                    $"Preview startup: markup='{this.markupPath}', selected='{this.PagePicker.SelectedItem}', target='{targetPage}', native='{this.nativeApplicationSession.CurrentPage}'");
+            }
             this.UpdateElementInspection();
             if (isNewSession) {
                 this.nativeApplicationSession.LoadPage(targetPage);
+                NativeRuntime.xr_log_info($"Preview startup after initial load: native='{this.nativeApplicationSession.CurrentPage}'");
             }
             if (this.pendingPreviewRoute is { Count: > 0 } route) {
                 NativeRuntime.xr_log_info($"Preview graph dispatches native route: {string.Join('>', route)}");
@@ -1491,6 +1550,11 @@ public partial class MainWindow : Window {
                     this.nativeApplicationSession.LoadRuntimeMarkup(
                         targetPage, File.ReadAllText(control.Path), control.Path);
                 }
+            }
+            if (isNewSession) {
+                NativeRuntime.xr_log_info($"Preview startup before final load: native='{this.nativeApplicationSession.CurrentPage}'");
+                this.nativeApplicationSession.LoadPage(targetPage);
+                NativeRuntime.xr_log_info($"Preview startup after final load: native='{this.nativeApplicationSession.CurrentPage}'");
             }
             this.nativeApplicationSession.UpdateAndRender();
             this.navigationGraphController.Synchronize(this.nativeApplicationSession.CurrentPage);

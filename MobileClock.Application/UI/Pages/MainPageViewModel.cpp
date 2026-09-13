@@ -19,6 +19,7 @@
 #include "UI/Pages/SettingsPageViewModel.h"
 #include "UI/Pages/AddAlarmPageViewModel.h"
 #include "UI/AppSessionController.h"
+#include "UI/NavigationStates.h"
 
 #include <stdexcept>
 #include <algorithm>
@@ -73,7 +74,7 @@ namespace mobileclock::ui {
             context.appSessionController.Dispatch(AppSessionSignal::uploadScreenshot, {});
         }) {
         for (Alarm& alarm : this->alarms) {
-            alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+            this->ConfigureAlarm(alarm);
         }
     }
 
@@ -81,6 +82,15 @@ namespace mobileclock::ui {
         : time(std::move(time))
         , repeat(std::move(repeat))
         , isEnabled(isEnabled) {
+        if (this->time.size() == 5) {
+            this->settings.hour = (this->time[0] - '0') * 10 + this->time[1] - '0';
+            this->settings.minute = (this->time[3] - '0') * 10 + this->time[4] - '0';
+        }
+        this->settings.days.fill(this->repeat == "Ежедневно");
+        constexpr std::array<std::string_view, 7> names{"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
+        for (size_t index = 0; index < names.size(); ++index) {
+            this->settings.days[index] = this->settings.days[index] || this->repeat.find(names[index]) != std::string::npos;
+        }
     }
 
     MainPageViewModel::Alarm::Alarm(const AlarmSettings& settings)
@@ -135,6 +145,10 @@ namespace mobileclock::ui {
         return this->toggleAlarmCommand;
     }
 
+    void MainPageViewModel::Alarm::SetAlarmBlockCommand(xaml::Element::Command value) {
+        this->alarmBlockCommand = std::move(value);
+    }
+
     void MainPageViewModel::Alarm::SetToggleAlarmCommand(xaml::Element::Command value) {
         this->toggleAlarmCommand = std::move(value);
     }
@@ -154,7 +168,7 @@ namespace mobileclock::ui {
             this->alarms.Clear();
             for (const _details::PreviewAlarm& alarmValue : *scenario.Alarms) {
                 Alarm& alarm = this->alarms.EmplaceBack(alarmValue.Time, alarmValue.Repeat, alarmValue.IsEnabled);
-                alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+                this->ConfigureAlarm(alarm);
             }
         }
         if (scenario.Status) {
@@ -167,7 +181,12 @@ namespace mobileclock::ui {
     //
     // INavigationPage
     //
-    std::unique_ptr<NavigationState> MainPageViewModel::OnNavigatingFrom(const NavigationRequest&) {
+    std::unique_ptr<NavigationState> MainPageViewModel::OnNavigatingFrom(const NavigationRequest& request) {
+        if (request.trigger == NavigationTrigger::editAlarm && this->alarmBeingEdited != nullptr) {
+            const Alarm* const alarm = this->alarmBeingEdited;
+            this->alarmBeingEdited = nullptr;
+            return std::make_unique<AlarmEditNavigationState>(alarm, alarm->Settings());
+        }
         return {};
     }
 
@@ -204,11 +223,43 @@ namespace mobileclock::ui {
 
     void MainPageViewModel::AddAlarm(const AlarmSettings& settings) {
         Alarm& alarm = this->alarms.EmplaceBack(settings);
-        alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
+        this->ConfigureAlarm(alarm);
+    }
+
+    bool MainPageViewModel::UpdateAlarm(const void* dataContext, const AlarmSettings& settings) {
+        std::vector<std::pair<AlarmSettings, bool>> values;
+        bool wasUpdated = false;
+        for (const Alarm& alarm : this->alarms) {
+            values.emplace_back(&alarm == dataContext ? settings : alarm.Settings(), alarm.IsEnabled());
+            wasUpdated = wasUpdated || &alarm == dataContext;
+        }
+        if (!wasUpdated) {
+            return false;
+        }
+        this->alarms.Clear();
+        for (const auto& [value, isEnabled] : values) {
+            Alarm& alarm = this->alarms.EmplaceBack(value);
+            alarm.SetIsEnabled(isEnabled);
+            this->ConfigureAlarm(alarm);
+        }
+        return true;
     }
 
     void MainPageViewModel::CreateAlarm() {
         this->context.navigator.Trigger(NavigationTrigger::createAlarm);
+    }
+
+    void MainPageViewModel::EditAlarm(const void* dataContext) {
+        const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [dataContext](const Alarm& value) {
+            return &value == dataContext;
+        });
+        if (alarm == this->alarms.end()) {
+            return;
+        }
+        this->alarmBeingEdited = &*alarm;
+        if (!this->context.navigator.Trigger(NavigationTrigger::editAlarm)) {
+            this->alarmBeingEdited = nullptr;
+        }
     }
 
     void MainPageViewModel::NavigateToSettings() {
@@ -387,5 +438,12 @@ namespace mobileclock::ui {
                 handler(property);
             }
         }
+    }
+
+    void MainPageViewModel::ConfigureAlarm(Alarm& alarm) {
+        alarm.SetAlarmBlockCommand([this, &alarm]() {
+            this->EditAlarm(&alarm);
+        });
+        alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
     }
 }

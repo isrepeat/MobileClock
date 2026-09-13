@@ -142,6 +142,31 @@ namespace mobileclock::resources::effects::_details {
         return true;
     }
 
+    bool RenderEdgeFade(const Element& element, RenderContext<EmptyState>& context, float direction) {
+        const auto fadeColor = element.Background();
+        context.Backend().DrawShader(
+            "edge-fade",
+            context.Bounds(),
+            {
+                {"direction", {direction}, 1},
+                {"fadeColor", {
+                    fadeColor.red,
+                    fadeColor.green,
+                    fadeColor.blue,
+                    context.Opacity(),
+                }, 4},
+            });
+        return true;
+    }
+
+    bool RenderTopEdgeFade(const Element& element, RenderContext<EmptyState>& context) {
+        return RenderEdgeFade(element, context, 0.0f);
+    }
+
+    bool RenderBottomEdgeFade(const Element& element, RenderContext<EmptyState>& context) {
+        return RenderEdgeFade(element, context, 1.0f);
+    }
+
 }
 
 namespace mobileclock::resources::effects {
@@ -204,6 +229,8 @@ namespace mobileclock::resources::effects {
     }
 
     void RegisterRenderers(RendererRegistry& renderers) {
+        renderers.Register<EmptyState>("rendererTopEdgeFade", _details::RenderTopEdgeFade);
+        renderers.Register<EmptyState>("rendererBottomEdgeFade", _details::RenderBottomEdgeFade);
         renderers.Register<Glow>("rendererGlow", _details::RenderGlow);
         renderers.Register<WaveAnimation>("rendererWave", _details::RenderWave);
     }

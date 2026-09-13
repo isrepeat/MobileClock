@@ -22,8 +22,13 @@ namespace mobileclock::ui {
     PageManager::PageManager(AppSessionController& appSessionController, ApplicationStorage& storage)
         : pageContext{static_cast<IPageNavigator&>(*this), appSessionController, storage}
         , pages(this->pageContext) {
-        this->pageContext.saveAlarm = [this](const AlarmSettings& settings) {
-            this->pages.Get<MainPageViewModel>().AddAlarm(settings);
+        this->pageContext.saveAlarm = [this](const void* alarm, const AlarmSettings& settings) {
+            MainPageViewModel& page = this->pages.Get<MainPageViewModel>();
+            if (alarm != nullptr) {
+                return page.UpdateAlarm(alarm, settings);
+            }
+            page.AddAlarm(settings);
+            return true;
         };
     }
 
@@ -473,6 +478,7 @@ namespace mobileclock::ui {
     std::span<const PageManager::NavigationRoute> PageManager::Routes() {
         static const std::array routes{
             MakeRoute<MainPageViewModel, AddAlarmPageViewModel, NavigationTrigger::createAlarm, presentation::NavigationDirection::forward>(),
+            MakeRoute<MainPageViewModel, AddAlarmPageViewModel, NavigationTrigger::editAlarm, presentation::NavigationDirection::forward>(),
             MakeRoute<MainPageViewModel, SettingsPageViewModel, NavigationTrigger::navigateToSettings, presentation::NavigationDirection::forward>(),
             MakeRoute<AddAlarmPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain, presentation::NavigationDirection::backward>(),
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

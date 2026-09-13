@@ -37,7 +37,13 @@ namespace mobileclock::ui::controls {
     GestureHandling AlarmMelodyList::ResolveInteractiveGesture(
         const PanState& state,
         GestureDirection direction) const {
-        return state.target.Id() == "melodyListItem" && direction == GestureDirection::left
+        if (state.target.Id() != "melodyListItem") {
+            return GestureHandling::ignored;
+        }
+        if (direction == GestureDirection::left) {
+            return GestureHandling::captured;
+        }
+        return direction == GestureDirection::right && this->openedItem == &state.target
             ? GestureHandling::captured : GestureHandling::ignored;
     }
 
@@ -48,8 +54,11 @@ namespace mobileclock::ui::controls {
     }
 
     void AlarmMelodyList::UpdateInteractiveGesture(const PanState& state) {
+        const float initialOffset = this->openedItem == &state.target
+            ? -_details::RevealWidth(state.target)
+            : 0.0f;
         const float offset = std::clamp(
-            state.currentX - state.downX,
+            initialOffset + state.currentX - state.downX,
             -_details::RevealWidth(state.target),
             0.0f);
         state.target.SetRenderOffsetX(offset);
@@ -57,7 +66,8 @@ namespace mobileclock::ui::controls {
 
     bool AlarmMelodyList::EndInteractiveGesture(const PanState& state, xaml::AnimationController& animations) {
         const float revealWidth = _details::RevealWidth(state.target);
-        const bool shouldReveal = state.currentX - state.downX < -revealWidth * _details::RevealThreshold;
+        const bool shouldReveal = this->openedItem != &state.target
+            && state.currentX - state.downX < -revealWidth * _details::RevealThreshold;
         const float targetOffset = shouldReveal ? -revealWidth : 0.0f;
         animations.Animate(
             state.target,

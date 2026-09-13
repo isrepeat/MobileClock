@@ -5,6 +5,7 @@
 namespace mobileclock::ui {
     enum class NavigationTrigger {
         createAlarm,
+        editAlarm,
         navigateToSettings,
         navigateToMain,
 #if defined(MOBILECLOCK_XAML_PREVIEWER)

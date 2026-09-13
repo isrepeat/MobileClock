@@ -2,10 +2,12 @@
 <UserControl x:Class="mobileclock::ui::controls::AlarmMelodyList"
              xmlns="urn:mobileclock:xaml"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer id="scrollableListScrollViewer"
-                  verticalAlignment="Stretch"
-                  horizontalAlignment="Stretch"
-                  verticalScrollBarVisibility="Auto">
+    <Grid verticalAlignment="Stretch"
+          horizontalAlignment="Stretch">
+        <ScrollViewer id="scrollableListScrollViewer"
+                      verticalAlignment="Stretch"
+                      horizontalAlignment="Stretch"
+                      verticalScrollBarVisibility="Auto">
         <ListView id="melodyChoices"
                   verticalAlignment="Stretch"
                   horizontalAlignment="Stretch"
@@ -75,5 +77,16 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-    </ScrollViewer>
+        </ScrollViewer>
+        <Border height="40"
+                verticalAlignment="Top"
+                horizontalAlignment="Stretch"
+                background="#001D2118"
+                renderer="rendererTopEdgeFade"/>
+        <Border height="40"
+                verticalAlignment="Bottom"
+                horizontalAlignment="Stretch"
+                background="#001D2118"
+                renderer="rendererBottomEdgeFade"/>
+    </Grid>
 </UserControl>

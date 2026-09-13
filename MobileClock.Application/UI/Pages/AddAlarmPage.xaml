@@ -52,6 +52,7 @@
         <rowDefinitions>
             <rowDefinition height="84"/>
             <rowDefinition height="*"/>
+            <rowDefinition height="96"/>
         </rowDefinitions>
         <Grid gridRow="0"
               horizontalAlignment="Stretch">
@@ -118,7 +119,7 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="05"
-                                   opacity="0.3"/>
+                                   opacity="1"/>
                         <TextBlock id="wheel0Row1"
                                    gridRow="1"
                                    verticalAlignment="Center"
@@ -127,7 +128,7 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="06"
-                                   opacity="0.65"/>
+                                   opacity="1"/>
                         <TextBlock id="wheel0Row2"
                                    gridRow="2"
                                    verticalAlignment="Center"
@@ -145,7 +146,7 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="08"
-                                   opacity="0.65"/>
+                                   opacity="1"/>
                         <TextBlock id="wheel0Row4"
                                    gridRow="4"
                                    verticalAlignment="Center"
@@ -154,7 +155,19 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="09"
-                                   opacity="0.3"/>
+                                   opacity="1"/>
+                        <Border gridRow="0"
+                                height="128"
+                                verticalAlignment="Top"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererTopEdgeFade"/>
+                        <Border gridRow="4"
+                                height="128"
+                                verticalAlignment="Bottom"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererBottomEdgeFade"/>
                     </Grid>
                     <Grid id="wheel1"
                           gridColumn="2"
@@ -176,7 +189,7 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="28"
-                                   opacity="0.3"/>
+                                   opacity="1"/>
                         <TextBlock id="wheel1Row1"
                                    gridRow="1"
                                    verticalAlignment="Center"
@@ -185,7 +198,7 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="29"
-                                   opacity="0.65"/>
+                                   opacity="1"/>
                         <TextBlock id="wheel1Row2"
                                    gridRow="2"
                                    verticalAlignment="Center"
@@ -203,7 +216,7 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="31"
-                                   opacity="0.65"/>
+                                   opacity="1"/>
                         <TextBlock id="wheel1Row4"
                                    gridRow="4"
                                    verticalAlignment="Center"
@@ -212,7 +225,19 @@
                                    fontWeight="Normal"
                                    foreground="#93937E"
                                    text="32"
-                                   opacity="0.3"/>
+                                   opacity="1"/>
+                        <Border gridRow="0"
+                                height="128"
+                                verticalAlignment="Top"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererTopEdgeFade"/>
+                        <Border gridRow="4"
+                                height="128"
+                                verticalAlignment="Bottom"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererBottomEdgeFade"/>
                     </Grid>
                     <TextBlock gridColumn="1"
                                verticalAlignment="Center"
@@ -395,5 +420,19 @@
                     </Grid>
                 </Border>
         </Grid>
+        <Button id="saveAlarmButton"
+                gridRow="2"
+                height="80"
+                margin="0 16 0 0"
+                padding="0"
+                verticalAlignment="Bottom"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                fontSize="28"
+                fontWeight="Bold"
+                foreground="#171813"
+                background="#E0B64D"
+                cornerRadius="22"
+                text="Сохранить"/>
     </Grid>
 </Page>

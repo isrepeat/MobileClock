@@ -46,7 +46,7 @@ namespace mobileclock::ui {
         IPageNavigator& navigator;
         AppSessionController& appSessionController;
         ApplicationStorage& storage;
-        std::function<void(const AlarmSettings&)> saveAlarm;
+        std::function<bool(const void*, const AlarmSettings&)> saveAlarm;
     };
 
     template <typename TViewModel>

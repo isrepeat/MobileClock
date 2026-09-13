@@ -31,6 +31,40 @@ namespace mobileclock::ui::_details {
     int WrapAlarmValue(int value, int count) {
         return (value % count + count) % count;
     }
+
+    bool AreEqual(const AlarmSettings& left, const AlarmSettings& right) {
+        return left.hour == right.hour
+            && left.minute == right.minute
+            && left.days == right.days
+            && left.melody == right.melody
+            && left.melodyUri == right.melodyUri
+            && left.vibration == right.vibration;
+    }
+
+    void RefreshMelodySelection(
+        xaml::Element& element,
+        const void* inheritedDataContext,
+        std::string_view selectedUri) {
+        const void* const dataContext = element.DataContext() == nullptr
+            ? inheritedDataContext
+            : element.DataContext();
+        if (element.Id() == "melodyListItem") {
+            const auto* const melody = static_cast<const AddAlarmPageViewModel::Melody*>(dataContext);
+            const bool isSelected = melody != nullptr && melody->Uri() == selectedUri;
+            element.SetBackground(isSelected
+                ? xaml::attr::Color{42.0f / 255, 47.0f / 255, 33.0f / 255, 1}
+                : xaml::attr::Color{26.0f / 255, 29.0f / 255, 22.0f / 255, 1});
+            element.SetBorderColor(isSelected
+                ? xaml::attr::Color{224.0f / 255, 182.0f / 255, 77.0f / 255, 1}
+                : xaml::attr::Color{0, 0, 0, 0});
+            element.SetBorderThickness(isSelected
+                ? xaml::attr::Thickness{2, 2, 2, 2}
+                : xaml::attr::Thickness{});
+        }
+        for (const auto& child : element.Children()) {
+            RefreshMelodySelection(*child, dataContext, selectedUri);
+        }
+    }
 }
 
 namespace mobileclock::ui {
@@ -115,7 +149,11 @@ namespace mobileclock::ui {
         const float distance = state.downY - state.currentY;
         const int steps = static_cast<int>(std::round(distance / this->rowHeight));
         int& value = this->activeColumn == 0 ? this->settings.hour : this->settings.minute;
-        value = _details::WrapAlarmValue(this->startValue + steps, this->activeColumn == 0 ? 24 : 60);
+        const int nextValue = _details::WrapAlarmValue(this->startValue + steps, this->activeColumn == 0 ? 24 : 60);
+        if (value != nextValue) {
+            value = nextValue;
+            this->MarkChanged();
+        }
         this->remainder = -distance + steps * this->rowHeight;
         this->RefreshWheel(this->activeColumn, this->remainder);
     }
@@ -135,6 +173,7 @@ namespace mobileclock::ui {
         }
         this->dragging = false;
         this->remainder = 0.0f;
+        this->MarkChanged();
         this->RefreshWheel(this->activeColumn, 0.0f);
     }
 
@@ -155,6 +194,20 @@ namespace mobileclock::ui {
         case NavigationTrigger::createAlarm:
             this->Reset();
             return true;
+        case NavigationTrigger::editAlarm: {
+            const auto* const alarm = dynamic_cast<const AlarmEditNavigationState*>(state.get());
+            if (alarm == nullptr || alarm->Alarm() == nullptr) {
+                return false;
+            }
+            this->settings = alarm->Settings();
+            this->initialSettings = this->settings;
+            this->editingAlarm = alarm->Alarm();
+            this->isEditing = true;
+            this->hasChanges = false;
+            this->saved = false;
+            this->Refresh();
+            return true;
+        }
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         case NavigationTrigger::applySelectedMelody: {
             const auto* const melody = dynamic_cast<const AlarmMelodyNavigationState*>(state.get());
@@ -175,9 +228,13 @@ namespace mobileclock::ui {
     //
     void AddAlarmPageViewModel::Reset() {
         this->settings = AlarmSettings{};
+        this->initialSettings = this->settings;
         this->dragging = false;
         this->remainder = 0.0f;
         this->saved = false;
+        this->isEditing = false;
+        this->hasChanges = false;
+        this->editingAlarm = nullptr;
         this->Refresh();
     }
 
@@ -215,8 +272,12 @@ namespace mobileclock::ui {
         if (!edit.Commit()) {
             return;
         }
+        const bool changed = this->settings.melody != name || this->settings.melodyUri != uri;
         this->settings.melody = std::move(name);
         this->settings.melodyUri = std::move(uri);
+        if (changed) {
+            this->MarkChanged();
+        }
         this->Refresh();
     }
 
@@ -334,10 +395,12 @@ namespace mobileclock::ui {
             this->NavigateToMain();
         });
         connect("saveAlarmButton", [this]() {
-            if (this->saved || !this->context.saveAlarm) {
+            if (this->saved || (this->isEditing && !this->hasChanges) || !this->context.saveAlarm) {
                 return;
             }
-            this->context.saveAlarm(this->settings);
+            if (!this->context.saveAlarm(this->editingAlarm, this->settings)) {
+                return;
+            }
             this->saved = true;
             this->context.navigator.Trigger(NavigationTrigger::navigateToMain);
         });
@@ -352,6 +415,7 @@ namespace mobileclock::ui {
         for (size_t day = 0; day < this->settings.days.size(); ++day) {
             connect(std::format("day{}", day), [this, day]() {
                 this->settings.days[day] = !this->settings.days[day];
+                this->MarkChanged();
                 this->Refresh();
             });
         }
@@ -390,6 +454,7 @@ namespace mobileclock::ui {
         if (this->settings.melodyUri == uri) {
             this->settings.melody = AlarmSettings{}.melody;
             this->settings.melodyUri.clear();
+            this->MarkChanged();
         }
         this->melodies.Erase(melody);
         this->Refresh();
@@ -418,6 +483,16 @@ namespace mobileclock::ui {
                 : this->settings.days == weekdays ? "По будням"
                 : this->settings.days == weekend ? "По выходным" : "Выбранные дни");
         }
+        _details::RefreshMelodySelection(*this->page, nullptr, this->settings.melodyUri);
+        this->RefreshSaveButton();
+    }
+
+    void AddAlarmPageViewModel::RefreshSaveButton() {
+        if (auto* button = this->Find("saveAlarmButton")) {
+            const bool isEnabled = !this->isEditing || this->hasChanges;
+            button->SetIsEnabled(isEnabled);
+            button->SetOpacity(isEnabled ? 1.0f : 0.45f);
+        }
     }
 
     void AddAlarmPageViewModel::RefreshWheel(int column, float offset) {
@@ -429,7 +504,7 @@ namespace mobileclock::ui {
                 text->SetRenderOffsetY(offset);
                 text->SetFontSize(48.0f + 52.0f * std::max(0.0f, 1.0f - distance));
                 text->SetFontWeight(row == 2 ? "Bold" : "Normal");
-                text->SetOpacity(std::clamp(1.0f - distance * 0.35f, 0.0f, 1.0f));
+                text->SetOpacity(1.0f);
             }
         }
     }
@@ -437,7 +512,17 @@ namespace mobileclock::ui {
     void AddAlarmPageViewModel::ChangeTime(int column, int steps) {
         int& value = column == 0 ? this->settings.hour : this->settings.minute;
         value = _details::WrapAlarmValue(value + steps, column == 0 ? 24 : 60);
+        this->MarkChanged();
         this->RefreshWheel(column, 0.0f);
+    }
+
+    void AddAlarmPageViewModel::MarkChanged() {
+        const bool wasChanged = this->hasChanges;
+        this->hasChanges = !_details::AreEqual(this->settings, this->initialSettings);
+        if (wasChanged == this->hasChanges) {
+            return;
+        }
+        this->RefreshSaveButton();
     }
 
     int AddAlarmPageViewModel::WheelColumn(const xaml::Element& element) const {

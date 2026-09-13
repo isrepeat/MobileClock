@@ -103,14 +103,17 @@ namespace mobileclock::ui {
         void OnStorageChange(const StorageChange& change);
         void RemoveMelody(std::string_view uri);
         void Refresh();
+        void RefreshSaveButton();
         void RefreshWheel(int column, float offset);
         void ChangeTime(int column, int steps);
+        void MarkChanged();
         int WheelColumn(const xaml::Element& element) const;
         xaml::Element* Find(std::string_view id) const;
 
     private:
         PageContext& context;
         AlarmSettings settings;
+        AlarmSettings initialSettings;
         xaml::ObservableCollection<Melody> melodies;
         ApplicationStorage::Unsubscribe storageSubscription;
         std::unique_ptr<xaml::Element> page;
@@ -124,5 +127,8 @@ namespace mobileclock::ui {
         float remainder = 0.0f;
         bool dragging = false;
         bool saved = false;
+        bool isEditing = false;
+        bool hasChanges = false;
+        const void* editingAlarm = nullptr;
     };
 }

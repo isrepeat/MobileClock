@@ -39,6 +39,7 @@ namespace mobileclock::ui {
             void SetIsEnabled(bool value);
             xaml::Element::Command AlarmBlockCommand() const;
             xaml::Element::Command ToggleAlarmCommand() const;
+            void SetAlarmBlockCommand(xaml::Element::Command value);
             void SetToggleAlarmCommand(xaml::Element::Command value);
 
         private:
@@ -84,7 +85,9 @@ namespace mobileclock::ui {
         const xaml::ObservableCollection<Alarm>& Alarms() const;
 
         void AddAlarm(const AlarmSettings& settings);
+        bool UpdateAlarm(const void* dataContext, const AlarmSettings& settings);
         void CreateAlarm();
+        void EditAlarm(const void* dataContext);
         void NavigateToSettings();
         xaml::Element::Command CreateAlarmCommand() const;
         xaml::Element::Command NavigateToSettingsCommand() const;
@@ -107,6 +110,7 @@ namespace mobileclock::ui {
 
     private:
         void NotifyPropertyChanged(Property property);
+        void ConfigureAlarm(Alarm& alarm);
 
     private:
         PageContext& context;
@@ -129,5 +133,6 @@ namespace mobileclock::ui {
         xaml::Element::Command toggleAlarmCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
+        const Alarm* alarmBeingEdited = nullptr;
     };
 }

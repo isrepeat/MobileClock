@@ -58,7 +58,8 @@ internal sealed class MobileClockSession : IDisposable {
     public int Width => this.renderer.Width;
 
     public void LoadPage(string page) {
-        if (this.loadedPage == page) {
+        if (this.loadedPage == page
+            && string.Equals(this.GetCurrentPage(), page, StringComparison.Ordinal)) {
             return;
         }
         NativeRuntime.Ensure(NativeRuntime.mc_load_page(this.session, page) != 0);
