@@ -7,7 +7,7 @@
 #include <string>
 #include <memory>
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     AssetsManager::AssetsManager(JNIEnv* env, jobject javaAssetManager)
         : assetManager(AAssetManager_fromJava(env, javaAssetManager)) {
         if (this->assetManager == nullptr) {

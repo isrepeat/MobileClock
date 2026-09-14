@@ -7,7 +7,7 @@ namespace xaml {
     class Element;
 }
 
-namespace mobileclock::ui {
+namespace mobileclock::application::core {
     class ApplicationSession;
 }
 
@@ -30,7 +30,7 @@ namespace xaml::bridge {
             unsigned char* destination,
             int destinationStride);
         void Render(
-            const mobileclock::ui::ApplicationSession& session,
+            const mobileclock::application::core::ApplicationSession& session,
             unsigned char* destination,
             int destinationStride);
 

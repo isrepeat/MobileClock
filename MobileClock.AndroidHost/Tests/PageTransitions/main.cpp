@@ -3,8 +3,8 @@
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
 
-#include "MobileClock.Presentation/AnimationRenderers.h"
-#include "MobileClock.Presentation/PageTransition.h"
+#include "MobileClock.Presentation/Renderer/AnimationRenderers.h"
+#include "MobileClock.Presentation/Core/PageTransition.h"
 #include "NavigationTransition.xaml.h"
 #include "PageTransitions.xaml.h"
 
@@ -103,9 +103,9 @@ namespace _details {
     void PageTransitions() {
         using namespace xaml;
         AnimationController controller;
-        using namespace mobileclock::presentation;
-        AnimationRegistry animations = mobileclock::resources::effects::CreateAnimations();
-        mobileclock::renderer::RegisterAnimations(animations);
+        using namespace mobileclock::presentation::core;
+        AnimationRegistry animations = mobileclock::presentation::effects::CreateAnimations();
+        mobileclock::presentation::renderer::RegisterAnimations(animations);
         int viewModel = 0;
         BindingScope bindings;
         auto generatedPage = generated::NavigationTransition::Create(viewModel, bindings);
@@ -148,8 +148,8 @@ namespace _details {
 
     void PageTransitionOptions() {
         using namespace xaml;
-        AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
-        mobileclock::renderer::RegisterAnimations(registry);
+        AnimationRegistry registry = mobileclock::presentation::effects::CreateAnimations();
+        mobileclock::presentation::renderer::RegisterAnimations(registry);
         AnimationController controller;
         Element page(ElementType::page);
         AnimationTrack slide;
@@ -218,7 +218,7 @@ namespace _details {
             track.easing = Easing::linear;
             toggle.AddStoryboard({AnimationTrigger::toggled, {track}});
             AnimationController controller;
-            controller.Attach(toggle, mobileclock::resources::effects::CreateAnimations());
+            controller.Attach(toggle, mobileclock::presentation::effects::CreateAnimations());
             Require(HandleTap(toggle), "toggle tap not handled");
             controller.Start(toggle, AnimationTrigger::toggled);
             Require(Near(toggle.ToggleProgress(), initiallyOn ? 1.0f : 0.0f),
@@ -256,7 +256,7 @@ namespace _details {
                 true, false, std::chrono::milliseconds(220), Easing::linear}}}},
         }}});
         AnimationController controller;
-        controller.Attach(host, mobileclock::resources::effects::CreateAnimations());
+        controller.Attach(host, mobileclock::presentation::effects::CreateAnimations());
         Require(VisualStateManager::GoToState(host, "PanelStates", "Expanded"),
             "visual state was not found");
         AnimationController::Update(host, std::chrono::milliseconds(110));
@@ -376,7 +376,7 @@ namespace _details {
         hidden->SetVisibility(attr::Visibility::collapsed);
         root.AddChild(std::move(hidden));
         layout(root, {300, 300});
-        controller.Attach(root, mobileclock::resources::effects::CreateAnimations());
+        controller.Attach(root, mobileclock::presentation::effects::CreateAnimations());
         const float height = root.DesiredSize().height;
         root.SetVisibility(attr::Visibility::collapsed);
         Require(button->VisibilityValue() == attr::Visibility::visible, "child visibility was changed");
@@ -482,10 +482,10 @@ namespace _details {
 
     void TypedRegistration() {
         using namespace xaml;
-        StateRegistry states = mobileclock::resources::effects::CreateStates();
+        StateRegistry states = mobileclock::presentation::effects::CreateStates();
         states.Register<TestState>();
         AnimationRegistry registry(states);
-        mobileclock::resources::effects::RegisterAnimations(registry);
+        mobileclock::presentation::effects::RegisterAnimations(registry);
         registry.Register<TestState>("animationTest", {
             Option("target", &TestState::target),
             Option("duration", &TestState::duration, ValidDuration),
@@ -571,18 +571,18 @@ namespace _details {
         xaml::RendererRegistry emptyRenderers;
         emptyRenderers.Prepare(button);
         controller.Start(button, xaml::AnimationTrigger::pointerDown);
-        Require(!button.States().Contains<mobileclock::resources::effects::Glow>(), "runtime registered a host effect");
+        Require(!button.States().Contains<mobileclock::presentation::effects::Glow>(), "runtime registered a host effect");
         Require(!controller.IsAnimating(), "unknown host animation started");
 
-        controller.Attach(button, mobileclock::resources::effects::CreateAnimations());
+        controller.Attach(button, mobileclock::presentation::effects::CreateAnimations());
         controller.Start(button, xaml::AnimationTrigger::pointerDown);
         xaml::AnimationController::Update(button, std::chrono::milliseconds(300));
-        Require(Near(button.State<mobileclock::resources::effects::Glow>().intensity, 0.8f), "host effect was not registered");
+        Require(Near(button.State<mobileclock::presentation::effects::Glow>().intensity, 0.8f), "host effect was not registered");
     }
 
     void GlowAndMixedTracks() {
         using namespace xaml;
-        AnimationRegistry registry = mobileclock::resources::effects::CreateAnimations();
+        AnimationRegistry registry = mobileclock::presentation::effects::CreateAnimations();
         AnimationController controller;
         Element button(ElementType::button);
         button.SetRenderer("rendererGlow");
@@ -605,16 +605,16 @@ namespace _details {
         controller.Start(button, AnimationTrigger::pointerDown);
         AnimationController::Update(button, std::chrono::milliseconds(100));
         Require(button.PressProgress() == 1, "property track not advanced");
-        const float current = button.State<mobileclock::resources::effects::Glow>().intensity;
+        const float current = button.State<mobileclock::presentation::effects::Glow>().intensity;
         Require(current > 0 && current < 0.8f, "glow field not interpolated");
-        RendererRegistry renderers = mobileclock::resources::effects::CreateRenderers();
+        RendererRegistry renderers = mobileclock::presentation::effects::CreateRenderers();
         RecordingBackend backend;
         Render(button, backend, renderers);
         Require(Near(backend.OutlineOpacity(), current), "glow renderer uses another state");
         controller.Start(button, AnimationTrigger::pointerUp);
-        Require(Near(button.State<mobileclock::resources::effects::Glow>().intensity, current), "glow reversal jumped");
+        Require(Near(button.State<mobileclock::presentation::effects::Glow>().intensity, current), "glow reversal jumped");
         AnimationController::Update(button, std::chrono::milliseconds(150));
-        Require(button.State<mobileclock::resources::effects::Glow>().intensity == 0 && !controller.IsAnimating(), "glow not completed");
+        Require(button.State<mobileclock::presentation::effects::Glow>().intensity == 0 && !controller.IsAnimating(), "glow not completed");
 
         Element pulse(ElementType::button);
         AnimationTrack wave;
@@ -626,7 +626,7 @@ namespace _details {
         controller.Attach(pulse, registry);
         controller.Start(pulse, AnimationTrigger::pointerDown);
         AnimationController::Update(pulse, std::chrono::milliseconds(50));
-        Require(Near(pulse.State<mobileclock::resources::effects::WaveAnimation>().progress, 0.5f) && Near(pulse.State<mobileclock::resources::effects::WaveAnimation>().intensity, 0.75f),
+        Require(Near(pulse.State<mobileclock::presentation::effects::WaveAnimation>().progress, 0.5f) && Near(pulse.State<mobileclock::presentation::effects::WaveAnimation>().intensity, 0.75f),
             "wave options not bound");
 
         Element property(ElementType::border);
@@ -643,10 +643,10 @@ namespace _details {
 
     void ParametersAndReversal() {
         using namespace xaml;
-        StateRegistry states = mobileclock::resources::effects::CreateStates();
+        StateRegistry states = mobileclock::presentation::effects::CreateStates();
         states.Register<TestState>();
         AnimationRegistry registry(states);
-        mobileclock::resources::effects::RegisterAnimations(registry);
+        mobileclock::presentation::effects::RegisterAnimations(registry);
         registry.Register<TestState>("animationTest", {
             Option("target", &TestState::target),
             Option("duration", &TestState::duration, ValidDuration),
@@ -681,10 +681,10 @@ namespace _details {
 
     void RenderingAndFallback() {
         using namespace xaml;
-        StateRegistry states = mobileclock::resources::effects::CreateStates();
+        StateRegistry states = mobileclock::presentation::effects::CreateStates();
         states.Register<TestState>();
         AnimationRegistry registry(states);
-        mobileclock::resources::effects::RegisterAnimations(registry);
+        mobileclock::presentation::effects::RegisterAnimations(registry);
         registry.Register<VisualTransform>("animationFixed", {}, AnimateFixed);
         registry.Register<TestState>("animationExtended", {}, AnimateExtended);
         registry.Register<TestState>("animationRejected", {}, AnimateRejected);
@@ -702,7 +702,7 @@ namespace _details {
         const float originalY = target->Bounds().y;
         controller.Attach(root, registry, true);
         root.SetRenderer("rendererChildren");
-        RendererRegistry renderers = mobileclock::resources::effects::CreateRenderers();
+        RendererRegistry renderers = mobileclock::presentation::effects::CreateRenderers();
         renderers.Register<EmptyState>("rendererChildren", RenderChildren);
         RecordingBackend backend;
         Render(root, backend, renderers);

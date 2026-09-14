@@ -6,7 +6,7 @@
 
 struct AAssetManager;
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     class AssetsManager {
     public:
         AssetsManager(JNIEnv* env, jobject javaAssetManager);

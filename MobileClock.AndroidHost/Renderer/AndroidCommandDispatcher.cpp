@@ -1,8 +1,8 @@
 #include <jni.h>
 
-#include "Renderer/AndroidCommandDispatcher.h"
+#include "AndroidCommandDispatcher.h"
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     AndroidCommandDispatcher::~AndroidCommandDispatcher() {
         this->ClearDispatcher();
     }
@@ -11,8 +11,8 @@ namespace mobileclock::renderer {
     // API
     //
     void AndroidCommandDispatcher::Dispatch(
-        mobileclock::ui::AppSessionSignal signal,
-        const mobileclock::ui::AppSessionSignalData& data) const {
+        mobileclock::application::core::AppSessionSignal signal,
+        const mobileclock::application::core::AppSessionSignalData& data) const {
         if (this->javaVm == nullptr || this->dispatcher == nullptr || this->dispatchMethod == nullptr) {
             return;
         }

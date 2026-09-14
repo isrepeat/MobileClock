@@ -2,8 +2,8 @@
 #include <XamlRuntime/RuntimeMarkup/XamlParser.h>
 #include <XamlRuntime/Input.h>
 
-#include "MobileClock.UI/Controls/AlarmList.h"
-#include "UI/AppSessionController.h"
+#include "MobileClock.UI/Control/AlarmList.h"
+#include "MobileClock.Application/Core/AppSessionController.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -35,8 +35,8 @@ namespace mobileclock::tests::_details {
         return nullptr;
     }
 
-    ui::controls::AlarmList* List(xaml::Element& node) {
-        if (auto* control = dynamic_cast<ui::controls::AlarmList*>(&node)) {
+    ui::control::AlarmList* List(xaml::Element& node) {
+        if (auto* control = dynamic_cast<ui::control::AlarmList*>(&node)) {
             return control;
         }
         for (const auto& child : node.Children()) {
@@ -50,7 +50,7 @@ namespace mobileclock::tests::_details {
 
 namespace mobileclock::tests::_details {
 
-    void FinishNavigation(ui::ApplicationSession& session) {
+    void FinishNavigation(mobileclock::application::core::ApplicationSession& session) {
         for (int iteration = 0; iteration < 100; ++iteration) {
             session.Update();
             if (!session.IsTransitioning()) {
@@ -61,7 +61,7 @@ namespace mobileclock::tests::_details {
         Check(false, "Page transition did not finish");
     }
 
-    void CompleteAlarm(ui::ApplicationSession& session) {
+    void CompleteAlarm(mobileclock::application::core::ApplicationSession& session) {
         Find(session.Root(), "addAlarmButton")->ExecuteCommand();
         Check(session.Root().Id() == "addAlarmPage", "Add button must open the form");
         FinishNavigation(session);
@@ -71,11 +71,11 @@ namespace mobileclock::tests::_details {
     }
 
     void CheckAlarmForm(const std::string& project) {
-        ui::ApplicationStateStore stateStore;
-        ui::AlarmRepository alarmRepository(stateStore);
-        ui::AlarmMelodyRepository alarmMelodyRepository(stateStore);
-        ui::AppSessionController appSessionController(alarmRepository, alarmMelodyRepository);
-        ui::ApplicationSession& session = appSessionController.Session();
+        mobileclock::application::core::ApplicationStateStore stateStore;
+        mobileclock::application::model::AlarmRepository alarmRepository(stateStore);
+        mobileclock::application::model::AlarmMelodyRepository alarmMelodyRepository(stateStore);
+        mobileclock::application::core::AppSessionController appSessionController(alarmRepository, alarmMelodyRepository);
+        mobileclock::application::core::ApplicationSession& session = appSessionController.Session();
         session.Initialize({720, 1440});
         session.SetAnimationPlaybackRate(100.0f);
         Check(!xaml::AnimationController::IsAnimating(session.Root()), "Initial page must not animate");
@@ -140,7 +140,7 @@ namespace mobileclock::tests::_details {
         session.PointerUp(melodyBounds.x + melodyBounds.width / 2, melodyBounds.y + melodyBounds.height / 2 - 200);
         Check(melodyScrollViewer->VerticalOffset() > 0, "Melody list pan must scroll");
         const auto scrollOffset = melodyScrollViewer->VerticalOffset();
-        const auto scrollableListPath = project + "/MobileClock.UI/Controls/AlarmMelodyList.xaml";
+        const auto scrollableListPath = project + "/MobileClock.UI/Control/AlarmMelodyList.xaml";
         std::string diagnostics;
         Check(session.ReloadMarkup("AddAlarmPage", Read(scrollableListPath), scrollableListPath, diagnostics), diagnostics);
         melodyScrollViewer = Find(session.Root(), "scrollableListScrollViewer");
@@ -153,7 +153,7 @@ namespace mobileclock::tests::_details {
         Check(session.Root().State<xaml::VisualTransform>().offsetX < 0, "Back navigation must enter from the left");
         FinishNavigation(session);
         Check(items->Children().size() == initialCount + 1, "Save must create exactly one alarm");
-        const auto* alarm = static_cast<const ui::AlarmViewModel*>(items->Children().back()->DataContext());
+        const auto* alarm = static_cast<const ui::view_model::AlarmViewModel*>(items->Children().back()->DataContext());
         Check(alarm != nullptr && alarm->Time() == "00:00", "Saved time");
         Check(alarm->Repeat() == "Однократно", "Saved repeat");
         Check(!alarm->Settings().melodyId.empty() && alarm->Settings().vibration, "Saved sound settings");
@@ -178,20 +178,20 @@ int main(int argc, char** argv) {
         Check(ast.children[0].location.line == 2 && ast.children[0].location.column == 1, "Source location");
         Check(ast.children[0].attributes[0].value.find("a & b") == 0, "XML entities");
         CheckAlarmForm(project);
-        mobileclock::ui::ApplicationStateStore stateStore;
-        mobileclock::ui::AlarmRepository alarmRepository(stateStore);
-        mobileclock::ui::AlarmMelodyRepository alarmMelodyRepository(stateStore);
-        mobileclock::ui::AppSessionController appSessionController(alarmRepository, alarmMelodyRepository);
-        mobileclock::ui::ApplicationSession& session = appSessionController.Session();
+        mobileclock::application::core::ApplicationStateStore stateStore;
+        mobileclock::application::model::AlarmRepository alarmRepository(stateStore);
+        mobileclock::application::model::AlarmMelodyRepository alarmMelodyRepository(stateStore);
+        mobileclock::application::core::AppSessionController appSessionController(alarmRepository, alarmMelodyRepository);
+        mobileclock::application::core::ApplicationSession& session = appSessionController.Session();
         session.Initialize({1080, 1920});
         session.SetAnimationPlaybackRate(100.0f);
         std::string diagnostics;
         for (const std::string name : {"MainPage", "SettingsPage", "AddAlarmPage"}) {
-            const auto path = project + "/MobileClock.Application/UI/Pages/" + name + ".xaml";
+            const auto path = project + "/MobileClock.Application/UI/Page/" + name + ".xaml";
             const auto markup = Read(path);
             Check(session.ReloadMarkup(name, markup, path, diagnostics), diagnostics);
         }
-        const auto mainPath = project + "/MobileClock.Application/UI/Pages/MainPage.xaml";
+        const auto mainPath = project + "/MobileClock.Application/UI/Page/MainPage.xaml";
         const auto mainMarkup = Read(mainPath);
         auto* control = List(session.Root());
         Check(control != nullptr, "MainPage native list");
@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
             Check(Find(session.Root(), "status")->Text() == std::to_string(iteration), "Repeated subscriptions");
         }
         Check(session.ReloadMarkup("MainPage", mainMarkup, mainPath, diagnostics), diagnostics);
-        const auto templatePath = project + "/MobileClock.UI/Controls/AlarmList.xaml";
+        const auto templatePath = project + "/MobileClock.UI/Control/AlarmList.xaml";
         Check(session.ReloadMarkup("MainPage", Read(templatePath), templatePath, diagnostics), diagnostics);
         auto* list = List(session.Root());
         auto* items = Find(*list, "interactiveListItems");
@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
         Check(session.ReloadMarkup("MainPage", changedTemplate, templatePath, diagnostics), diagnostics);
         Check(List(session.Root()) == list, "Template reload must preserve native control");
         Check(Find(*list, "interactiveListItem")->Height() == 250, "Template visual was not updated");
-        const auto tabsPath = project + "/MobileClock.UI/Controls/TimelineTabs.xaml";
+        const auto tabsPath = project + "/MobileClock.UI/Control/TimelineTabs.xaml";
         Check(session.ReloadMarkup("MainPage", Read(tabsPath), tabsPath, diagnostics), diagnostics);
         for (int index = 0; index < 10; ++index) {
             CompleteAlarm(session);
@@ -283,7 +283,7 @@ int main(int argc, char** argv) {
         gesture = Find(*list, "interactiveListGestureTarget");
         xaml::AnimationController removalAnimations;
         const auto beforeRemoval = Find(*list, "interactiveListItems")->Children().size();
-        Check(static_cast<ui::IGestureTarget&>(*list).EndGesture(
+        Check(static_cast<mobileclock::ui::interface::IGestureTarget&>(*list).EndGesture(
             {session.Root(), *gesture, 0, 0, 0, 0, 300, 0}, removalAnimations),
             "Native removal handler was lost");
         std::this_thread::sleep_for(std::chrono::milliseconds(240));

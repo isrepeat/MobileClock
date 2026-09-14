@@ -1,7 +1,7 @@
 #pragma once
 #include <XamlRuntime/RenderEngine.h>
 
-namespace mobileclock::resources::effects {
+namespace mobileclock::presentation::effects {
     struct ContainerAnimation {
         int duration = 180;
         float distance = 24.0f;

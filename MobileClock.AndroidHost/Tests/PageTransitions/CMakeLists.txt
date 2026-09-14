@@ -10,7 +10,7 @@ file(GLOB_RECURSE page_transition_test_source_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_LIST_DIR}/*.h"
 )
 file(GLOB_RECURSE page_transition_test_xaml_files CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_LIST_DIR}/../../../MobileClock.Application/UI/Pages/Examples/Pages/*.xaml"
+    "${CMAKE_CURRENT_LIST_DIR}/../../../MobileClock.Application/UI/Page/Example/Page/*.xaml"
 )
 set(page_transition_test_generated_files)
 foreach (page_transition_test_xaml_file IN LISTS page_transition_test_xaml_files)

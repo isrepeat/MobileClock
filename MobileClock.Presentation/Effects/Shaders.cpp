@@ -1,6 +1,6 @@
 #include "Shaders.h"
 
-namespace mobileclock::resources::effects::_details {
+namespace mobileclock::presentation::effects::_details {
     constexpr char ButtonWaveVertexShader[] = R"(#version 300 es
 
         layout (location = 0) in vec2 position;
@@ -75,9 +75,9 @@ namespace mobileclock::resources::effects::_details {
         }
     )";
 
-}
+} // namespace _details
 
-namespace mobileclock::resources::effects {
+namespace mobileclock::presentation::effects {
     es_renderer::OpenGlRenderer::ShaderProgramSources CreateShaderPrograms() {
         return {
             {"button-wave", {_details::ButtonWaveVertexShader, _details::ButtonWaveFragmentShader}},

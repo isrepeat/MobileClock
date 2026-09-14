@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace mobileclock::resources::effects::_details {
+namespace mobileclock::presentation::effects::_details {
     using namespace xaml;
 
     bool NonNegativeDuration(const int& value) {
@@ -167,9 +167,9 @@ namespace mobileclock::resources::effects::_details {
         return RenderEdgeFade(element, context, 1.0f);
     }
 
-}
+} // namespace _details
 
-namespace mobileclock::resources::effects {
+namespace mobileclock::presentation::effects {
     using namespace xaml;
 
     void RenderWave(const Element& element, RenderContext<WaveAnimation>& context) {

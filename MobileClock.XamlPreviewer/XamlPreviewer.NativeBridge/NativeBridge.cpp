@@ -18,17 +18,17 @@
 #undef DrawText
 #endif
 
-#include "../../MobileClock.Application/UI/AppSessionController.h"
-#include "../../MobileClock.Application/Storage/AlarmRepository.h"
-#include "../../MobileClock.Presentation/PreviewSession.h"
+#include "../../MobileClock.Presentation/Core/PreviewSession.h"
+#include "../../MobileClock.Application/Core/AppSessionController.h"
+#include "../../MobileClock.Application/Model/AlarmRepository.h"
 #include "AngleRenderSurface.h"
 
 #include <unordered_map>
 #include <string_view>
 #include <filesystem>
+#include <functional>
 #include <algorithm>
 #include <stdexcept>
-#include <functional>
 #include <fstream>
 #include <cstring>
 #include <format>
@@ -258,7 +258,7 @@ namespace xaml::bridge {
 }
 
 struct xr_animation_controller {
-    mobileclock::presentation::PreviewSession value;
+    mobileclock::presentation::core::PreviewSession value;
     xaml::ScrollController scrollController;
 };
 
@@ -283,6 +283,7 @@ struct xr_angle_surface {
 };
 
 namespace mobileclock::preview::_details {
+    namespace model = mobileclock::application::model;
     std::filesystem::path PreviewerStatePath() {
         std::vector<wchar_t> executablePath(MAX_PATH);
         DWORD length = 0;
@@ -308,19 +309,19 @@ namespace mobileclock::preview::_details {
         //
         // API
         //
-        ui::ApplicationStateDocument Load() const {
+        model::ApplicationStateDocument Load() const {
             std::ifstream stream(this->path, std::ios::binary);
             if (!stream) {
                 return {};
             }
             const std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
-            ui::ApplicationStateDocument document;
+            model::ApplicationStateDocument document;
             JS::ParseContext context(json.data(), json.size());
             return context.parseTo(document) == JS::Error::NoError
-                ? document : ui::ApplicationStateDocument{};
+                ? document : model::ApplicationStateDocument{};
         }
 
-        bool Save(const ui::ApplicationStateDocument& data) const {
+        bool Save(const model::ApplicationStateDocument& data) const {
             return this->Write(data);
         }
 
@@ -335,7 +336,7 @@ namespace mobileclock::preview::_details {
             }
         }
 
-        bool Write(const ui::ApplicationStateDocument& data) const {
+        bool Write(const model::ApplicationStateDocument& data) const {
             const std::filesystem::path temporaryPath = this->path.string() + ".tmp";
             std::ofstream stream(temporaryPath, std::ios::binary | std::ios::trunc);
             if (!stream) {
@@ -368,7 +369,7 @@ namespace mobileclock::preview::_details {
 struct mc_session {
     explicit mc_session(int width, int height)
         : stateStorage(mobileclock::preview::_details::PreviewerStatePath())
-        , stateStore(stateStorage.Load(), [this](const mobileclock::ui::ApplicationStateDocument& data) {
+        , stateStore(stateStorage.Load(), [this](const mobileclock::application::model::ApplicationStateDocument& data) {
             return this->stateStorage.Save(data);
         })
         , alarmRepository(stateStore)
@@ -380,14 +381,14 @@ struct mc_session {
             throw std::invalid_argument("Session dimensions must be positive");
         }
         this->appSessionController.SetHostEventHandler([this](
-            mobileclock::ui::AppSessionSignal signal,
-            const mobileclock::ui::AppSessionSignalData&) {
-            if (signal != mobileclock::ui::AppSessionSignal::requestAlarmMelody) {
+            mobileclock::application::core::AppSessionSignal signal,
+            const mobileclock::application::core::AppSessionSignalData&) {
+            if (signal != mobileclock::application::core::AppSessionSignal::requestAlarmMelody) {
                 return;
             }
             std::string error;
             if (!this->appSessionController.Session().NavigatePreviewRoute(
-                mobileclock::ui::XiaomiThemesPageViewModel::PageName,
+                mobileclock::application::ui::page::XiaomiThemesPageViewModel::PageName,
                 error)) {
                 LOG_WARNING("XamlPreviewer.Session", "Cannot open Xiaomi Themes: {}", error);
             }
@@ -396,10 +397,10 @@ struct mc_session {
     }
 
     mobileclock::preview::_details::PreviewerStateStorage stateStorage;
-    mobileclock::ui::ApplicationStateStore stateStore;
-    mobileclock::ui::AlarmRepository alarmRepository;
-    mobileclock::ui::AlarmMelodyRepository alarmMelodyRepository;
-    mobileclock::ui::AppSessionController appSessionController;
+    mobileclock::application::core::ApplicationStateStore stateStore;
+    mobileclock::application::model::AlarmRepository alarmRepository;
+    mobileclock::application::model::AlarmMelodyRepository alarmMelodyRepository;
+    mobileclock::application::core::AppSessionController appSessionController;
     int width;
     int height;
     xaml::Element* inspectionElement = nullptr;
@@ -727,7 +728,7 @@ int mc_set_status(mc_session* session, const char* value) {
         if (session == nullptr || value == nullptr) {
             throw std::invalid_argument("Session and status are required");
         }
-        session->appSessionController.Dispatch(mobileclock::ui::AppSessionSignal::setStatus, {value, {}});
+        session->appSessionController.Dispatch(mobileclock::application::core::AppSessionSignal::setStatus, {value, {}});
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();

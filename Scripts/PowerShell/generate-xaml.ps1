@@ -69,7 +69,7 @@ foreach ($xamlSourceRoot in $xamlSourceRoots) {
                 $_.FullName,
                 $generatedPath,
                 '--control-include-prefix',
-                'MobileClock.UI/Controls'
+                'MobileClock.UI/Control'
             )
             foreach ($directory in $xamlIgnoredDirectories) {
                 $compilerArguments += '--ignore-directory', $directory

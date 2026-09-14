@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page id="addAlarmPage"
+      padding="32"
+      background="#11120E"
+      xmlns="urn:mobileclock:xaml"
+      xmlns:control="using:mobileclock.ui.control">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <FloatAnimation property="opacity"
+                            from="0"
+                            to="1"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <FloatAnimation property="opacity"
+                            from="Current"
+                            to="0"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+    </Page.Storyboards>
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup name="NavigationDirection">
+            <VisualState name="Idle"><Storyboard/></VisualState>
+            <VisualState name="Forward">
+                <Storyboard>
+                    <Animation targetName="addAlarmPage"
+                               name="animationPageTransition"
+                               duration="240"
+                               distance="1"
+                               easing="CubicOut"
+                               direction="forward"
+                               phase="enter"/>
+                </Storyboard>
+            </VisualState>
+            <VisualState name="Backward">
+                <Storyboard>
+                    <Animation targetName="addAlarmPage"
+                               name="animationPageTransition"
+                               duration="240"
+                               distance="1"
+                               easing="CubicOut"
+                               direction="backward"
+                               phase="exit"/>
+                </Storyboard>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+    <Grid verticalAlignment="Stretch"
+          horizontalAlignment="Stretch">
+        <rowDefinitions>
+            <rowDefinition height="84"/>
+            <rowDefinition height="*"/>
+            <rowDefinition height="96"/>
+        </rowDefinitions>
+        <Grid gridRow="0"
+              horizontalAlignment="Stretch">
+            <columnDefinitions>
+                <columnDefinition width="72"/>
+                <columnDefinition width="*"/>
+            </columnDefinitions>
+            <Button id="backNavigation"
+                    width="64"
+                    height="64"
+                    padding="12"
+                    verticalAlignment="Center"
+                    background="#00000000"
+                    borderThickness="0">
+                <SvgImage width="40"
+                          height="40"
+                          source="Icons/back.svg"
+                          tint="#EAE8DC"/>
+            </Button>
+            <TextBlock gridColumn="1"
+                       verticalAlignment="Center"
+                       fontSize="38"
+                       fontWeight="Bold"
+                       foreground="#EAE8DC"
+                       text="Будильник"/>
+        </Grid>
+        <Grid id="formContent"
+              gridRow="1"
+              verticalAlignment="Stretch"
+              horizontalAlignment="Stretch">
+            <rowDefinitions>
+                <rowDefinition height="320"/>
+                <rowDefinition height="64"/>
+                <rowDefinition height="Auto"/>
+                <rowDefinition height="*"/>
+            </rowDefinitions>
+            <Grid id="timePicker"
+                      gridRow="0"
+                      height="320"
+                      margin="0 0 12 0"
+                      horizontalAlignment="Stretch">
+                    <columnDefinitions>
+                        <columnDefinition width="*"/>
+                        <columnDefinition width="48"/>
+                        <columnDefinition width="*"/>
+                    </columnDefinitions>
+                    <Grid id="wheel0"
+                          gridColumn="0"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch"
+                          background="#11120E">
+                        <rowDefinitions>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                        </rowDefinitions>
+                        <TextBlock id="wheel0Row0"
+                                   gridRow="0"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="05"
+                                   opacity="1"/>
+                        <TextBlock id="wheel0Row1"
+                                   gridRow="1"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="06"
+                                   opacity="1"/>
+                        <TextBlock id="wheel0Row2"
+                                   gridRow="2"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="100"
+                                   fontWeight="Bold"
+                                   foreground="#E0B64D"
+                                   text="07"
+                                   opacity="1"/>
+                        <TextBlock id="wheel0Row3"
+                                   gridRow="3"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="08"
+                                   opacity="1"/>
+                        <TextBlock id="wheel0Row4"
+                                   gridRow="4"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="09"
+                                   opacity="1"/>
+                        <Border gridRow="0"
+                                height="128"
+                                verticalAlignment="Top"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererTopEdgeFade"/>
+                        <Border gridRow="4"
+                                height="128"
+                                verticalAlignment="Bottom"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererBottomEdgeFade"/>
+                    </Grid>
+                    <Grid id="wheel1"
+                          gridColumn="2"
+                          verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch"
+                          background="#11120E">
+                        <rowDefinitions>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                            <rowDefinition height="*"/>
+                        </rowDefinitions>
+                        <TextBlock id="wheel1Row0"
+                                   gridRow="0"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="28"
+                                   opacity="1"/>
+                        <TextBlock id="wheel1Row1"
+                                   gridRow="1"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="29"
+                                   opacity="1"/>
+                        <TextBlock id="wheel1Row2"
+                                   gridRow="2"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="100"
+                                   fontWeight="Bold"
+                                   foreground="#E0B64D"
+                                   text="30"
+                                   opacity="1"/>
+                        <TextBlock id="wheel1Row3"
+                                   gridRow="3"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="31"
+                                   opacity="1"/>
+                        <TextBlock id="wheel1Row4"
+                                   gridRow="4"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="48"
+                                   fontWeight="Normal"
+                                   foreground="#93937E"
+                                   text="32"
+                                   opacity="1"/>
+                        <Border gridRow="0"
+                                height="128"
+                                verticalAlignment="Top"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererTopEdgeFade"/>
+                        <Border gridRow="4"
+                                height="128"
+                                verticalAlignment="Bottom"
+                                horizontalAlignment="Stretch"
+                                background="#0011120E"
+                                renderer="rendererBottomEdgeFade"/>
+                    </Grid>
+                    <TextBlock gridColumn="1"
+                               verticalAlignment="Center"
+                               horizontalAlignment="Center"
+                               fontSize="92"
+                               foreground="#E0B64D"
+                               text=":"/>
+                </Grid>
+                <TextBlock gridRow="1"
+                           margin="0 0 8 32"
+                           horizontalAlignment="Center"
+                           fontSize="24"
+                           foreground="#93937E"
+                           text="Время будильника"/>
+                <Border gridRow="2"
+                        margin="0 0 0 20"
+                        padding="24"
+                        horizontalAlignment="Stretch"
+                        background="#1D2118"
+                        cornerRadius="24">
+                    <StackPanel horizontalAlignment="Stretch"
+                                orientation="Vertical">
+                        <TextBlock fontSize="40"
+                                   foreground="#EAE8DC"
+                                   text="Дни недели"/>
+                        <Grid height="68"
+                              margin="0 0 20 12"
+                              horizontalAlignment="Stretch">
+                            <columnDefinitions>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="*"/>
+                                <columnDefinition width="*"/>
+                            </columnDefinitions>
+                            <Button id="day0"
+                                    gridColumn="0"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Пн"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                            <Button id="day1"
+                                    gridColumn="1"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Вт"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                            <Button id="day2"
+                                    gridColumn="2"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Ср"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                            <Button id="day3"
+                                    gridColumn="3"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Чт"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                            <Button id="day4"
+                                    gridColumn="4"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Пт"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                            <Button id="day5"
+                                    gridColumn="5"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Сб"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                            <Button id="day6"
+                                    gridColumn="6"
+                                    margin="3 3 0 0"
+                                    padding="0"
+                                    verticalAlignment="Stretch"
+                                    contentAlignment="Center"
+                                    horizontalAlignment="Stretch"
+                                    fontSize="24"
+                                    foreground="#93937E"
+                                    background="#1D2118"
+                                    cornerRadius="34"
+                                    text="Вс"
+                                    borderBrush="#62644F"
+                                    borderThickness="1"/>
+                        </Grid>
+                        <TextBlock id="repeatSummary"
+                                   fontSize="26"
+                                   foreground="#93937E"
+                                   text="По будням"/>
+                    </StackPanel>
+                </Border>
+                <Border gridRow="3"
+                        margin="0"
+                        padding="24"
+                        verticalAlignment="Stretch"
+                        horizontalAlignment="Stretch"
+                        background="#1D2118"
+                        cornerRadius="24">
+                    <Grid verticalAlignment="Stretch"
+                          horizontalAlignment="Stretch">
+                        <rowDefinitions>
+                            <rowDefinition height="Auto"/>
+                            <rowDefinition height="*"/>
+                        </rowDefinitions>
+                        <Button id="melodyButton"
+                                gridRow="0"
+                                height="82"
+                                margin="0 0 0 12"
+                                padding="0"
+                                verticalAlignment="Stretch"
+                                contentAlignment="Center"
+                                horizontalAlignment="Stretch"
+                                background="#00000000"
+                                borderThickness="0">
+                            <StackPanel horizontalAlignment="Stretch"
+                                        orientation="Vertical">
+                                <TextBlock fontSize="40"
+                                           foreground="#EAE8DC"
+                                           text="Мелодия"/>
+                                <TextBlock margin="0 6 0 0"
+                                           fontSize="26"
+                                           foreground="#93937E"
+                                           text="Выберите звук будильника"/>
+                            </StackPanel>
+                        </Button>
+                        <control:AlarmMelodyList gridRow="1"
+                                                 verticalAlignment="Stretch"
+                                                 horizontalAlignment="Stretch"/>
+                    </Grid>
+                </Border>
+        </Grid>
+        <Button id="saveAlarmButton"
+                gridRow="2"
+                height="80"
+                margin="0 16 0 0"
+                padding="0"
+                verticalAlignment="Bottom"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                fontSize="28"
+                fontWeight="Bold"
+                foreground="#171813"
+                background="#E0B64D"
+                cornerRadius="22"
+                text="Сохранить"/>
+    </Grid>
+</Page>

@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     // Владелец EGL/OpenGL ES-ресурсов и нативной UI-модели одного Surface.
     // Его жизненным циклом управляет NativeApplication, а не JNI-код.
     class NativeRenderer final {

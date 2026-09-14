@@ -1,9 +1,9 @@
 #pragma once
 #include <jni.h>
 
-#include "UI/AppSessionController.h"
+#include "MobileClock.Application/Core/AppSessionController.h"
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     class AndroidCommandDispatcher final {
     public:
         AndroidCommandDispatcher() = default;
@@ -13,8 +13,8 @@ namespace mobileclock::renderer {
         AndroidCommandDispatcher& operator=(const AndroidCommandDispatcher&) = delete;
 
         void Dispatch(
-            mobileclock::ui::AppSessionSignal signal,
-            const mobileclock::ui::AppSessionSignalData& data) const;
+            mobileclock::application::core::AppSessionSignal signal,
+            const mobileclock::application::core::AppSessionSignalData& data) const;
         void SetDispatcher(JNIEnv* env, jobject value);
 
     private:

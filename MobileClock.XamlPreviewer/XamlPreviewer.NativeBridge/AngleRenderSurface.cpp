@@ -6,8 +6,8 @@
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/XamlLayout.h>
 
-#include "../../MobileClock.Application/UI/ApplicationSession.h"
-#include "../../MobileClock.Presentation/Registrations.h"
+#include "../../MobileClock.Presentation/Core/Registrations.h"
+#include "../../MobileClock.Application/Core/ApplicationSession.h"
 #include "AngleRenderSurface.h"
 
 #include <algorithm>
@@ -53,7 +53,7 @@ namespace xaml::bridge {
             unsigned char* destination,
             int destinationStride);
         void Render(
-            const mobileclock::ui::ApplicationSession& session,
+            const mobileclock::application::core::ApplicationSession& session,
             unsigned char* destination,
             int destinationStride);
 
@@ -77,7 +77,7 @@ namespace xaml::bridge {
         if (width <= 0 || height <= 0) {
             throw std::invalid_argument("ANGLE surface dimensions must be positive");
         }
-        mobileclock::presentation::RegisterRenderers(this->renderers);
+        mobileclock::presentation::core::RegisterRenderers(this->renderers);
         this->display = _details::SharedDisplay();
         if (this->display == EGL_NO_DISPLAY
             || eglBindAPI(EGL_OPENGL_ES_API) == EGL_FALSE) {
@@ -142,7 +142,7 @@ namespace xaml::bridge {
             boldFontData.size(),
             blackFontData.data(),
             blackFontData.size(),
-            mobileclock::presentation::CreateShaderPrograms(),
+            mobileclock::presentation::core::CreateShaderPrograms(),
             [root = std::string(resourceRoot)](std::string_view source) {
                 return utility_helpers::new_helpers::filesystem::ReadAllBytes(root + "/" + std::string(source));
             });
@@ -223,7 +223,7 @@ namespace xaml::bridge {
     }
 
     void AngleRenderSurface::Implementation::Render(
-        const mobileclock::ui::ApplicationSession& session,
+        const mobileclock::application::core::ApplicationSession& session,
         unsigned char* destination,
         int destinationStride) {
         if (destination == nullptr || destinationStride < this->width * 4) {
@@ -276,7 +276,7 @@ namespace xaml::bridge {
     }
 
     void AngleRenderSurface::Render(
-        const mobileclock::ui::ApplicationSession& session,
+        const mobileclock::application::core::ApplicationSession& session,
         unsigned char* destination,
         int destinationStride) {
         this->implementation->Render(session, destination, destinationStride);

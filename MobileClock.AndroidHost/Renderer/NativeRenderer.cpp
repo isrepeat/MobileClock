@@ -8,10 +8,11 @@
 #include <android/input.h>
 #include <EGL/egl.h>
 
-#include "MobileClock.Presentation/Registrations.h"
-#include "Renderer/AndroidCommandDispatcher.h"
-#include "Storage/AlarmRepository.h"
-#include "UI/AppSessionController.h"
+#include "MobileClock.Presentation/Core/Registrations.h"
+#include "MobileClock.Application/Model/AlarmRepository.h"
+#include "MobileClock.Application/Core/AppSessionController.h"
+
+#include "AndroidCommandDispatcher.h"
 #include "AssetsManager.h"
 
 #include <filesystem>
@@ -21,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     struct NativeRenderer::State {
         EGLDisplay display = EGL_NO_DISPLAY;
         EGLSurface surface = EGL_NO_SURFACE;
@@ -29,29 +30,29 @@ namespace mobileclock::renderer {
         ANativeWindow* window = nullptr;
         std::unique_ptr<AssetsManager> assetsManager;
         AndroidCommandDispatcher commandDispatcher;
-        std::unique_ptr<mobileclock::ui::ApplicationStateStore> stateStore;
-        std::unique_ptr<mobileclock::ui::AlarmRepository> alarmRepository;
-        std::unique_ptr<mobileclock::ui::AlarmMelodyRepository> alarmMelodyRepository;
-        std::unique_ptr<mobileclock::ui::AppSessionController> appSessionController;
+        std::unique_ptr<mobileclock::application::core::ApplicationStateStore> stateStore;
+        std::unique_ptr<mobileclock::application::model::AlarmRepository> alarmRepository;
+        std::unique_ptr<mobileclock::application::model::AlarmMelodyRepository> alarmMelodyRepository;
+        std::unique_ptr<mobileclock::application::core::AppSessionController> appSessionController;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
         bool isSessionInitialized = false;
     };
 }
 
-namespace mobileclock::renderer::_details {
-    mobileclock::ui::ApplicationStateDocument LoadStorage(const std::filesystem::path& path) {
+namespace mobileclock::android_host::renderer::_details {
+    mobileclock::application::model::ApplicationStateDocument LoadStorage(const std::filesystem::path& path) {
         std::ifstream stream(path, std::ios::binary);
         if (!stream) {
             return {};
         }
         const std::string json{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
-        mobileclock::ui::ApplicationStateDocument document;
+        mobileclock::application::model::ApplicationStateDocument document;
         JS::ParseContext context(json.data(), json.size());
         return context.parseTo(document) == JS::Error::NoError
-            ? document : mobileclock::ui::ApplicationStateDocument{};
+            ? document : mobileclock::application::model::ApplicationStateDocument{};
     }
 
-    bool SaveStorage(const std::filesystem::path& path, const mobileclock::ui::ApplicationStateDocument& data) {
+    bool SaveStorage(const std::filesystem::path& path, const mobileclock::application::model::ApplicationStateDocument& data) {
         const std::filesystem::path temporaryPath = path.string() + ".tmp";
         {
             std::ofstream stream(temporaryPath, std::ios::binary | std::ios::trunc);
@@ -89,7 +90,7 @@ namespace mobileclock::renderer::_details {
     //    │              │                 ├─ context.RenderDefaultElement()
     //    │              │                 │  ├─ RenderChrome()
     //    │              │                 │  └─ DrawText()
-    //    │              │                 ├─ mobileclock::resources::effects::RenderWave()
+    //    │              │                 ├─ mobileclock::presentation::effects::RenderWave()
     //    │              │                 └─ DrawRoundedRectOutline() для дополнительной обводки
     //    │              └─ eglSwapBuffers() показывает завершённый кадр.
     //    └─ Choreographer.postFrameCallback() планирует следующий VSync.
@@ -132,7 +133,7 @@ namespace mobileclock::renderer::_details {
 
 } // namespace _details
 
-namespace mobileclock::renderer {
+namespace mobileclock::android_host::renderer {
     NativeRenderer::NativeRenderer()
         : state(std::make_unique<State>()) {
     }
@@ -154,17 +155,17 @@ namespace mobileclock::renderer {
         });
         utility_helpers::logging::Initialize("MobileClock");
         const auto storagePath = std::filesystem::path(utf8Path).parent_path().parent_path() / "mobileclock-state.json";
-        this->state->stateStore = std::make_unique<mobileclock::ui::ApplicationStateStore>(
+        this->state->stateStore = std::make_unique<mobileclock::application::core::ApplicationStateStore>(
             _details::LoadStorage(storagePath),
-            [storagePath](const mobileclock::ui::ApplicationStateDocument& data) {
+            [storagePath](const mobileclock::application::model::ApplicationStateDocument& data) {
                 return _details::SaveStorage(storagePath, data);
             });
-        this->state->alarmRepository = std::make_unique<mobileclock::ui::AlarmRepository>(*this->state->stateStore);
-        this->state->alarmMelodyRepository = std::make_unique<mobileclock::ui::AlarmMelodyRepository>(*this->state->stateStore);
-        this->state->appSessionController = std::make_unique<mobileclock::ui::AppSessionController>(*this->state->alarmRepository, *this->state->alarmMelodyRepository);
+        this->state->alarmRepository = std::make_unique<mobileclock::application::model::AlarmRepository>(*this->state->stateStore);
+        this->state->alarmMelodyRepository = std::make_unique<mobileclock::application::model::AlarmMelodyRepository>(*this->state->stateStore);
+        this->state->appSessionController = std::make_unique<mobileclock::application::core::AppSessionController>(*this->state->alarmRepository, *this->state->alarmMelodyRepository);
         this->state->appSessionController->SetHostEventHandler([this](
-            mobileclock::ui::AppSessionSignal signal,
-            const mobileclock::ui::AppSessionSignalData& data) {
+            mobileclock::application::core::AppSessionSignal signal,
+            const mobileclock::application::core::AppSessionSignalData& data) {
             this->state->commandDispatcher.Dispatch(signal, data);
         });
         env->ReleaseStringUTFChars(javaLogFilePath, utf8Path);
@@ -202,7 +203,7 @@ namespace mobileclock::renderer {
             return;
         }
         this->state->appSessionController->Dispatch(
-            static_cast<mobileclock::ui::AppSessionSignal>(javaSignal),
+            static_cast<mobileclock::application::core::AppSessionSignal>(javaSignal),
             {value, additionalValue});
         env->ReleaseStringUTFChars(javaAdditionalValue, additionalValue);
         env->ReleaseStringUTFChars(javaValue, value);
@@ -273,7 +274,7 @@ namespace mobileclock::renderer {
             boldFontData.size(),
             blackFontData.data(),
             blackFontData.size(),
-            mobileclock::presentation::CreateShaderPrograms(),
+            mobileclock::presentation::core::CreateShaderPrograms(),
             [&assetsManager = *state.assetsManager](std::string_view source) {
                 return assetsManager.ReadBytes(source);
             });

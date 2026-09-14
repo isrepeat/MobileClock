@@ -1,10 +1,10 @@
 #include <Helpers.Logging/Logging.h>
 
-#include "NativeApplication.h"
+#include "Core/NativeApplication.h"
 
 namespace {
-    mobileclock::native::NativeApplication& nativeApplication() {
-        static mobileclock::native::NativeApplication application;
+    mobileclock::android_host::core::NativeApplication& nativeApplication() {
+        static mobileclock::android_host::core::NativeApplication application;
         return application;
     }
 }
