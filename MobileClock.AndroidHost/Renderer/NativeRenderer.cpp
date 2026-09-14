@@ -262,9 +262,9 @@ namespace mobileclock::android_host::renderer {
             state.appSessionController->Session().Initialize(availableSize);
             state.isSessionInitialized = true;
         }
-        const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Roboto-Regular.ttf");
-        const std::vector<unsigned char> boldFontData = state.assetsManager->ReadBytes("Roboto-Bold.ttf");
-        const std::vector<unsigned char> blackFontData = state.assetsManager->ReadBytes("Roboto-Black.ttf");
+        const std::vector<unsigned char> regularFontData = state.assetsManager->ReadBytes("Fonts/Roboto-Regular.ttf");
+        const std::vector<unsigned char> boldFontData = state.assetsManager->ReadBytes("Fonts/Roboto-Bold.ttf");
+        const std::vector<unsigned char> blackFontData = state.assetsManager->ReadBytes("Fonts/Roboto-Black.ttf");
         state.renderer = std::make_unique<es_renderer::OpenGlRenderer>(
             width,
             height,

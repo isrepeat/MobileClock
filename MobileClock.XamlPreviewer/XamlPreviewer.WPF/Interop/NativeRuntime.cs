@@ -129,6 +129,10 @@ internal static class NativeRuntime {
         IntPtr session,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string page,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string json);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_export_preview_state")]
+    public static extern int mc_export_preview_state(IntPtr session);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "mc_can_save_preview_state")]
+    public static extern int mc_can_save_preview_state(IntPtr session);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     public static extern int mc_reload_markup(

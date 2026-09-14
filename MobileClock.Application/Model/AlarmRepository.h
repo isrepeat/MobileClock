@@ -2,7 +2,7 @@
 #define JS_STL_ARRAY
 #include <JsonParser/json_struct/json_struct.h>
 
-#include "../Core/ApplicationStateStore.h"
+#include "../Base/AppRepositoryBase.h"
 
 #include <functional>
 #include <string>
@@ -58,7 +58,7 @@ namespace mobileclock::application::model {
         );
     };
 
-    class AlarmRepository final {
+    class AlarmRepository final : public base::AppRepositoryBase {
     public:
         explicit AlarmRepository(core::ApplicationStateStore& store);
         ~AlarmRepository() = default;
@@ -66,6 +66,13 @@ namespace mobileclock::application::model {
         AlarmRepository(const AlarmRepository&) = delete;
         AlarmRepository& operator=(const AlarmRepository&) = delete;
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        //
+        // AppRepositoryBase
+        //
+        void ReloadFromStateStore() override;
+        bool IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const override;
+#endif
         const std::vector<Alarm>& Alarms() const;
         bool CreateAlarm(const Alarm& alarm);
         bool UpdateAlarm(std::string_view id, const Alarm& alarm);
@@ -73,12 +80,13 @@ namespace mobileclock::application::model {
         bool RemoveAlarm(std::string_view id);
 
     private:
-        core::ApplicationStateStore& store;
-        std::vector<Alarm> alarms;
         bool Commit(std::vector<Alarm> candidate);
+
+    private:
+        std::vector<Alarm> alarms;
     };
 
-    class AlarmMelodyRepository final {
+    class AlarmMelodyRepository final : public base::AppRepositoryBase {
     public:
         using Unsubscribe = std::function<void()>;
         using ChangeHandler = std::function<void()>;
@@ -89,6 +97,13 @@ namespace mobileclock::application::model {
         AlarmMelodyRepository(const AlarmMelodyRepository&) = delete;
         AlarmMelodyRepository& operator=(const AlarmMelodyRepository&) = delete;
 
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        //
+        // AppRepositoryBase
+        //
+        void ReloadFromStateStore() override;
+        bool IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const override;
+#endif
         const std::vector<AlarmMelody>& Melodies() const;
         bool SaveMelody(AlarmMelody& value);
         bool DeleteMelody(std::string_view uri);
@@ -100,7 +115,6 @@ namespace mobileclock::application::model {
         void Notify();
 
     private:
-        core::ApplicationStateStore& store;
         std::vector<AlarmMelody> melodies;
         std::vector<ChangeHandler> handlers;
     };

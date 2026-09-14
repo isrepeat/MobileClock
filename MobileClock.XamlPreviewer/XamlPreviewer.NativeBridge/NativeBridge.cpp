@@ -661,6 +661,36 @@ int mc_apply_preview_scenario(mc_session* session, const char* page, const char*
     }
 }
 
+int mc_export_preview_state(mc_session* session) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr) {
+            throw std::invalid_argument("Session is required");
+        }
+        if (!session->alarmRepository.SavePreviewStateToPersistentStorage()) {
+            xaml::bridge::lastError = "Cannot persist preview state";
+            return 0;
+        }
+        session->alarmMelodyRepository.ReloadFromStateStore();
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
+int mc_can_save_preview_state(mc_session* session) {
+    try {
+        if (session == nullptr) {
+            throw std::invalid_argument("Session is required");
+        }
+        return session->alarmRepository.IsPreviewSessionDocumentEquivalentTo(session->stateStorage.Load()) ? 0 : 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
 int mc_reload_markup(mc_session* session, const char* page, const char* markup, const char* sourcePath) {
     try {
         xaml::bridge::lastError.clear();

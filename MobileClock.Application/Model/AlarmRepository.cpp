@@ -1,34 +1,50 @@
 #include "AlarmRepository.h"
 
 #include <algorithm>
-#include <format>
-#include <chrono>
-#include <atomic>
-
-namespace mobileclock::application::model::_details {
-    std::string CreateRepositoryAlarmId() {
-        static std::atomic_uint64_t sequence;
-        return std::format(
-            "alarm-{}-{}",
-            std::chrono::steady_clock::now().time_since_epoch().count(),
-            ++sequence);
-    }
-
-    std::string CreateRepositoryMelodyId() {
-        static std::atomic_uint64_t sequence;
-        return std::format(
-            "melody-{}-{}",
-            std::chrono::steady_clock::now().time_since_epoch().count(),
-            ++sequence);
-    }
-
-} // namespace _details
-
 namespace mobileclock::application::model {
     AlarmRepository::AlarmRepository(core::ApplicationStateStore& store)
-        : store(store)
-        , alarms(this->store.State().alarms) {
+        : base::AppRepositoryBase(store)
+        , alarms(this->State().alarms) {
     }
+
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // AppRepositoryBase
+    //
+    void AlarmRepository::ReloadFromStateStore() {
+        this->alarms = this->State().alarms;
+    }
+
+    bool AlarmRepository::IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
+        const ApplicationStateDocument& current = this->State();
+        if (current.alarms.size() != document.alarms.size() || current.alarmMelodies.size() != document.alarmMelodies.size()) {
+            return false;
+        }
+        const auto melodyKey = [](const ApplicationStateDocument& value, std::string_view id) {
+            const auto item = std::find_if(value.alarmMelodies.begin(), value.alarmMelodies.end(), [id](const AlarmMelody& melody) {
+                return melody.id == id;
+            });
+            return item == value.alarmMelodies.end() ? std::pair<std::string, std::string>{} : std::pair{item->name, item->uri};
+        };
+        for (size_t index = 0; index < current.alarmMelodies.size(); ++index) {
+            if (current.alarmMelodies[index].name != document.alarmMelodies[index].name
+                || current.alarmMelodies[index].uri != document.alarmMelodies[index].uri) {
+                return false;
+            }
+        }
+        for (size_t index = 0; index < current.alarms.size(); ++index) {
+            const Alarm& left = current.alarms[index];
+            const Alarm& right = document.alarms[index];
+            if (left.hour != right.hour || left.minute != right.minute || left.days != right.days
+                || left.vibration != right.vibration || left.isEnabled != right.isEnabled
+                || melodyKey(current, left.melodyId) != melodyKey(document, right.melodyId)) {
+                return false;
+            }
+        }
+        return true;
+    }
+#endif
 
     //
     // API
@@ -40,7 +56,7 @@ namespace mobileclock::application::model {
     bool AlarmRepository::CreateAlarm(const Alarm& alarm) {
         std::vector<Alarm> candidate = this->alarms;
         Alarm value = alarm;
-        value.id = _details::CreateRepositoryAlarmId();
+        value.id = this->CreateAlarmId();
         candidate.push_back(std::move(value));
         return this->Commit(std::move(candidate));
     }
@@ -87,18 +103,32 @@ namespace mobileclock::application::model {
     // Internal
     //
     bool AlarmRepository::Commit(std::vector<Alarm> candidate) {
-        ApplicationStateDocument document = this->store.State();
+        ApplicationStateDocument document = this->State();
         document.alarms = candidate;
-        if (!this->store.Write(std::move(document))) {
+        if (!base::AppRepositoryBase::Commit(std::move(document))) {
             return false;
         }
         this->alarms = std::move(candidate);
         return true;
     }
 
+    #if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // AppRepositoryBase
+    //
+    void AlarmMelodyRepository::ReloadFromStateStore() {
+        this->melodies = this->State().alarmMelodies;
+        this->Notify();
+    }
+
+    bool AlarmMelodyRepository::IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
+        return this->melodies == document.alarmMelodies;
+    }
+#endif
+
     AlarmMelodyRepository::AlarmMelodyRepository(core::ApplicationStateStore& store)
-        : store(store)
-        , melodies(this->store.State().alarmMelodies) {
+        : base::AppRepositoryBase(store)
+        , melodies(this->State().alarmMelodies) {
     }
 
     const std::vector<AlarmMelody>& AlarmMelodyRepository::Melodies() const {
@@ -108,9 +138,20 @@ namespace mobileclock::application::model {
     bool AlarmMelodyRepository::SaveMelody(AlarmMelody& value) {
         std::vector<AlarmMelody> candidate = this->melodies;
         if (value.id.empty()) {
-            value.id = _details::CreateRepositoryMelodyId();
+            value.id = this->CreateMelodyId();
         }
-        const auto item = std::find_if(candidate.begin(), candidate.end(), [&value](const AlarmMelody& melody) { return melody.id == value.id; });
+        auto item = std::find_if(candidate.begin(), candidate.end(), [&value](const AlarmMelody& melody) { return melody.id == value.id; });
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        // Каталог тем может передать известный URI с другим id. В preview-сеансе
+        // сохраняем id записи из хранилища, чтобы не создать дубликат мелодии
+        // и не разорвать уже существующие Alarm::melodyId.
+        if (item == candidate.end()) {
+            item = std::find_if(candidate.begin(), candidate.end(), [&value](const AlarmMelody& melody) { return melody.uri == value.uri; });
+            if (item != candidate.end()) {
+                value.id = item->id;
+            }
+        }
+#endif
         if (item == candidate.end()) {
             candidate.push_back(value);
         }
@@ -143,9 +184,9 @@ namespace mobileclock::application::model {
     }
 
     bool AlarmMelodyRepository::Commit(std::vector<AlarmMelody> candidate) {
-        ApplicationStateDocument document = this->store.State();
+        ApplicationStateDocument document = this->State();
         document.alarmMelodies = candidate;
-        if (!this->store.Write(std::move(document))) {
+        if (!base::AppRepositoryBase::Commit(std::move(document))) {
             return false;
         }
         this->melodies = std::move(candidate);

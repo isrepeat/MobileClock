@@ -35,7 +35,12 @@ public partial class MainWindow : Window {
     }
 
     private const string NativeBridgeLibraryName = "XamlPreviewer.NativeBridge.dll";
+    private const string NoScenarioName = "None";
     private const double SearchPanelOverlayHeight = 84.0;
+    private const double MinimumEditorPaneRatio = 0.2;
+    private const double MaximumEditorPaneRatio = 0.8;
+    private const double MinimumNavigationGraphPaneWidth = 280.0;
+    private const double MaximumNavigationGraphPaneWidth = 900.0;
     private readonly DispatcherTimer renderTimer;
     private readonly DispatcherTimer animationTimer;
     private readonly PreviewFileWatchController fileWatchController;
@@ -148,6 +153,11 @@ public partial class MainWindow : Window {
         this.ApplyEditorScale();
         this.InitializePreviewControls();
         this.RestoreWindowState();
+        if (this.settings.IsFirstLaunch) {
+            this.settingsPersistenceReady = true;
+            this.ShowFolderPicker();
+            return;
+        }
         this.ConfigureWatchers();
         this.RefreshPageNames();
         var lastMarkupPath = this.settings.LastMarkupPath;
@@ -159,11 +169,6 @@ public partial class MainWindow : Window {
                 this.PagePicker.SelectedItem = lastPageName;
             } else {
                 this.LoadMarkup(lastMarkupPath);
-            }
-        } else {
-            var defaultMarkupPath = Path.Combine(this.settings.XamlDirectory, "Pages", "MainPage.xaml");
-            if (File.Exists(defaultMarkupPath)) {
-                this.LoadMarkup(defaultMarkupPath);
             }
         }
 
@@ -233,11 +238,45 @@ public partial class MainWindow : Window {
     }
 
     private void OpenButtonClick(object sender, RoutedEventArgs eventArgs) {
-        this.folderPickerController.Open(this.settings.XamlDirectory);
+        this.ShowFolderPicker();
+    }
+
+    private void ShowFolderPicker() {
+        this.folderPickerController.Open(this.GetFolderPickerInitialDirectory());
         this.MarkupEditor.Visibility = Visibility.Collapsed;
         this.SettingsPanel.Visibility = Visibility.Collapsed;
         this.OpenButton.IsEnabled = false;
         this.statusPresenter.Information("Выберите папку, содержащую XAML-файлы.");
+    }
+
+    private string GetFolderPickerInitialDirectory() {
+        if (Directory.Exists(this.settings.XamlDirectory)) {
+            return this.settings.XamlDirectory;
+        }
+
+        var documentsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        return Directory.Exists(documentsDirectory)
+            ? documentsDirectory
+            : Environment.CurrentDirectory;
+    }
+
+    private static string ResolveResourcesDirectory(string xamlDirectory) {
+        if (!Directory.Exists(xamlDirectory)) {
+            return string.Empty;
+        }
+
+        var currentDirectory = new DirectoryInfo(xamlDirectory);
+        while (currentDirectory is not null) {
+            var resourcesDirectory = Path.Combine(currentDirectory.FullName, "Resources");
+            var iconsDirectory = Path.Combine(resourcesDirectory, "Icons");
+            if (Directory.Exists(iconsDirectory)) {
+                return resourcesDirectory;
+            }
+
+            currentDirectory = currentDirectory.Parent;
+        }
+
+        return string.Empty;
     }
 
     private void FolderPickerUpButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -285,6 +324,7 @@ public partial class MainWindow : Window {
             return;
         }
         this.settings.XamlDirectory = selectedDirectory;
+        this.settings.ResourcesDirectory = MainWindow.ResolveResourcesDirectory(selectedDirectory);
         this.ConfigureWatchers();
         this.RefreshPageNames();
         this.HideFolderPicker();
@@ -435,11 +475,15 @@ public partial class MainWindow : Window {
     }
 
     private void ResetSessionButtonClick(object sender, RoutedEventArgs eventArgs) {
+        this.ResetNativeApplicationSession();
+        this.ShowNativeApplicationPreview();
+    }
+
+    private void ResetNativeApplicationSession() {
         this.animationTimer.Stop();
         this.nativeApplicationSession?.Dispose();
         this.nativeApplicationSession = null;
         this.previewLayer.Children.Clear();
-        this.ShowNativeApplicationPreview();
     }
 
     private void RebuildAndRestartButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -705,7 +749,28 @@ public partial class MainWindow : Window {
     }
 
     private void ScenarioPickerSelectionChanged(object sender, SelectionChangedEventArgs eventArgs) {
+        if (this.ScenarioPicker.SelectedItem is string name && name == MainWindow.NoScenarioName) {
+            this.ResetNativeApplicationSession();
+        }
+
         this.ShowNativeApplicationPreview();
+        this.SaveScenarioToStorageButton.IsEnabled = this.nativeApplicationSession?.CanSavePreviewState() == true;
+    }
+
+    private void SaveScenarioToStorageButtonClick(object sender, RoutedEventArgs eventArgs) {
+        if (this.nativeApplicationSession is null
+            || this.scenarioPath is null
+            || this.ScenarioPicker.SelectedItem is not string name
+            || name == MainWindow.NoScenarioName) {
+            return;
+        }
+
+        this.nativeApplicationSession.SavePreviewState();
+        this.settings.SavedScenarioPath = this.scenarioPath;
+        this.settings.SavedScenarioName = name;
+        this.SyncSettingsEditor();
+        this.PersistSettings();
+        this.SaveScenarioToStorageButton.IsEnabled = false;
     }
 
     private void EditorTextChanged(object sender, EventArgs eventArgs) {
@@ -890,7 +955,7 @@ public partial class MainWindow : Window {
         this.UpdateDocumentState();
         // PersistSettings записывает previewer.settings.json. Его изменение
         // асинхронно придёт обратно через settingsWatcher, поэтому refresh ниже
-        // не должен самовольно выбирать MainPage вместо текущей страницы.
+        // не должен самовольно менять текущую страницу.
         this.PersistSettings();
         this.ScheduleRender();
     }
@@ -898,7 +963,7 @@ public partial class MainWindow : Window {
     private void RefreshPageNames() {
         // RefreshPageNames вызывается и из settingsWatcher после PersistSettings.
         // Сохраняем выбор, чтобы такой внутренний refresh не отменял навигацию
-        // MainPage -> SettingsPage через несколько сотен миллисекунд после tap.
+        // на другую страницу через несколько сотен миллисекунд после tap.
         var previous = this.PagePicker.SelectedItem as string;
         var pages = Directory.Exists(this.settings.XamlDirectory)
             ? Directory.GetFiles(this.settings.XamlDirectory, "*.xaml", SearchOption.AllDirectories)
@@ -918,14 +983,10 @@ public partial class MainWindow : Window {
                 Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, candidate)),
                 this.settings.LastMarkupPath,
                 StringComparison.OrdinalIgnoreCase));
-        var mainPage = pages.FirstOrDefault(candidate =>
-            string.Equals(candidate, Path.Combine("Pages", "MainPage.xaml"), StringComparison.OrdinalIgnoreCase));
         this.PagePicker.SelectedItem = pages.Contains(previous)
             ? previous
             : savedPage is not null
                 ? savedPage
-                : mainPage is not null
-                    ? mainPage
                 : pages.FirstOrDefault();
         this.RefreshControlNames();
     }
@@ -1029,6 +1090,12 @@ public partial class MainWindow : Window {
 
     private void LoadSettings() {
         this.settings = PreviewerSettings.LoadDebug();
+        var resourcesDirectory = MainWindow.ResolveResourcesDirectory(this.settings.XamlDirectory);
+        if (!string.Equals(this.settings.ResourcesDirectory, resourcesDirectory, StringComparison.OrdinalIgnoreCase)) {
+            this.settings.ResourcesDirectory = resourcesDirectory;
+            this.settings.Save();
+        }
+
         this.ApplyElementInspectionHighlightSettings();
     }
 
@@ -1113,7 +1180,13 @@ public partial class MainWindow : Window {
             this.settings.WindowHeight = this.Height;
         }
         this.settings.IsMaximized = this.WindowState == WindowState.Maximized;
-        this.settings.EditorPaneWidth = this.EditorColumn.ActualWidth;
+        this.settings.EditorPaneRatio = this.GetEditorPaneRatio();
+        if (this.settings.IsNavigationGraphVisible && this.NavigationGraphColumn.ActualWidth > 0.0) {
+            this.settings.NavigationGraphPaneWidth = Math.Clamp(
+                this.NavigationGraphColumn.ActualWidth,
+                MinimumNavigationGraphPaneWidth,
+                MaximumNavigationGraphPaneWidth);
+        }
         this.settings.Save();
         // Синхронизируем отображаемый JSON после собственного сохранения.
         // Тогда settingsWatcher не принимает нашу же запись за внешнее
@@ -1204,9 +1277,7 @@ public partial class MainWindow : Window {
             this.Left = workArea.Left + (workArea.Width - this.Width) / 2.0;
             this.Top = workArea.Top + (workArea.Height - this.Height) / 2.0;
         }
-        if (this.settings.EditorPaneWidth > 0.0) {
-            this.EditorColumn.Width = new GridLength(this.settings.EditorPaneWidth, GridUnitType.Pixel);
-        }
+        this.ApplyEditorPreviewSplit();
     }
 
     private void WindowClosing(object? sender, System.ComponentModel.CancelEventArgs eventArgs) {
@@ -1234,6 +1305,10 @@ public partial class MainWindow : Window {
     }
 
     private void EditorSplitterDragCompleted(object sender, DragCompletedEventArgs eventArgs) {
+        this.PersistSettings();
+    }
+
+    private void NavigationGraphSplitterDragCompleted(object sender, DragCompletedEventArgs eventArgs) {
         this.PersistSettings();
     }
 
@@ -1297,7 +1372,10 @@ public partial class MainWindow : Window {
     }
 
     private void UpdateNavigationGraphVisibility(bool animate = false) {
-        const double navigationGraphWidth = 430.0;
+        var navigationGraphWidth = Math.Clamp(
+            this.settings.NavigationGraphPaneWidth,
+            MinimumNavigationGraphPaneWidth,
+            MaximumNavigationGraphPaneWidth);
         var targetWidth = this.settings.IsNavigationGraphVisible ? navigationGraphWidth : 0.0;
         if (!animate) {
             this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
@@ -1338,8 +1416,6 @@ public partial class MainWindow : Window {
     }
 
     private void ConfigureNavigationGraphLayout(double graphWidth) {
-        Grid.SetColumn(this.PreviewPanel, 4);
-        Grid.SetColumn(this.NavigationPreviewSplitter, 3);
         this.EditorNavigationSplitter.Visibility = Visibility.Visible;
         this.NavigationGraphPanel.Visibility = Visibility.Visible;
         this.NavigationPreviewSplitter.Visibility = Visibility.Visible;
@@ -1350,14 +1426,35 @@ public partial class MainWindow : Window {
     }
 
     private void ConfigureEditorPreviewLayout() {
-        Grid.SetColumn(this.PreviewPanel, 2);
         this.EditorNavigationSplitter.Visibility = Visibility.Visible;
         this.NavigationGraphPanel.Visibility = Visibility.Collapsed;
         this.NavigationPreviewSplitter.Visibility = Visibility.Collapsed;
         this.EditorNavigationSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
-        this.NavigationGraphColumn.Width = new GridLength(1.0, GridUnitType.Star);
+        this.NavigationGraphColumn.Width = new GridLength(0.0);
         this.NavigationPreviewSplitterColumn.Width = new GridLength(0.0);
-        this.PreviewColumn.Width = new GridLength(0.0);
+        this.PreviewColumn.Width = new GridLength(1.0, GridUnitType.Star);
+    }
+
+    private double GetEditorPaneRatio() {
+        var panesWidth = this.EditorColumn.ActualWidth + this.WorkspaceColumn.ActualWidth;
+        if (panesWidth <= 0.0) {
+            return this.settings.EditorPaneRatio;
+        }
+
+        return Math.Clamp(
+            this.EditorColumn.ActualWidth / panesWidth,
+            MinimumEditorPaneRatio,
+            MaximumEditorPaneRatio);
+    }
+
+    private void ApplyEditorPreviewSplit() {
+        var editorPaneRatio = Math.Clamp(
+            this.settings.EditorPaneRatio,
+            MinimumEditorPaneRatio,
+            MaximumEditorPaneRatio);
+        this.settings.EditorPaneRatio = editorPaneRatio;
+        this.EditorColumn.Width = new GridLength(editorPaneRatio, GridUnitType.Star);
+        this.WorkspaceColumn.Width = new GridLength(1.0 - editorPaneRatio, GridUnitType.Star);
     }
 
     private void UpdatePreviewOrientationToggle() {
@@ -1422,12 +1519,14 @@ public partial class MainWindow : Window {
 
     private void RefreshScenarioNames() {
         var previous = this.ScenarioPicker.SelectedItem as string;
+        var previousPath = this.scenarioPath;
         var wasScenarioMode = this.editorMode == EditorMode.Scenario;
         this.scenarioPath = null;
         this.scenarioFileText = null;
         this.ScenarioPicker.ItemsSource = null;
         this.ScenarioPicker.SelectedItem = null;
         this.ScenarioPicker.Visibility = Visibility.Collapsed;
+        this.SaveScenarioToStorageButton.Visibility = Visibility.Collapsed;
         this.ScenarioLabel.Visibility = Visibility.Collapsed;
         var pagePath = this.GetSelectedPageMarkupPath();
         if (pagePath is null || !File.Exists(pagePath)) {
@@ -1459,11 +1558,22 @@ public partial class MainWindow : Window {
             }
             this.scenarioPath = candidate;
             this.scenarioFileText = scenarioFileText;
-            this.ScenarioPicker.ItemsSource = names;
-            this.ScenarioPicker.SelectedItem = names.Contains(previous)
-                ? previous
-                : names[0];
+            this.ScenarioPicker.ItemsSource = new[] { MainWindow.NoScenarioName }.Concat(names).ToArray();
+            if (previousPath is not null
+                && MainWindow.PathsAreEqual(previousPath, candidate)
+                && previous is not null
+                && this.ScenarioPicker.Items.Contains(previous)) {
+                this.ScenarioPicker.SelectedItem = previous;
+            } else if (this.settings.SavedScenarioPath is not null
+                && MainWindow.PathsAreEqual(this.settings.SavedScenarioPath, candidate)
+                && this.settings.SavedScenarioName is not null
+                && names.Contains(this.settings.SavedScenarioName)) {
+                this.ScenarioPicker.SelectedItem = this.settings.SavedScenarioName;
+            } else {
+                this.ScenarioPicker.SelectedItem = MainWindow.NoScenarioName;
+            }
             this.ScenarioPicker.Visibility = Visibility.Visible;
+            this.SaveScenarioToStorageButton.Visibility = Visibility.Visible;
             this.ScenarioLabel.Visibility = Visibility.Visible;
             this.ScenarioButton.Visibility = Visibility.Visible;
             this.ScenarioButton.IsChecked = wasScenarioMode;
@@ -1475,6 +1585,7 @@ public partial class MainWindow : Window {
     }
 
     private void ClearScenarioMode() {
+        this.ResetNativeApplicationSession();
         this.ScenarioButton.Visibility = Visibility.Collapsed;
         this.ScenarioButton.IsChecked = false;
         if (this.editorMode == EditorMode.Scenario) {
@@ -1484,7 +1595,9 @@ public partial class MainWindow : Window {
     }
 
     private string? GetSelectedScenarioJson() {
-        if (this.scenarioPath is null || this.ScenarioPicker.SelectedItem is not string name) {
+        if (this.scenarioPath is null
+            || this.ScenarioPicker.SelectedItem is not string name
+            || name == MainWindow.NoScenarioName) {
             return null;
         }
         using var document = JsonDocument.Parse(File.ReadAllText(this.scenarioPath));

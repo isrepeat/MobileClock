@@ -30,20 +30,12 @@
 
 namespace mobileclock::application::ui::page::_details {
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-    struct PreviewAlarm final {
-        std::string Time;
-        std::string Repeat;
-        bool IsEnabled = false;
-        model::AlarmMelody Melody;
-
-        JS_OBJECT(JS_MEMBER(Time), JS_MEMBER(Repeat), JS_MEMBER(IsEnabled), JS_MEMBER(Melody));
-    };
-
     struct MainPagePreviewScenario final {
         std::optional<std::string> Status = "Готово к проверке обновлений";
-        std::optional<std::vector<PreviewAlarm>> Alarms = std::vector<PreviewAlarm>{};
+        std::optional<std::vector<model::Alarm>> Alarms = std::vector<model::Alarm>{};
+        std::optional<std::vector<model::AlarmMelody>> AlarmMelodies = std::vector<model::AlarmMelody>{};
 
-        JS_OBJECT(JS_MEMBER(Status), JS_MEMBER(Alarms));
+        JS_OBJECT(JS_MEMBER(Status), JS_MEMBER(Alarms), JS_MEMBER(AlarmMelodies));
     };
 #endif
 
@@ -99,15 +91,29 @@ namespace mobileclock::application::ui::page {
             return false;
         }
         if (scenario.Alarms) {
-            this->alarms.Clear();
-            for (const _details::PreviewAlarm& alarmValue : *scenario.Alarms) {
-                view_model::AlarmViewModel& alarm = this->alarms.EmplaceBack(
-                    alarmValue.Time,
-                    alarmValue.Repeat,
-                    alarmValue.IsEnabled,
-                    alarmValue.Melody);
-                this->ConfigureAlarm(alarm);
+            // Сценарий сначала превращается в полный документ хранилища, чтобы UI
+            // работал с тем же состоянием и id, что и обычное приложение.
+            model::ApplicationStateDocument document;
+            document.alarmMelodies = std::move(*scenario.AlarmMelodies);
+            for (size_t index = 0; index < scenario.Alarms->size(); ++index) {
+                model::Alarm alarm = (*scenario.Alarms)[index];
+                if (alarm.hour < 0 || alarm.hour > 23 || alarm.minute < 0 || alarm.minute > 59) {
+                    error = "Preview scenario contains an invalid alarm time";
+                    return false;
+                }
+                // Id сценария намеренно не используется: повторное применение
+                // одного сценария всегда создаёт одинаковые preview-alarm-N.
+                alarm.id = std::format("preview-alarm-{}", index + 1);
+                document.alarms.push_back(std::move(alarm));
             }
+            // Документ остаётся в памяти preview-сеанса и не перезаписывает
+            // постоянный storage, пока его явно не экспортируют.
+            this->context.alarmRepository.LoadPreviewScenarioState(std::move(document));
+            // Репозитории кэшируют свои коллекции, поэтому после замены полного
+            // документа оба кэша синхронизируются, а MainPage пересобирает UI.
+            this->context.alarmRepository.ReloadFromStateStore();
+            this->context.alarmMelodyRepository.ReloadFromStateStore();
+            this->OnNavigatingTo({}, {});
         }
         if (scenario.Status) {
             this->SetStatus(std::move(*scenario.Status));

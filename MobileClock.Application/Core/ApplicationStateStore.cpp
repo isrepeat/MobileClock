@@ -5,9 +5,9 @@
 #include <utility>
 
 namespace mobileclock::application::core {
-    ApplicationStateStore::ApplicationStateStore(model::ApplicationStateDocument document, Persistence persistence)
+    ApplicationStateStore::ApplicationStateStore(model::ApplicationStateDocument document, DocumentSaveHandler documentSaveHandler)
         : document(std::make_unique<model::ApplicationStateDocument>(std::move(document)))
-        , persistence(std::move(persistence)) {
+        , documentSaveHandler(std::move(documentSaveHandler)) {
     }
 
     ApplicationStateStore::~ApplicationStateStore() = default;
@@ -15,17 +15,45 @@ namespace mobileclock::application::core {
     //
     // API
     //
-    const model::ApplicationStateDocument& ApplicationStateStore::State() const {
+    const model::ApplicationStateDocument& ApplicationStateStore::CurrentDocument() const {
         return *this->document;
     }
 
-    bool ApplicationStateStore::Write(model::ApplicationStateDocument candidate) {
-        // Сначала сохраняем полный candidate на диск. Если persistence не сработала,
-        // document в памяти остаётся прежним и UI не увидит несохранённое состояние.
-        if (this->persistence && !this->persistence(candidate)) {
+    bool ApplicationStateStore::TrySaveDocument(model::ApplicationStateDocument candidate) {
+        // Обычный документ сначала записывается через handler; при ошибке текущее
+        // состояние в памяти не меняется и UI не видит несохранённые данные.
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+        // Документ сценария живёт только в памяти preview-сеанса. Изменения UI
+        // применяются к нему, но не затрагивают постоянный storage до экспорта.
+        if (!this->isUsingPreviewSessionDocument && this->documentSaveHandler && !this->documentSaveHandler(candidate)) {
+#else
+        if (this->documentSaveHandler && !this->documentSaveHandler(candidate)) {
+#endif
             return false;
         }
         *this->document = std::move(candidate);
         return true;
     }
+
+#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    void ApplicationStateStore::LoadPreviewSessionDocument(model::ApplicationStateDocument candidate) {
+        // Замена полного документа переводит storage в memory-only режим preview.
+        *this->document = std::move(candidate);
+        this->isUsingPreviewSessionDocument = true;
+    }
+
+    bool ApplicationStateStore::SavePreviewSessionDocumentToPersistentStorage() {
+        // Повторный экспорт обычного документа не требуется.
+        if (!this->isUsingPreviewSessionDocument) {
+            return true;
+        }
+        // Только успешная запись завершает preview-режим; иначе пользователь может
+        // повторить экспорт, не теряя изменений текущего сеанса.
+        if (this->documentSaveHandler && !this->documentSaveHandler(*this->document)) {
+            return false;
+        }
+        this->isUsingPreviewSessionDocument = false;
+        return true;
+    }
+#endif
 }

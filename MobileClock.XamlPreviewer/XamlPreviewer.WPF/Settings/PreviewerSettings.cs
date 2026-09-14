@@ -24,21 +24,22 @@ internal sealed class ElementInspectionWireframeSettings {
 }
 
 internal sealed class PreviewerSettings {
-    private const string DefaultResourcesDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\Resources";
-    private const string DefaultXamlDirectory = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Application\UI";
     private static readonly JsonSerializerOptions JsonOptions = new() {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = true
     };
 
-    public required string XamlDirectory { get; set; }
-    public required string ResourcesDirectory { get; init; }
+    public string XamlDirectory { get; set; } = string.Empty;
+    public string ResourcesDirectory { get; set; } = string.Empty;
+    public string? SavedScenarioPath { get; set; }
+    public string? SavedScenarioName { get; set; }
     public string? LastMarkupPath { get; set; }
     public Dictionary<string, int[]> CollapsedMarkupFoldingOffsets { get; set; } = [];
     public double WindowWidth { get; set; }
     public double WindowHeight { get; set; }
     public bool IsMaximized { get; set; }
-    public double EditorPaneWidth { get; set; }
+    public double EditorPaneRatio { get; set; } = 0.5;
+    public double NavigationGraphPaneWidth { get; set; } = 430.0;
     public double EditorScale { get; set; } = 1.0;
     public int MouseWheelLines { get; set; } = 6;
     public double MouseWheelAnimationDurationMilliseconds { get; set; } = 400.0;
@@ -48,7 +49,7 @@ internal sealed class PreviewerSettings {
     public double PreviewScale { get; set; }
     public double PreviewHorizontalOffset { get; set; }
     public double PreviewVerticalOffset { get; set; }
-    public bool IsNavigationGraphVisible { get; set; } = true;
+    public bool IsNavigationGraphVisible { get; set; }
     public bool IsPreviewLandscape { get; set; }
     public double AnimationPlaybackRate { get; set; } = 1.0;
     public double[] AnimationPlaybackRates { get; set; } = [0.1, 0.25, 0.5, 1.0, 2.0, 4.0];
@@ -66,6 +67,9 @@ internal sealed class PreviewerSettings {
     [JsonIgnore]
     public string FilePath { get; private set; } = string.Empty;
 
+    [JsonIgnore]
+    public bool IsFirstLaunch { get; private set; }
+
     public static PreviewerSettings LoadDebug() {
         var settingsPath = Path.Combine(AppContext.BaseDirectory, "previewer.settings.json");
         PreviewerSettings settings;
@@ -75,6 +79,7 @@ internal sealed class PreviewerSettings {
             settings.FilePath = settingsPath;
         } else {
             settings = CreateDefaults(settingsPath);
+            settings.IsFirstLaunch = true;
             settings.Save();
         }
         settings.CollapsedMarkupFoldingOffsets ??= [];
@@ -161,8 +166,6 @@ internal sealed class PreviewerSettings {
     private static PreviewerSettings CreateDefaults(string settingsPath) {
         return new PreviewerSettings {
             FilePath = settingsPath,
-            XamlDirectory = DefaultXamlDirectory,
-            ResourcesDirectory = DefaultResourcesDirectory,
         };
     }
 

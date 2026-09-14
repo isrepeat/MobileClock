@@ -157,6 +157,13 @@ internal sealed class MobileClockSession : IDisposable {
         this.scenarios[page] = json;
         this.Render();
     }
+    public bool CanSavePreviewState() {
+        return NativeRuntime.mc_can_save_preview_state(this.session) != 0;
+    }
+
+    public void SavePreviewState() {
+        NativeRuntime.Ensure(NativeRuntime.mc_export_preview_state(this.session) != 0);
+    }
 
     public void UpdateAndRender() {
         NativeRuntime.Ensure(NativeRuntime.mc_update(this.session) != 0);

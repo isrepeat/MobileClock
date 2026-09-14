@@ -1,11 +1,10 @@
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.IO;
 
 namespace XamlPreviewer;
 
 internal sealed class AnglePreviewRenderer : IDisposable {
-    private const string FontPath = @"C:\WORK\Android\Projects\MobileClock\MobileClock.Android\src\main\assets\Roboto-Regular.ttf";
-
     private IntPtr surface;
 
     public int Height { get; }
@@ -17,7 +16,7 @@ internal sealed class AnglePreviewRenderer : IDisposable {
         this.surface = NativeRuntime.xr_create_angle_surface(
             this.Width,
             this.Height,
-            AnglePreviewRenderer.FontPath,
+            AnglePreviewRenderer.GetPreviewRendererRegularFontPath(),
             markupDirectory);
         NativeRuntime.Ensure(this.surface != IntPtr.Zero);
     }
@@ -66,5 +65,22 @@ internal sealed class AnglePreviewRenderer : IDisposable {
         }
         NativeRuntime.xr_destroy_angle_surface(this.surface);
         this.surface = IntPtr.Zero;
+    }
+
+    private static string GetPreviewRendererRegularFontPath() {
+        var fontsDirectory = Path.Combine(AppContext.BaseDirectory, "Fonts");
+        var fontNames = new[] {
+            "Roboto-Regular.ttf",
+            "Roboto-Bold.ttf",
+            "Roboto-Black.ttf",
+        };
+        foreach (var fontName in fontNames) {
+            var fontPath = Path.Combine(fontsDirectory, fontName);
+            if (!File.Exists(fontPath)) {
+                throw new FileNotFoundException($"Не найден шрифт previewer: {fontPath}");
+            }
+        }
+
+        return Path.Combine(fontsDirectory, fontNames[0]);
     }
 }
