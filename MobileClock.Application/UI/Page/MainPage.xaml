@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?mobileclock-preview-scenario path="Scenarios/MainPage.json"?>
+<?mobileclock-preview-scenario path="Scenario/MainPage.json"?>
 <Page id="root"
       padding="0 0 0 0"
       background="#171813"

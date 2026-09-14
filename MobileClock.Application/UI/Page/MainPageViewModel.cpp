@@ -68,13 +68,13 @@ namespace mobileclock::application::ui::page {
             this->NavigateToSettings();
         })
         , toggleAlarmCommand([&context]() {
-            context.appSessionController.Dispatch(AppSessionSignal::toggleAlarm, {});
+            context.appSessionController.Dispatch(core::AppSessionSignal::toggleAlarm, {});
         })
         , updateApplicationCommand([&context]() {
-            context.appSessionController.Dispatch(AppSessionSignal::updateApplication, {});
+            context.appSessionController.Dispatch(core::AppSessionSignal::updateApplication, {});
         })
         , uploadScreenshotCommand([&context]() {
-            context.appSessionController.Dispatch(AppSessionSignal::uploadScreenshot, {});
+            context.appSessionController.Dispatch(core::AppSessionSignal::uploadScreenshot, {});
         }) {
         if (!this->context.alarmRepository.Alarms().empty()) {
             this->alarms.Clear();
@@ -317,6 +317,8 @@ namespace mobileclock::application::ui::page {
         publisher.Command("UpdateApplicationCommand", &MainPageViewModel::UpdateApplicationCommand);
         publisher.Command("UploadScreenshotCommand", &MainPageViewModel::UploadScreenshotCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "MainPageViewModel", {}};
+        result.xamlNamespace = "urn:mobileclock:xaml";
+        result.controlXmlNamespace = "using:mobileclock.ui.control";
         xaml::runtime::RuntimeCollectionDescriptor collection;
         // collection.count и collection.at пока не подключены RuntimeTreeBuilder.
         // Текущий путь через collection.bind вызывает SetItemsSource, который сам
@@ -327,7 +329,7 @@ namespace mobileclock::application::ui::page {
             item->AddText("Time", [alarm]() { return alarm == nullptr ? "" : alarm->Time(); });
             item->AddText("Repeat", [alarm]() { return alarm == nullptr ? "" : alarm->Repeat(); });
             item->AddBoolean("IsEnabled", [alarm]() { return alarm != nullptr && alarm->IsEnabled(); }, {},
-                [alarm](bool value) {
+                [this, alarm](bool value) {
                     if (alarm != nullptr) {
                         this->SetAlarmEnabled(*const_cast<view_model::AlarmViewModel*>(alarm), value);
                     }
@@ -343,20 +345,20 @@ namespace mobileclock::application::ui::page {
         registry->AddCollection("Alarms", collection);
         registry->AddCollection("ItemsSource", collection);
         result.controls["AlarmList"] = [this](xaml::BindingScope& scope) {
-            return control::AlarmList::Create(*this, this->alarms, scope);
+            return mobileclock::ui::control::AlarmList::Create(*this, this->alarms, scope);
         };
         result.controls["TimelineTabs"] = [this](xaml::BindingScope& scope) {
-            return control::TimelineTabs::Create(*this, scope);
+            return mobileclock::ui::control::TimelineTabs::Create(*this, scope);
         };
         result.controls["AlarmActionsMenu"] = [this](xaml::BindingScope& scope) {
-            return control::AlarmActionsMenu::Create(*this, scope);
+            return mobileclock::ui::control::AlarmActionsMenu::Create(*this, scope);
         };
         return result;
     }
 
     void MainPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        control::AlarmActionsMenu::PreserveState(*this->page, *result.root);
-        control::AlarmList::PreserveInstances(*this->page, *result.root, *result.bindings);
+        mobileclock::ui::control::AlarmActionsMenu::PreserveState(*this->page, *result.root);
+        mobileclock::ui::control::AlarmList::PreserveInstances(*this->page, *result.root, *result.bindings);
         this->bindings.Clear();
         this->runtimeBindings.reset();
         this->page = std::move(result.root);

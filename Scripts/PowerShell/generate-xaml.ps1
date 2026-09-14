@@ -68,6 +68,12 @@ foreach ($xamlSourceRoot in $xamlSourceRoots) {
             $compilerArguments = @(
                 $_.FullName,
                 $generatedPath,
+                '--xaml-namespace',
+                'urn:mobileclock:xaml',
+                '--control-xml-prefix',
+                'control',
+                '--control-cpp-namespace',
+                'mobileclock::ui::control',
                 '--control-include-prefix',
                 'MobileClock.UI/Control'
             )

@@ -245,7 +245,7 @@ namespace mobileclock::application::ui::page {
     }
 
     void AddAlarmPageViewModel::ChooseAlarmMelody() {
-        this->context.appSessionController.Dispatch(AppSessionSignal::requestAlarmMelody, {});
+        this->context.appSessionController.Dispatch(core::AppSessionSignal::requestAlarmMelody, {});
     }
 
     void AddAlarmPageViewModel::NavigateToMain() {
@@ -283,6 +283,8 @@ namespace mobileclock::application::ui::page {
     xaml::runtime::RuntimeBindingContext AddAlarmPageViewModel::RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
         xaml::runtime::RuntimeBindingContext result{registry, "AddAlarmPageViewModel", {}};
+        result.xamlNamespace = "urn:mobileclock:xaml";
+        result.controlXmlNamespace = "using:mobileclock.ui.control";
         xaml::runtime::RuntimeCollectionDescriptor collection;
         collection.itemBindings = [](const void* value) {
             const auto* melody = static_cast<const view_model::AlarmMelodyViewModel*>(value);
@@ -298,7 +300,7 @@ namespace mobileclock::application::ui::page {
         registry->AddCollection("Melodies", collection);
         registry->AddCollection("ItemsSource", collection);
         result.controls["AlarmMelodyList"] = [this](xaml::BindingScope& scope) {
-            return control::AlarmMelodyList::Create(*this, this->melodies, scope);
+            return mobileclock::ui::control::AlarmMelodyList::Create(*this, this->melodies, scope);
         };
         return result;
     }

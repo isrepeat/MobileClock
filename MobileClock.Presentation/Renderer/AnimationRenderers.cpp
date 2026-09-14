@@ -2,7 +2,7 @@
 
 #include <XamlRuntime/RenderEngine.h>
 
-#include "PageTransition.h"
+#include "../Core/PageTransition.h"
 
 #include <algorithm>
 #include <cmath>

@@ -113,7 +113,13 @@ namespace mobileclock::application::ui::page {
     }
 
     xaml::runtime::RuntimeBindingContext XiaomiThemesPageViewModel::RuntimeContext() {
-        return {std::make_shared<xaml::runtime::RuntimeBindingRegistry>(), "XiaomiThemesPageViewModel", {}};
+        xaml::runtime::RuntimeBindingContext result{
+            std::make_shared<xaml::runtime::RuntimeBindingRegistry>(),
+            "XiaomiThemesPageViewModel",
+            {}};
+        result.xamlNamespace = "urn:mobileclock:xaml";
+        result.controlXmlNamespace = "using:mobileclock.ui.control";
+        return result;
     }
 
     void XiaomiThemesPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {

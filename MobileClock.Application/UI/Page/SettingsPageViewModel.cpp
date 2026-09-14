@@ -30,13 +30,13 @@ namespace mobileclock::application::ui::page {
             context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
         })
         , resetAlarmMelodySelectionCommand([&context]() {
-            context.appSessionController.Dispatch(AppSessionSignal::resetAlarmMelodySelection, {});
+            context.appSessionController.Dispatch(core::AppSessionSignal::resetAlarmMelodySelection, {});
         })
         , shareLogsCommand([&context]() {
-            context.appSessionController.Dispatch(AppSessionSignal::shareLogs, {});
+            context.appSessionController.Dispatch(core::AppSessionSignal::shareLogs, {});
         })
         , exportLogsCommand([&context]() {
-            context.appSessionController.Dispatch(AppSessionSignal::exportLogs, {});
+            context.appSessionController.Dispatch(core::AppSessionSignal::exportLogs, {});
         }) {
     }
 
@@ -164,6 +164,8 @@ namespace mobileclock::application::ui::page {
         publisher.Command("ShareLogsCommand", &SettingsPageViewModel::ShareLogsCommand);
         publisher.Command("ExportLogsCommand", &SettingsPageViewModel::ExportLogsCommand);
         xaml::runtime::RuntimeBindingContext result{registry, "SettingsPageViewModel", {}};
+        result.xamlNamespace = "urn:mobileclock:xaml";
+        result.controlXmlNamespace = "using:mobileclock.ui.control";
 
         return result;
     }

@@ -19,6 +19,7 @@ foreach (page_transition_test_xaml_file IN LISTS page_transition_test_xaml_files
     add_custom_command(OUTPUT "${page_transition_test_generated_file}"
         "${CMAKE_CURRENT_BINARY_DIR}/${page_transition_test_name}.h"
         COMMAND XamlCompiler "${page_transition_test_xaml_file}" "${page_transition_test_generated_file}"
+            --xaml-namespace "urn:mobileclock:xaml"
         DEPENDS XamlCompiler "${page_transition_test_xaml_file}"
         VERBATIM)
     list(APPEND page_transition_test_generated_files

@@ -8,15 +8,11 @@
 #include <XamlRuntime/Animation.h>
 #include <XamlRuntime/Input.h>
 
+#include <HelpersNew/Platform/Windows/WindowsApi.h>
 #include <HelpersNew/Geometry/ContainsPoint.h>
 #include <Helpers.Logging/Logging.h>
 
 #include <JsonParser/json_struct/json_struct.h>
-#include <Windows.h>
-
-#ifdef DrawText
-#undef DrawText
-#endif
 
 #include "../../MobileClock.Presentation/Core/PreviewSession.h"
 #include "../../MobileClock.Application/Core/AppSessionController.h"

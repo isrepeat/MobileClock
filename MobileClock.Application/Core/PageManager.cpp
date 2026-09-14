@@ -118,12 +118,12 @@ namespace mobileclock::application::core {
         this->pages.ForEach([&](interface::IPage& page) {
             page.Initialize(this->availableSize);
             page.Root().SetAnimationParametersProvider(parameters);
-            page.Root().SetVisibility(&page == &this->pages.GetPage<MainPageViewModel>()
+            page.Root().SetVisibility(&page == &this->pages.GetPage<ui::page::MainPageViewModel>()
                 ? xaml::attr::Visibility::visible
                 : xaml::attr::Visibility::collapsed);
             this->animations.Attach(page.Root(), registry);
         });
-        this->currentPage = &this->pages.GetPage<MainPageViewModel>();
+        this->currentPage = &this->pages.GetPage<ui::page::MainPageViewModel>();
         this->outgoingPage = this->currentPage;
         this->currentPage->Root().SetVisibility(xaml::attr::Visibility::visible);
         this->isTransitioning = false;
@@ -141,7 +141,7 @@ namespace mobileclock::application::core {
     }
 
     void PageManager::SetStatus(std::string value) {
-        this->pages.Get<MainPageViewModel>().SetStatus(std::move(value));
+        this->pages.Get<ui::page::MainPageViewModel>().SetStatus(std::move(value));
     }
 
     void PageManager::AddAlarmMelody(model::AlarmMelody alarmMelody) {
@@ -149,7 +149,7 @@ namespace mobileclock::application::core {
     }
 
     void PageManager::SetAlarmMelody(model::AlarmMelody alarmMelody) {
-        AddAlarmPageViewModel& page = this->pages.Get<AddAlarmPageViewModel>();
+        ui::page::AddAlarmPageViewModel& page = this->pages.Get<ui::page::AddAlarmPageViewModel>();
         page.SetMelody(std::move(alarmMelody));
     }
 
@@ -462,16 +462,16 @@ namespace mobileclock::application::core {
 
     std::span<const PageManager::NavigationRoute> PageManager::Routes() {
         static const std::array routes{
-            MakeRoute<MainPageViewModel, AddAlarmPageViewModel, NavigationTrigger::createAlarm, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<MainPageViewModel, AddAlarmPageViewModel, NavigationTrigger::editAlarm, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<MainPageViewModel, SettingsPageViewModel, NavigationTrigger::navigateToSettings, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<AddAlarmPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::createAlarm, mobileclock::presentation::core::NavigationDirection::forward>(),
+            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::editAlarm, mobileclock::presentation::core::NavigationDirection::forward>(),
+            MakeRoute<ui::page::MainPageViewModel, ui::page::SettingsPageViewModel, NavigationTrigger::navigateToSettings, mobileclock::presentation::core::NavigationDirection::forward>(),
+            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>(),
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-            MakeRoute<AddAlarmPageViewModel, XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody, mobileclock::presentation::core::NavigationDirection::backward>(),
-            MakeRoute<XiaomiThemesPageViewModel, AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody, mobileclock::presentation::core::NavigationDirection::forward>(),
+            MakeRoute<ui::page::XiaomiThemesPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::XiaomiThemesPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection, mobileclock::presentation::core::NavigationDirection::backward>(),
 #endif
-            MakeRoute<SettingsPageViewModel, MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::SettingsPageViewModel, ui::page::MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>(),
         };
         return routes;
     }
