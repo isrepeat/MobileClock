@@ -11,11 +11,11 @@ $ErrorActionPreference = 'Stop'
 try {
     $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $generateXamlScript = Join-Path $projectRoot 'Scripts\PowerShell\generate-xaml.ps1'
-    $projectFile = Join-Path $projectRoot 'MobileClock.XamlPreviewer\XamlPreviewer.WPF\XamlPreviewer.WPF.csproj'
-    $pluginProjectFile = Join-Path $projectRoot 'MobileClock.XamlPreviewer\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.vcxproj'
-    $previewer = Join-Path $projectRoot "MobileClock.XamlPreviewer\!VS_TMP\Build\$Configuration\x64\XamlPreviewer.WPF\XamlPreviewer.exe"
-    $plugin = Join-Path $projectRoot "MobileClock.XamlPreviewer\!VS_TMP\Build\$Configuration\x64\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.dll"
-    $binaryLogDirectory = Join-Path $projectRoot 'MobileClock.XamlPreviewer\!VS_TMP\Logs'
+    $projectFile = Join-Path $projectRoot 'XamlPreviewer\XamlPreviewer.WPF\XamlPreviewer.WPF.csproj'
+    $pluginProjectFile = Join-Path $projectRoot 'MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.vcxproj'
+    $previewer = Join-Path $projectRoot "XamlPreviewer\!VS_TMP\Build\$Configuration\x64\XamlPreviewer.WPF\XamlPreviewer.exe"
+    $plugin = Join-Path $projectRoot "MobileClock.PreviewPlugin\!VS_TMP\Build\$Configuration\x64\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.dll"
+    $binaryLogDirectory = Join-Path $projectRoot 'XamlPreviewer\!VS_TMP\Logs'
     $binaryLogName = "xaml-previewer-{0:yyyyMMdd-HHmmss}.binlog" -f [DateTime]::Now
     $binaryLogPath = Join-Path $binaryLogDirectory $binaryLogName
     $visualStudioMsBuild = 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'

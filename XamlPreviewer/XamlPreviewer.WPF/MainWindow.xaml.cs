@@ -35,43 +35,43 @@ public partial class MainWindow : Window {
 
     private const string NoScenarioName = "None";
     private const double SearchPanelOverlayHeight = 84.0;
-    private const double MinimumEditorPaneRatio = 0.2;
-    private const double MaximumEditorPaneRatio = 0.8;
-    private const double MinimumNavigationGraphPaneWidth = 280.0;
-    private const double MaximumNavigationGraphPaneWidth = 900.0;
-    private readonly DispatcherTimer renderTimer;
-    private readonly DispatcherTimer animationTimer;
-    private readonly PreviewFileWatchController fileWatchController;
+    private readonly WorkspaceController workspaceController;
     private readonly EditorScrollController editorScrollController;
     private readonly PreviewStatusPresenter statusPresenter;
     private readonly MarkupEditorController markupEditorController;
+    private readonly DocumentEditorController documentEditorController;
+    private readonly ScenarioController scenarioController;
+    private readonly SettingsController settingsController;
     private readonly SearchPanel markupSearchPanel;
     private readonly XamlCompletionController xamlCompletionController;
     private readonly FolderPickerController folderPickerController;
     private readonly PreviewViewportController previewViewportController;
     private readonly NavigationGraphController navigationGraphController;
+    private readonly PluginSessionController pluginSessionController;
+    private readonly PreviewController previewController;
+    private readonly PreviewDeviceController previewDeviceController;
+    private readonly WindowLayoutController windowLayoutController;
     private readonly Grid previewLayer = new();
     private bool updatingPreviewControls;
     private bool updatingControlPicker;
     private bool settingsPersistenceReady;
-    private NativePreviewSession? nativeApplicationSession;
     private IReadOnlyList<string>? pendingPreviewRoute;
     private string? deferredNavigationEditorPage;
     private bool isClosing;
-    private bool isNativePluginAvailable;
-    private PreviewerSettings settings = null!;
-    private string? markupPath;
-    private string? markupFileText;
-    private bool isMarkupDirty;
+    private PreviewerSettings settings => this.settingsController.Value;
     private bool isSettingsDirty;
-    private bool isScenarioDirty;
+    private bool isScenarioDirty => this.scenarioController.IsDirty;
     private bool updatingElementSelection;
     private bool updatingEditors;
     private bool suppressFoldingStatePersistence;
-    private int navigationGraphAnimationGeneration;
     private EditorMode editorMode;
-    private string? scenarioPath;
-    private string? scenarioFileText;
+    private string? scenarioPath => this.scenarioController.Path;
+    private string? scenarioFileText => this.scenarioController.PersistedText;
+
+    private bool IsNativePluginAvailable => this.pluginSessionController.IsAvailable;
+    private NativePreviewSession? nativeApplicationSession => this.previewController.Session;
+    private bool isMarkupDirty => this.documentEditorController.IsDirty;
+    private string? markupPath => this.documentEditorController.Path;
 
     private enum EditorMode {
         Xaml,
@@ -94,6 +94,23 @@ public partial class MainWindow : Window {
         this.navigationGraphController = new NavigationGraphController(
             this.NavigationGraph,
             this.statusPresenter.Information);
+        this.pluginSessionController = new PluginSessionController();
+        this.previewController = new PreviewController(this.Dispatcher, this.pluginSessionController);
+        this.previewDeviceController = new PreviewDeviceController();
+        this.windowLayoutController = new WindowLayoutController(
+            this.EditorColumn,
+            this.WorkspaceColumn,
+            this.EditorNavigationSplitterColumn,
+            this.NavigationGraphColumn,
+            this.NavigationPreviewSplitterColumn,
+            this.PreviewColumn,
+            this.EditorNavigationSplitter,
+            this.NavigationGraphPanel,
+            this.NavigationPreviewSplitter,
+            (GridLength)this.FindResource("PanelSplitterWidth"));
+        this.previewController.RenderRequested += this.ShowNativeApplicationPreview;
+        this.previewController.FrameUpdated += this.PreviewFrameUpdated;
+        this.previewController.Failed += this.ShowPreviewError;
         this.navigationGraphController.ActivePageChanged += this.NavigationGraphActivePageChanged;
         this.navigationGraphController.RouteConfirmed += this.NavigationGraphRouteConfirmed;
         this.DeviceSurface.Child = this.previewLayer;
@@ -103,6 +120,9 @@ public partial class MainWindow : Window {
         MainWindow.ConfigureEditor(this.ScenarioEditor, MarkupSyntaxHighlighter.CreateJson());
         this.markupSearchPanel.IsVisibleChanged += this.MarkupSearchPanelLayoutChanged;
         this.markupEditorController = new MarkupEditorController(this.MarkupEditor);
+        this.documentEditorController = new DocumentEditorController();
+        this.scenarioController = new ScenarioController();
+        this.settingsController = new SettingsController();
         this.markupEditorController.FoldingStateChanged += this.MarkupEditorFoldingStateChanged;
         this.MarkupEditor.TextArea.Caret.PositionChanged += this.MarkupEditorCaretPositionChanged;
         this.xamlCompletionController = new XamlCompletionController(this.MarkupEditor);
@@ -122,15 +142,7 @@ public partial class MainWindow : Window {
             this.GetPreviewScale,
             this.SetPreviewScale,
             () => { this.SyncSettingsEditor(); this.PersistSettings(); });
-        this.renderTimer = new DispatcherTimer {
-            Interval = TimeSpan.FromMilliseconds(250)
-        };
-        this.renderTimer.Tick += this.RenderTimerTick;
-        this.animationTimer = new DispatcherTimer {
-            Interval = TimeSpan.FromMilliseconds(16)
-        };
-        this.animationTimer.Tick += this.AnimationTimerTick;
-        this.fileWatchController = new PreviewFileWatchController(this.Dispatcher, this.ExternalRefresh);
+        this.workspaceController = new WorkspaceController(this.Dispatcher, this.ExternalRefresh);
         this.editorScrollController = new EditorScrollController(
             () => this.settings,
             steps => this.SetEditorScale(this.GetEditorScale() + 0.1 * steps));
@@ -147,31 +159,26 @@ public partial class MainWindow : Window {
     private void WindowLoaded(object sender, RoutedEventArgs eventArgs) {
         this.LoadSettings();
         var pluginPath = this.GetConfiguredPluginPath();
-        this.isNativePluginAvailable = pluginPath is not null;
-        if (this.isNativePluginAvailable) {
-            NativeRuntime.ConfigurePlugin(pluginPath);
-            NativeRuntime.EnsurePluginCompatibility();
+        if (pluginPath is null) {
+            pluginPath = this.pluginSessionController.PickPlugin(this);
+            if (pluginPath is not null) {
+                this.settings.PreviewPluginPath = pluginPath;
+                this.settingsController.Save();
+            }
         }
+        this.pluginSessionController.Initialize(pluginPath);
         this.UpdateNativePluginTitle();
-        if (this.isNativePluginAvailable) {
-            NativeRuntime.xr_configure_logging(Path.Combine(AppContext.BaseDirectory, "xaml-previewer.log"));
-        }
         this.ConfigureMouseWheelScrolling();
         this.ApplyEditorScale();
         this.InitializePreviewControls();
         this.RestoreWindowState();
-        if (this.settings.IsFirstLaunch) {
-            this.settingsPersistenceReady = true;
-            this.ShowFolderPicker();
-            return;
-        }
         this.ConfigureWatchers();
         this.RefreshPageNames();
         var lastMarkupPath = this.settings.LastMarkupPath;
         if (lastMarkupPath is not null && File.Exists(lastMarkupPath)) {
             var lastPageName = this.GetPagePickerPath(lastMarkupPath);
-            if (this.isNativePluginAvailable) {
-                NativeRuntime.xr_log_info(
+            if (this.IsNativePluginAvailable) {
+                this.pluginSessionController.LogInfo(
                     $"Preview restore: saved markup='{lastMarkupPath}', matched page='{lastPageName ?? "<none>"}'");
             }
             if (lastPageName is not null) {
@@ -184,7 +191,6 @@ public partial class MainWindow : Window {
         this.updatingEditors = true;
         this.SettingsEditor.Text = this.settings.ToJson();
         this.updatingEditors = false;
-        this.isMarkupDirty = false;
         this.isSettingsDirty = false;
         this.UpdateEditorMode();
         this.settingsPersistenceReady = true;
@@ -209,7 +215,7 @@ public partial class MainWindow : Window {
     }
 
     private void UpdateNativePluginTitle() {
-        var configuredPluginPath = this.GetConfiguredPluginPath();
+        var configuredPluginPath = this.pluginSessionController.PluginPath ?? this.GetConfiguredPluginPath();
         var loadedLibraryPath = configuredPluginPath is null ? string.Empty : Path.GetFullPath(configuredPluginPath);
         var loadedLibrary = new FileInfo(loadedLibraryPath);
         if (!loadedLibrary.Exists) {
@@ -242,25 +248,6 @@ public partial class MainWindow : Window {
         return Directory.Exists(documentsDirectory)
             ? documentsDirectory
             : Environment.CurrentDirectory;
-    }
-
-    private static string ResolveResourcesDirectory(string xamlDirectory) {
-        if (!Directory.Exists(xamlDirectory)) {
-            return string.Empty;
-        }
-
-        var currentDirectory = new DirectoryInfo(xamlDirectory);
-        while (currentDirectory is not null) {
-            var resourcesDirectory = Path.Combine(currentDirectory.FullName, "Resources");
-            var iconsDirectory = Path.Combine(resourcesDirectory, "Icons");
-            if (Directory.Exists(iconsDirectory)) {
-                return resourcesDirectory;
-            }
-
-            currentDirectory = currentDirectory.Parent;
-        }
-
-        return string.Empty;
     }
 
     private void FolderPickerUpButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -308,7 +295,7 @@ public partial class MainWindow : Window {
             return;
         }
         this.settings.XamlDirectory = selectedDirectory;
-        this.settings.ResourcesDirectory = MainWindow.ResolveResourcesDirectory(selectedDirectory);
+        this.settings.ResourcesDirectory = this.workspaceController.ResolveResourcesDirectory(selectedDirectory);
         this.ConfigureWatchers();
         this.RefreshPageNames();
         this.HideFolderPicker();
@@ -321,10 +308,9 @@ public partial class MainWindow : Window {
     }
 
     private void ClearFolderPickerPreview() {
-        this.animationTimer.Stop();
+        this.previewController.StopAnimation();
         this.deferredNavigationEditorPage = null;
-        this.nativeApplicationSession?.Dispose();
-        this.nativeApplicationSession = null;
+        this.previewController.Reset();
         this.previewLayer.Children.Clear();
         this.navigationGraphController.Clear();
     }
@@ -332,7 +318,7 @@ public partial class MainWindow : Window {
     private void ShowPreviewError(Exception exception) {
         if (this.nativeApplicationSession is not null) {
             this.statusPresenter.Error(exception.Message);
-            this.animationTimer.Start();
+            this.previewController.StartAnimation();
             return;
         }
         this.ClearFolderPickerPreview();
@@ -370,7 +356,7 @@ public partial class MainWindow : Window {
 
     private void SaveButtonClick(object sender, RoutedEventArgs eventArgs) {
         if (this.editorMode == EditorMode.Settings) {
-            this.settings = PreviewerSettings.Parse(this.SettingsEditor.Text, this.settings.FilePath);
+            this.settingsController.Replace(this.SettingsEditor.Text);
             this.ApplyElementInspectionHighlightSettings();
             this.ConfigureMouseWheelScrolling();
             this.ApplyEditorScale();
@@ -390,12 +376,7 @@ public partial class MainWindow : Window {
                 return;
             }
             try {
-                using var document = JsonDocument.Parse(this.ScenarioEditor.Text);
-                if (document.RootElement.ValueKind != JsonValueKind.Object) {
-                    throw new JsonException("Корневой элемент должен быть объектом.");
-                }
-                File.WriteAllText(this.scenarioPath, this.ScenarioEditor.Text.TrimEnd());
-                this.isScenarioDirty = false;
+                this.scenarioController.Save(this.ScenarioEditor.Text.TrimEnd());
                 this.RefreshScenarioNames();
                 if (this.scenarioPath is not null) {
                     this.editorMode = EditorMode.Scenario;
@@ -415,27 +396,14 @@ public partial class MainWindow : Window {
             return;
         }
 
-        if (this.isMarkupDirty && this.IsMarkupModifiedExternally() && !this.ConfirmMarkupOverwrite()) {
+        var markup = this.markupEditorController.Text.TrimEnd();
+        if (!this.documentEditorController.Save(markup, this.ConfirmMarkupOverwrite)) {
             this.statusPresenter.Information("Сохранение отменено: исходный XAML был изменён извне.");
             return;
         }
-        var markup = this.markupEditorController.Text.TrimEnd();
-        File.WriteAllText(this.markupPath, markup);
-        this.markupFileText = markup;
-        this.isMarkupDirty = false;
         this.RefreshScenarioNames();
         this.UpdateDocumentState();
         this.statusPresenter.Success($"Сохранено: {this.markupPath}");
-    }
-
-    private bool IsMarkupModifiedExternally() {
-        return this.markupPath is not null
-            && this.markupFileText is not null
-            && (!File.Exists(this.markupPath)
-                || !string.Equals(
-                    File.ReadAllText(this.markupPath),
-                    this.markupFileText,
-                    StringComparison.Ordinal));
     }
 
     private bool ConfirmMarkupOverwrite() {
@@ -464,25 +432,21 @@ public partial class MainWindow : Window {
     }
 
     private void ResetNativeApplicationSession() {
-        this.animationTimer.Stop();
-        this.nativeApplicationSession?.Dispose();
-        this.nativeApplicationSession = null;
+        this.previewController.StopAnimation();
+        this.previewController.Reset();
         this.previewLayer.Children.Clear();
     }
 
     private void SelectPreviewPluginButtonClick(object sender, RoutedEventArgs eventArgs) {
-        var dialog = new Microsoft.Win32.OpenFileDialog {
-            Filter = "XAML Previewer plugin (*.dll)|*.dll|Dynamic libraries (*.dll)|*.dll",
-            Title = "Выберите native DLL приложения",
-        };
-        if (dialog.ShowDialog(this) != true) {
+        var pluginPath = this.pluginSessionController.PickPlugin(this);
+        if (pluginPath is null) {
             return;
         }
-        this.settings.PreviewPluginPath = dialog.FileName;
+        this.settings.PreviewPluginPath = pluginPath;
         this.PersistSettings();
         Process.Start(new ProcessStartInfo {
             FileName = Environment.ProcessPath!,
-            Arguments = $"--plugin \"{dialog.FileName}\"",
+            Arguments = $"--plugin \"{pluginPath}\"",
             WorkingDirectory = AppContext.BaseDirectory,
             UseShellExecute = true,
         });
@@ -686,7 +650,7 @@ public partial class MainWindow : Window {
             this.editorMode = EditorMode.Scenario;
             if (!this.isScenarioDirty) {
                 this.updatingEditors = true;
-                this.ScenarioEditor.Text = File.ReadAllText(this.scenarioPath);
+                this.ScenarioEditor.Text = this.scenarioFileText!;
                 this.updatingEditors = false;
             }
         } else {
@@ -760,7 +724,7 @@ public partial class MainWindow : Window {
     private void EditorTextChanged(object sender, EventArgs eventArgs) {
         if (ReferenceEquals(sender, this.MarkupEditor)) {
             if (this.markupEditorController.HandleTextChanged()) {
-                this.isMarkupDirty = true;
+                this.documentEditorController.MarkDirty();
                 this.UpdateDocumentState();
             }
 
@@ -772,7 +736,7 @@ public partial class MainWindow : Window {
                 this.isSettingsDirty = true;
             }
             if (ReferenceEquals(sender, this.ScenarioEditor)) {
-                this.isScenarioDirty = true;
+                this.scenarioController.MarkDirty();
             }
 
             this.UpdateDocumentState();
@@ -887,52 +851,32 @@ public partial class MainWindow : Window {
             || value.StartsWith("\\\\", StringComparison.Ordinal);
     }
 
-    private void RenderTimerTick(object? sender, EventArgs eventArgs) {
-        this.renderTimer.Stop();
+    private void PreviewFrameUpdated(NativePreviewSession session) {
         if (this.isClosing) {
             return;
         }
-        this.ShowNativeApplicationPreview();
-    }
-
-    private void AnimationTimerTick(object? sender, EventArgs eventArgs) {
-        if (this.isClosing) {
-            return;
-        }
-        try {
-            this.nativeApplicationSession?.UpdateAndRender();
-            if (this.nativeApplicationSession is not null) {
-                this.navigationGraphController.Synchronize(this.nativeApplicationSession.CurrentPage);
-                if (!this.nativeApplicationSession.IsTransitioning
-                    && this.deferredNavigationEditorPage is not null) {
-                    this.SelectNavigationPageInEditor(this.deferredNavigationEditorPage);
-                    this.deferredNavigationEditorPage = null;
-                }
-            }
-        }
-        catch (Exception exception) {
-            this.ShowPreviewError(exception);
+        this.navigationGraphController.Synchronize(session.CurrentPage);
+        if (!session.IsTransitioning && this.deferredNavigationEditorPage is not null) {
+            this.SelectNavigationPageInEditor(this.deferredNavigationEditorPage);
+            this.deferredNavigationEditorPage = null;
         }
     }
 
     private void LoadMarkup(string path) {
         this.StoreCollapsedMarkupFoldings();
-        this.markupPath = Path.GetFullPath(path);
+        var markup = this.documentEditorController.Load(path);
         this.ConfigureWatchers();
         this.FilePathText.Text = this.markupPath;
         this.suppressFoldingStatePersistence = true;
         this.updatingEditors = true;
         try {
-            var markup = File.ReadAllText(this.markupPath);
             this.markupEditorController.SetText(markup);
-            this.markupFileText = markup;
             this.markupEditorController.SetFoldedOffsets(this.GetCollapsedMarkupFoldings());
         }
         finally {
             this.updatingEditors = false;
             this.suppressFoldingStatePersistence = false;
         }
-        this.isMarkupDirty = false;
         this.SelectControlPicker(path);
         this.RefreshScenarioNames();
         this.ConfigureWatchers();
@@ -949,13 +893,7 @@ public partial class MainWindow : Window {
         // Сохраняем выбор, чтобы такой внутренний refresh не отменял навигацию
         // на другую страницу через несколько сотен миллисекунд после tap.
         var previous = this.PagePicker.SelectedItem as string;
-        var pages = Directory.Exists(this.settings.XamlDirectory)
-            ? Directory.GetFiles(this.settings.XamlDirectory, "*.xaml", SearchOption.AllDirectories)
-                .Select(path => Path.GetRelativePath(this.settings.XamlDirectory, path))
-                .Where(path => !path.StartsWith("Pages\\backup\\", StringComparison.OrdinalIgnoreCase))
-                .Order()
-                .ToArray()
-            : [];
+        var pages = this.workspaceController.DiscoverPages(this.settings.XamlDirectory);
         if (this.PagePicker.Items.Cast<string>().SequenceEqual(pages)) {
             this.RefreshControlNames();
             return;
@@ -976,9 +914,7 @@ public partial class MainWindow : Window {
     }
 
     private string? GetSelectedPageMarkupPath() {
-        return this.PagePicker.SelectedItem is string pageName
-            ? Path.GetFullPath(Path.Combine(this.settings.XamlDirectory, pageName))
-            : null;
+        return this.workspaceController.GetPagePath(this.settings.XamlDirectory, this.PagePicker.SelectedItem as string);
     }
 
     private void RefreshControlNames() {
@@ -987,31 +923,7 @@ public partial class MainWindow : Window {
             this.ControlPicker.ItemsSource = null;
             return;
         }
-        var controlPaths = Directory.Exists(this.settings.ControlsDirectory)
-            ? Directory.GetFiles(this.settings.ControlsDirectory, "*.xaml", SearchOption.AllDirectories)
-                .ToDictionary(Path.GetFileNameWithoutExtension, StringComparer.Ordinal)
-            : new Dictionary<string, string>(StringComparer.Ordinal);
-        var discoveredControls = new List<(string Name, string Path, string? Id)>();
-        var visitedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { pagePath };
-        var pathsToInspect = new Queue<string>();
-        pathsToInspect.Enqueue(pagePath);
-        var controlPattern = new Regex(
-            "<\\w+:(?<name>[A-Za-z][A-Za-z0-9]*)\\b(?<attributes>[^>]*)>",
-            RegexOptions.CultureInvariant);
-        var idPattern = new Regex("\\bid\\s*=\\s*\"(?<id>[^\"]+)\"", RegexOptions.CultureInvariant);
-        while (pathsToInspect.TryDequeue(out var sourcePath)) {
-            foreach (Match match in controlPattern.Matches(File.ReadAllText(sourcePath))) {
-                var name = match.Groups["name"].Value;
-                if (!controlPaths.TryGetValue(name, out var controlPath)) {
-                    continue;
-                }
-                var idMatch = idPattern.Match(match.Groups["attributes"].Value);
-                discoveredControls.Add((name, controlPath, idMatch.Success ? idMatch.Groups["id"].Value : null));
-                if (visitedPaths.Add(controlPath)) {
-                    pathsToInspect.Enqueue(controlPath);
-                }
-            }
-        }
+        var discoveredControls = this.workspaceController.DiscoverControls(pagePath, this.settings.ControlsDirectory);
         var controls = new List<MarkupNavigationTarget> {
             new() { Name = "Page", Path = pagePath },
         };
@@ -1071,23 +983,18 @@ public partial class MainWindow : Window {
     }
 
     private void LoadSettings() {
-        this.settings = PreviewerSettings.LoadDebug();
-        var resourcesDirectory = MainWindow.ResolveResourcesDirectory(this.settings.XamlDirectory);
+        this.settingsController.Load();
+        var resourcesDirectory = this.workspaceController.ResolveResourcesDirectory(this.settings.XamlDirectory);
         if (!string.Equals(this.settings.ResourcesDirectory, resourcesDirectory, StringComparison.OrdinalIgnoreCase)) {
             this.settings.ResourcesDirectory = resourcesDirectory;
-            this.settings.Save();
+            this.settingsController.Save();
         }
 
         this.ApplyElementInspectionHighlightSettings();
     }
 
     private void ConfigureWatchers() {
-        this.fileWatchController.Configure(
-            this.markupPath,
-            this.scenarioPath,
-            this.settings.FilePath,
-            this.settings.XamlDirectory,
-            this.settings.ControlsDirectory);
+        this.workspaceController.ConfigureWatchers(this.markupPath, this.scenarioPath, this.settings);
     }
 
     private void ExternalRefresh() {
@@ -1105,8 +1012,7 @@ public partial class MainWindow : Window {
                         this.markupEditorController.SetText(markup);
                         this.updatingEditors = false;
                     }
-                    this.markupFileText = markup;
-                    this.isMarkupDirty = false;
+                    this.documentEditorController.AcceptPersistedText(markup);
                     this.RefreshScenarioNames();
                     this.ConfigureWatchers();
                     this.UpdateDocumentState();
@@ -1124,7 +1030,7 @@ public partial class MainWindow : Window {
                 var settingsJson = File.ReadAllText(this.settings.FilePath);
                 if (!this.isSettingsDirty
                     && !string.Equals(settingsJson, this.SettingsEditor.Text, StringComparison.Ordinal)) {
-                    this.settings = PreviewerSettings.Parse(settingsJson, this.settings.FilePath);
+                    this.settingsController.Replace(settingsJson);
                     this.ApplyElementInspectionHighlightSettings();
                     this.updatingEditors = true;
                     this.SettingsEditor.Text = settingsJson;
@@ -1165,12 +1071,9 @@ public partial class MainWindow : Window {
         this.settings.IsMaximized = this.WindowState == WindowState.Maximized;
         this.settings.EditorPaneRatio = this.GetEditorPaneRatio();
         if (this.settings.IsNavigationGraphVisible && this.NavigationGraphColumn.ActualWidth > 0.0) {
-            this.settings.NavigationGraphPaneWidth = Math.Clamp(
-                this.NavigationGraphColumn.ActualWidth,
-                MinimumNavigationGraphPaneWidth,
-                MaximumNavigationGraphPaneWidth);
+            this.settings.NavigationGraphPaneWidth = this.windowLayoutController.GetNavigationGraphPaneWidth();
         }
-        this.settings.Save();
+        this.settingsController.Save();
         // Синхронизируем отображаемый JSON после собственного сохранения.
         // Тогда settingsWatcher не принимает нашу же запись за внешнее
         // изменение и не запускает повторный рендер native-сессии.
@@ -1202,7 +1105,7 @@ public partial class MainWindow : Window {
     private void PersistNavigationPage(string page) {
         var pagePath = this.GetMarkupPathForNativePage(page);
         if (pagePath is null) {
-            NativeRuntime.xr_log_info($"Preview navigation: could not map native page='{page}' to a markup file");
+            this.pluginSessionController.LogInfo($"Preview navigation: could not map native page='{page}' to a markup file");
             return;
         }
 
@@ -1213,13 +1116,13 @@ public partial class MainWindow : Window {
 
         this.settings.LastMarkupPath = markupPath;
         if (this.settingsPersistenceReady) {
-            this.settings.Save();
+            this.settingsController.Save();
             if (!this.isSettingsDirty) {
                 this.updatingEditors = true;
                 this.SettingsEditor.Text = this.settings.ToJson();
                 this.updatingEditors = false;
             }
-            NativeRuntime.xr_log_info(
+            this.pluginSessionController.LogInfo(
                 $"Preview navigation: saved native page='{page}', markup='{this.settings.LastMarkupPath}'");
         }
     }
@@ -1269,13 +1172,10 @@ public partial class MainWindow : Window {
         }
         this.isClosing = true;
         this.settingsPersistenceReady = false;
-        this.renderTimer.Stop();
-        this.animationTimer.Stop();
-        this.fileWatchController.Dispose();
+        this.previewController.Dispose();
+        this.workspaceController.Dispose();
         this.editorScrollController.Dispose();
         this.markupEditorController.Dispose();
-        this.nativeApplicationSession?.Dispose();
-        this.nativeApplicationSession = null;
         this.previewLayer.Children.Clear();
     }
 
@@ -1355,106 +1255,23 @@ public partial class MainWindow : Window {
     }
 
     private void UpdateNavigationGraphVisibility(bool animate = false) {
-        var navigationGraphWidth = Math.Clamp(
-            this.settings.NavigationGraphPaneWidth,
-            MinimumNavigationGraphPaneWidth,
-            MaximumNavigationGraphPaneWidth);
-        var targetWidth = this.settings.IsNavigationGraphVisible ? navigationGraphWidth : 0.0;
-        if (!animate) {
-            this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
-            if (this.settings.IsNavigationGraphVisible) {
-                this.ConfigureNavigationGraphLayout(navigationGraphWidth);
-            } else {
-                this.ConfigureEditorPreviewLayout();
-            }
-            return;
-        }
-
-        ++this.navigationGraphAnimationGeneration;
-        var generation = this.navigationGraphAnimationGeneration;
-        var sourceWidth = this.NavigationGraphPanel.Visibility == Visibility.Visible
-            ? this.NavigationGraphColumn.ActualWidth
-            : 0.0;
-        if (this.settings.IsNavigationGraphVisible) {
-            this.ConfigureNavigationGraphLayout(sourceWidth);
-        }
-        var animation = new GridLengthAnimation {
-            From = new GridLength(sourceWidth),
-            To = new GridLength(targetWidth),
-            Duration = TimeSpan.FromMilliseconds(220.0),
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
-        };
-        animation.Completed += (_, _) => {
-            if (generation != this.navigationGraphAnimationGeneration) {
-                return;
-            }
-            this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
-            if (this.settings.IsNavigationGraphVisible) {
-                this.ConfigureNavigationGraphLayout(navigationGraphWidth);
-            } else {
-                this.ConfigureEditorPreviewLayout();
-            }
-        };
-        this.NavigationGraphColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
-    }
-
-    private void ConfigureNavigationGraphLayout(double graphWidth) {
-        this.EditorNavigationSplitter.Visibility = Visibility.Visible;
-        this.NavigationGraphPanel.Visibility = Visibility.Visible;
-        this.NavigationPreviewSplitter.Visibility = Visibility.Visible;
-        this.EditorNavigationSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
-        this.NavigationGraphColumn.Width = new GridLength(graphWidth);
-        this.NavigationPreviewSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
-        this.PreviewColumn.Width = new GridLength(1.0, GridUnitType.Star);
-    }
-
-    private void ConfigureEditorPreviewLayout() {
-        this.EditorNavigationSplitter.Visibility = Visibility.Visible;
-        this.NavigationGraphPanel.Visibility = Visibility.Collapsed;
-        this.NavigationPreviewSplitter.Visibility = Visibility.Collapsed;
-        this.EditorNavigationSplitterColumn.Width = (GridLength)this.FindResource("PanelSplitterWidth");
-        this.NavigationGraphColumn.Width = new GridLength(0.0);
-        this.NavigationPreviewSplitterColumn.Width = new GridLength(0.0);
-        this.PreviewColumn.Width = new GridLength(1.0, GridUnitType.Star);
+        this.windowLayoutController.UpdateNavigationGraph(this.settings, animate);
     }
 
     private double GetEditorPaneRatio() {
-        var panesWidth = this.EditorColumn.ActualWidth + this.WorkspaceColumn.ActualWidth;
-        if (panesWidth <= 0.0) {
-            return this.settings.EditorPaneRatio;
-        }
-
-        return Math.Clamp(
-            this.EditorColumn.ActualWidth / panesWidth,
-            MinimumEditorPaneRatio,
-            MaximumEditorPaneRatio);
+        return this.windowLayoutController.GetEditorPaneRatio(this.settings);
     }
 
     private void ApplyEditorPreviewSplit() {
-        var editorPaneRatio = Math.Clamp(
-            this.settings.EditorPaneRatio,
-            MinimumEditorPaneRatio,
-            MaximumEditorPaneRatio);
-        this.settings.EditorPaneRatio = editorPaneRatio;
-        this.EditorColumn.Width = new GridLength(editorPaneRatio, GridUnitType.Star);
-        this.WorkspaceColumn.Width = new GridLength(1.0 - editorPaneRatio, GridUnitType.Star);
+        this.windowLayoutController.ApplyEditorPreviewSplit(this.settings);
     }
 
     private void UpdatePreviewOrientationToggle() {
-        this.PortraitOrientationText.Foreground = PreviewBrushes.Parse(
-            this.settings.IsPreviewLandscape ? "#E6E6E6" : "#D5BD7D");
-        this.LandscapeOrientationText.Foreground = PreviewBrushes.Parse(
-            this.settings.IsPreviewLandscape ? "#D5BD7D" : "#E6E6E6");
+        this.previewDeviceController.UpdateOrientation(this.settings, this.PortraitOrientationText, this.LandscapeOrientationText);
     }
 
     private void ApplyPreviewLayout() {
-        var previewSize = this.GetPreviewSize();
-        var scale = this.GetPreviewScale();
-        this.DeviceSurface.Width = previewSize.Width;
-        this.DeviceSurface.Height = previewSize.Height;
-        this.PreviewViewbox.Width = previewSize.Width * scale;
-        this.PreviewViewbox.Height = previewSize.Height * scale;
-        this.ZoomText.Text = $"{scale:P0}";
+        this.previewDeviceController.Apply(this.settings, this.DeviceSurface, this.PreviewViewbox, this.ZoomText);
     }
 
     private double GetAnimationPlaybackRate() {
@@ -1462,35 +1279,22 @@ public partial class MainWindow : Window {
     }
 
     private void FitPreview() {
-        var previewSize = this.GetPreviewSize();
-        if (this.PreviewViewport.ViewportWidth <= 0.0 || this.PreviewViewport.ViewportHeight <= 0.0) {
-            return;
+        if (this.previewDeviceController.Fit(this.settings, this.PreviewViewport, this.DeviceSurface, this.PreviewViewbox, this.ZoomText)) {
+            this.SyncSettingsEditor();
+            this.PersistSettings();
         }
-
-        var scale = Math.Min(
-            this.PreviewViewport.ViewportWidth / previewSize.Width,
-            this.PreviewViewport.ViewportHeight / previewSize.Height);
-        this.SetPreviewScale(scale);
     }
 
     private (int Width, int Height) GetPreviewSize() {
-        var width = Math.Max(1, this.settings.PreviewWidth);
-        var height = Math.Max(1, this.settings.PreviewHeight);
-        return this.settings.IsPreviewLandscape
-            ? (height, width)
-            : (width, height);
+        return this.previewDeviceController.GetSize(this.settings);
     }
 
     private double GetPreviewScale() {
-        return Math.Clamp(
-            this.settings.PreviewScale > 0.0 ? this.settings.PreviewScale : 0.5,
-            0.1,
-            3.0);
+        return this.previewDeviceController.GetScale(this.settings);
     }
 
     private void SetPreviewScale(double scale) {
-        this.settings.PreviewScale = Math.Clamp(scale, 0.1, 3.0);
-        this.ApplyPreviewLayout();
+        this.previewDeviceController.SetScale(this.settings, scale, this.DeviceSurface, this.PreviewViewbox, this.ZoomText);
         this.SyncSettingsEditor();
         this.PersistSettings();
     }
@@ -1504,8 +1308,7 @@ public partial class MainWindow : Window {
         var previous = this.ScenarioPicker.SelectedItem as string;
         var previousPath = this.scenarioPath;
         var wasScenarioMode = this.editorMode == EditorMode.Scenario;
-        this.scenarioPath = null;
-        this.scenarioFileText = null;
+        this.scenarioController.Clear();
         this.ScenarioPicker.ItemsSource = null;
         this.ScenarioPicker.SelectedItem = null;
         this.ScenarioPicker.Visibility = Visibility.Collapsed;
@@ -1516,34 +1319,15 @@ public partial class MainWindow : Window {
             this.ClearScenarioMode();
             return;
         }
-        const string pattern = "<\\?xaml-preview-scenario\\s+path=\\\"(?<path>[^\\\"]+)\\\"\\s*\\?>";
-        var match = Regex.Match(File.ReadAllText(pagePath), pattern, RegexOptions.CultureInvariant);
-        if (!match.Success) {
-            this.ClearScenarioMode();
-            return;
-        }
-        var candidate = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(pagePath)!, match.Groups["path"].Value));
-        if (!File.Exists(candidate)) {
-            this.ClearScenarioMode();
-            this.statusPresenter.Information($"Файл сценариев не найден: {candidate}");
-            return;
-        }
         try {
-            var scenarioFileText = File.ReadAllText(candidate);
-            using var document = JsonDocument.Parse(scenarioFileText);
-            if (document.RootElement.ValueKind != JsonValueKind.Object) {
-                throw new JsonException("Корневой элемент должен быть объектом.");
-            }
-            var names = document.RootElement.EnumerateObject().Select(property => property.Name).ToArray();
-            if (names.Length == 0) {
+            var names = this.scenarioController.LoadForMarkup(pagePath);
+            if (names.Count == 0) {
                 this.ClearScenarioMode();
                 return;
             }
-            this.scenarioPath = candidate;
-            this.scenarioFileText = scenarioFileText;
             this.ScenarioPicker.ItemsSource = new[] { MainWindow.NoScenarioName }.Concat(names).ToArray();
             if (previousPath is not null
-                && MainWindow.PathsAreEqual(previousPath, candidate)
+                && MainWindow.PathsAreEqual(previousPath, this.scenarioPath!)
                 && previous is not null
                 && this.ScenarioPicker.Items.Contains(previous)) {
                 this.ScenarioPicker.SelectedItem = previous;
@@ -1583,15 +1367,14 @@ public partial class MainWindow : Window {
             || name == MainWindow.NoScenarioName) {
             return null;
         }
-        using var document = JsonDocument.Parse(File.ReadAllText(this.scenarioPath));
-        return document.RootElement.TryGetProperty(name, out var scenario) ? scenario.GetRawText() : null;
+        return this.scenarioController.GetSelectedJson(name);
     }
 
     private void ShowNativeApplicationPreview() {
         if (this.isClosing) {
             return;
         }
-        if (!this.isNativePluginAvailable) {
+        if (!this.IsNativePluginAvailable) {
             this.statusPresenter.Information("Выберите native DLL приложения.");
             return;
         }
@@ -1601,16 +1384,15 @@ public partial class MainWindow : Window {
                 || this.nativeApplicationSession.Width != previewSize.Width
                 || this.nativeApplicationSession.Height != previewSize.Height;
             if (isNewSession) {
-                this.animationTimer.Stop();
+                this.previewController.StopAnimation();
                 this.deferredNavigationEditorPage = null;
-                this.nativeApplicationSession?.Dispose();
-                this.nativeApplicationSession = new NativePreviewSession(
+                var (session, _) = this.previewController.EnsureSession(
                     this.settings.ResourcesDirectory,
                     previewSize.Width,
                     previewSize.Height);
-                this.nativeApplicationSession.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
-                this.nativeApplicationSession.ElementSelected += this.PreviewElementSelected;
-                this.nativeApplicationSession.RuntimeMarkupReloaded += this.SelectElementFromMarkupEditor;
+                session.SetAnimationPlaybackRate(this.GetAnimationPlaybackRate());
+                session.ElementSelected += this.PreviewElementSelected;
+                session.RuntimeMarkupReloaded += this.SelectElementFromMarkupEditor;
                 this.previewLayer.Children.Clear();
                 this.previewLayer.Children.Add(this.nativeApplicationSession.Surface);
                 this.ApplyElementInspectionHighlightSettings();
@@ -1621,18 +1403,18 @@ public partial class MainWindow : Window {
             }
             var targetPage = this.GetNativeApplicationPageName();
             if (isNewSession) {
-                NativeRuntime.xr_log_info(
+                this.pluginSessionController.LogInfo(
                     $"Preview startup: markup='{this.markupPath}', selected='{this.PagePicker.SelectedItem}', target='{targetPage}', native='{this.nativeApplicationSession.CurrentPage}'");
             }
             this.UpdateElementInspection();
             if (isNewSession) {
                 this.nativeApplicationSession.LoadPage(targetPage);
-                NativeRuntime.xr_log_info($"Preview startup after initial load: native='{this.nativeApplicationSession.CurrentPage}'");
+                this.pluginSessionController.LogInfo($"Preview startup after initial load: native='{this.nativeApplicationSession.CurrentPage}'");
             }
             if (this.pendingPreviewRoute is { Count: > 0 } route) {
-                NativeRuntime.xr_log_info($"Preview graph dispatches native route: {string.Join('>', route)}");
+                this.pluginSessionController.LogInfo($"Preview graph dispatches native route: {string.Join('>', route)}");
                 this.nativeApplicationSession.NavigatePreviewRoute(route);
-                NativeRuntime.xr_log_info($"Preview graph native route completed: {this.nativeApplicationSession.CurrentPage}");
+                this.pluginSessionController.LogInfo($"Preview graph native route completed: {this.nativeApplicationSession.CurrentPage}");
                 this.navigationGraphController.CompleteNavigation(this.nativeApplicationSession.CurrentPage);
             }
             this.pendingPreviewRoute = null;
@@ -1652,13 +1434,13 @@ public partial class MainWindow : Window {
                 }
             }
             if (isNewSession) {
-                NativeRuntime.xr_log_info($"Preview startup before final load: native='{this.nativeApplicationSession.CurrentPage}'");
+                this.pluginSessionController.LogInfo($"Preview startup before final load: native='{this.nativeApplicationSession.CurrentPage}'");
                 this.nativeApplicationSession.LoadPage(targetPage);
-                NativeRuntime.xr_log_info($"Preview startup after final load: native='{this.nativeApplicationSession.CurrentPage}'");
+                this.pluginSessionController.LogInfo($"Preview startup after final load: native='{this.nativeApplicationSession.CurrentPage}'");
             }
             this.nativeApplicationSession.UpdateAndRender();
             this.navigationGraphController.Synchronize(this.nativeApplicationSession.CurrentPage);
-            this.animationTimer.Start();
+            this.previewController.StartAnimation();
             this.statusPresenter.Success($"Native app: {this.nativeApplicationSession.CurrentPage}");
         }
         catch (Exception exception) {
@@ -1750,7 +1532,6 @@ public partial class MainWindow : Window {
         if (this.isClosing) {
             return;
         }
-        this.renderTimer.Stop();
-        this.renderTimer.Start();
+        this.previewController.ScheduleRender();
     }
 }

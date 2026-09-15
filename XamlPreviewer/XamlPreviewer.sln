@@ -4,7 +4,7 @@ VisualStudioVersion = 18.0.0.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamlPreviewer.WPF", "XamlPreviewer.WPF\XamlPreviewer.WPF.csproj", "{3406152C-A0EF-4865-A700-1CF83B5817A8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MobileClock.PreviewPlugin", "MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.vcxproj", "{4F503B7D-45FB-4120-A069-6638899C08A8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MobileClock.PreviewPlugin", "..\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.vcxproj", "{4F503B7D-45FB-4120-A069-6638899C08A8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NavigationGraphLab", "NavigationGraphLab\NavigationGraphLab.csproj", "{0D2E0A31-6C4A-45E5-80DE-BF1950D82CEB}"
 EndProject
