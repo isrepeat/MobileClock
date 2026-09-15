@@ -1,0 +1,112 @@
+{
+  "currentPageId": "main",
+  "layoutRootPageId": "main",
+  "pages": [
+    { "id": "main", "title": "MainPage" },
+    { "id": "addAlarm", "title": "AddAlarmPage" },
+    { "id": "timer", "title": "TimerPage" },
+    { "id": "stopwatch", "title": "StopwatchPage" },
+    { "id": "settings", "title": "SettingsPage" },
+    { "id": "melody", "title": "MelodyPickerPage" }
+  ],
+  "transitions": [
+    {
+      "id": "main.createAlarm",
+      "sourcePageId": "main",
+      "targetPageId": "addAlarm",
+      "title": "Создать будильник",
+      "isDefault": true
+    },
+    {
+      "id": "main.editAlarm",
+      "sourcePageId": "main",
+      "targetPageId": "addAlarm",
+      "title": "Редактировать будильник",
+      "isDefault": false
+    },
+    {
+      "id": "main.openSettings",
+      "sourcePageId": "main",
+      "targetPageId": "settings",
+      "title": "Открыть настройки",
+      "isDefault": true
+    },
+    {
+      "id": "main.openTimer",
+      "sourcePageId": "main",
+      "targetPageId": "timer",
+      "title": "Открыть таймер",
+      "isDefault": true
+    },
+    {
+      "id": "main.openStopwatch",
+      "sourcePageId": "main",
+      "targetPageId": "stopwatch",
+      "title": "Открыть секундомер",
+      "isDefault": true
+    },
+    {
+      "id": "addAlarm.openSettings",
+      "sourcePageId": "addAlarm",
+      "targetPageId": "settings",
+      "title": "Открыть настройки",
+      "isDefault": true
+    },
+    {
+      "id": "addAlarm.chooseMelody",
+      "sourcePageId": "addAlarm",
+      "targetPageId": "melody",
+      "title": "Выбрать мелодию",
+      "isDefault": true
+    },
+    {
+      "id": "addAlarm.back",
+      "sourcePageId": "addAlarm",
+      "targetKind": "previousPage",
+      "title": "Вернуться назад",
+      "isDefault": true
+    },
+    {
+      "id": "timer.openSettings",
+      "sourcePageId": "timer",
+      "targetPageId": "settings",
+      "title": "Открыть настройки",
+      "isDefault": true
+    },
+    {
+      "id": "timer.back",
+      "sourcePageId": "timer",
+      "targetKind": "previousPage",
+      "title": "Вернуться назад",
+      "isDefault": true
+    },
+    {
+      "id": "stopwatch.openSettings",
+      "sourcePageId": "stopwatch",
+      "targetPageId": "settings",
+      "title": "Открыть настройки",
+      "isDefault": true
+    },
+    {
+      "id": "stopwatch.back",
+      "sourcePageId": "stopwatch",
+      "targetKind": "previousPage",
+      "title": "Вернуться назад",
+      "isDefault": true
+    },
+    {
+      "id": "settings.back",
+      "sourcePageId": "settings",
+      "targetKind": "previousPage",
+      "title": "Вернуться назад",
+      "isDefault": true
+    },
+    {
+      "id": "melody.back",
+      "sourcePageId": "melody",
+      "targetKind": "previousPage",
+      "title": "Вернуться назад",
+      "isDefault": true
+    }
+  ]
+}

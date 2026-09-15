@@ -1,0 +1,2 @@
+# Use LF for text files on every platform. File-final newline is governed by .editorconfig.
+* text=auto eol=lf

@@ -1,0 +1,4 @@
+[submodule "UtilityHelpersLib"]
+	path = UtilityHelpersLib
+	url = https://github.com/isrepeat/UtilityHelpersLib.git
+	branch = Last

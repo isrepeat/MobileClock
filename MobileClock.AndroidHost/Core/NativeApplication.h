@@ -1,0 +1,33 @@
+#pragma once
+#include <jni.h>
+#include <memory>
+
+namespace mobileclock::android_host::renderer {
+    class NativeRenderer;
+}
+
+namespace mobileclock::android_host::core {
+    // Композиционный корень нативной части приложения.
+    class NativeApplication {
+    public:
+        NativeApplication();
+        ~NativeApplication();
+
+        NativeApplication(const NativeApplication&) = delete;
+        NativeApplication& operator=(const NativeApplication&) = delete;
+
+        void SetLogFile(JNIEnv* env, jstring javaLogFilePath);
+        void FlushLogs();
+        void Log(JNIEnv* env, jstring javaCategory, jstring javaMessage);
+        void SetAssetManager(JNIEnv* env, jobject javaAssetManager);
+        void SetCommandDispatcher(JNIEnv* env, jobject javaDispatcher);
+        void DispatchSessionSignal(JNIEnv* env, jint javaSignal, jstring javaValue, jstring javaAdditionalValue);
+        void SurfaceChanged(JNIEnv* env, jobject androidSurface, jint width, jint height);
+        void SurfaceDestroyed();
+        void Touch(jint action, jfloat x, jfloat y);
+        void Render();
+
+    private:
+        std::unique_ptr<mobileclock::android_host::renderer::NativeRenderer> renderer;
+    };
+}

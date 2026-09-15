@@ -4,8 +4,7 @@ setlocal
 rem Double-click launcher for the PowerShell build pipeline.
 rem All optional arguments are forwarded, for example:
 rem   build-android.bat -NativeOnly
-rem   build-android.bat -UploadFirebase
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-android.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0PowerShell\build-android.ps1" %*
 set "buildExitCode=%ERRORLEVEL%"
 
 echo.

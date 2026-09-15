@@ -1,6 +1,15 @@
 # Gradle files
 .gradle/
-build/
+.kotlin/
+Build/*
+\!Generated/
+**/build/
+!Build/Gradle/
+!Build/Gradle/**
+Build/Gradle/.gradle/
+Build/Gradle/local.properties
+MobileClock.Native/!VS_TMP/
+\!VS_TMP/
 
 # Local configuration file (SDK path, etc.)
 local.properties
@@ -16,7 +25,6 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
-
 # Generated app packages and metadata
 *.aab
 *.apk

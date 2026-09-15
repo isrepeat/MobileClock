@@ -1,0 +1,331 @@
+{
+  "Шкала будильников": {
+    "Status": "Обновление запущено",
+    "Alarms": [
+      {
+        "Id": "preview-alarm-1",
+        "Hour": 6,
+        "Minute": 30,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false
+        ],
+        "MelodyId": "preview-melody-1",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-2",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-2",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-3",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-3",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-4",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-4",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-5",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-5",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-6",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-6",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-7",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-7",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-8",
+        "Hour": 7,
+        "Minute": 15,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-8",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-9",
+        "Hour": 9,
+        "Minute": 0,
+        "Days": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          true
+        ],
+        "MelodyId": "preview-melody-9",
+        "Vibration": true,
+        "IsEnabled": false
+      }
+    ],
+    "AlarmMelodies": [
+      {
+        "Id": "preview-melody-1",
+        "Name": "Morning",
+        "Uri": "preview://xiaomi-themes/morning"
+      },
+      {
+        "Id": "preview-melody-2",
+        "Name": "Lone Grass, Solitary Flower",
+        "Uri": "preview://xiaomi-themes/lone-grass"
+      },
+      {
+        "Id": "preview-melody-3",
+        "Name": "Positive Uplift",
+        "Uri": "preview://xiaomi-themes/positive-uplift"
+      },
+      {
+        "Id": "preview-melody-4",
+        "Name": "Under the Moon and Flowers",
+        "Uri": "preview://xiaomi-themes/moon-flowers"
+      },
+      {
+        "Id": "preview-melody-5",
+        "Name": "Never Loved Before",
+        "Uri": "preview://xiaomi-themes/never-loved"
+      },
+      {
+        "Id": "preview-melody-6",
+        "Name": "Electronic Jubilance",
+        "Uri": "preview://xiaomi-themes/electronic-jubilance"
+      },
+      {
+        "Id": "preview-melody-7",
+        "Name": "Vitality Forest",
+        "Uri": "preview://xiaomi-themes/vitality-forest"
+      },
+      {
+        "Id": "preview-melody-8",
+        "Name": "Ocean Breeze",
+        "Uri": "preview://demo/ocean-breeze"
+      },
+      {
+        "Id": "preview-melody-9",
+        "Name": "First Light",
+        "Uri": "preview://demo/first-light"
+      }
+    ]
+  },
+  "Раннее утро": {
+    "Status": "Готово к обновлению",
+    "Alarms": [
+      {
+        "Id": "preview-alarm-1",
+        "Hour": 5,
+        "Minute": 10,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false
+        ],
+        "MelodyId": "preview-melody-1",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-2",
+        "Hour": 5,
+        "Minute": 40,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false
+        ],
+        "MelodyId": "preview-melody-2",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-3",
+        "Hour": 6,
+        "Minute": 5,
+        "Days": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false
+        ],
+        "MelodyId": "preview-melody-3",
+        "Vibration": true,
+        "IsEnabled": false
+      }
+    ],
+    "AlarmMelodies": [
+      {
+        "Id": "preview-melody-1",
+        "Name": "Soft Bells",
+        "Uri": "preview://demo/soft-bells"
+      },
+      {
+        "Id": "preview-melody-2",
+        "Name": "New Day",
+        "Uri": "preview://demo/new-day"
+      },
+      {
+        "Id": "preview-melody-3",
+        "Name": "Golden Hour",
+        "Uri": "preview://demo/golden-hour"
+      }
+    ]
+  },
+  "Выходные": {
+    "Status": "Готово к обновлению",
+    "Alarms": [
+      {
+        "Id": "preview-alarm-1",
+        "Hour": 8,
+        "Minute": 30,
+        "Days": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          true,
+          false
+        ],
+        "MelodyId": "preview-melody-1",
+        "Vibration": true,
+        "IsEnabled": true
+      },
+      {
+        "Id": "preview-alarm-2",
+        "Hour": 9,
+        "Minute": 15,
+        "Days": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          true
+        ],
+        "MelodyId": "preview-melody-2",
+        "Vibration": true,
+        "IsEnabled": true
+      }
+    ],
+    "AlarmMelodies": [
+      {
+        "Id": "preview-melody-1",
+        "Name": "City Lights",
+        "Uri": "preview://demo/city-lights"
+      },
+      {
+        "Id": "preview-melody-2",
+        "Name": "Still Waters",
+        "Uri": "preview://demo/still-waters"
+      }
+    ]
+  }
+}

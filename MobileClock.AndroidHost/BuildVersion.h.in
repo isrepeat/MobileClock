@@ -1,0 +1,3 @@
+#pragma once
+
+#define MOBILECLOCK_PACKAGE_VERSION "@mobileclock_package_version@"

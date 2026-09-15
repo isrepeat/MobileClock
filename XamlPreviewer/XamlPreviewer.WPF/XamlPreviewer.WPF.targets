@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <PreviewerBuildRoot>$(MSBuildThisFileDirectory)..\!VS_TMP</PreviewerBuildRoot>
+    <OutDir>$(PreviewerBuildRoot)\Build\$(Configuration)\x64\$(MSBuildProjectName)\</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+    <PreviewRendererFont Include="$(MSBuildThisFileDirectory)Resources\Fonts\*.ttf" />
+  </ItemGroup>
+
+  <Target Name="CopyPreviewRendererFonts" AfterTargets="Build">
+    <Error Condition="'@(PreviewRendererFont)' == ''" Text="Preview renderer fonts were not found." />
+    <MakeDir Directories="$(OutDir)Fonts" />
+    <Copy SourceFiles="@(PreviewRendererFont)" DestinationFolder="$(OutDir)Fonts\" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page id="settingsPage"
+      padding="24 24 80 24"
+      background="#1B1C17"
+      xmlns="urn:mobileclock:xaml">
+    <Page.Storyboards>
+        <Storyboard trigger="Show">
+            <FloatAnimation property="opacity"
+                            from="0"
+                            to="1"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+        <Storyboard trigger="Hide">
+            <FloatAnimation property="opacity"
+                            from="Current"
+                            to="0"
+                            duration="180"
+                            easing="CubicOut"/>
+        </Storyboard>
+    </Page.Storyboards>
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup name="NavigationDirection">
+            <VisualState name="Idle"><Storyboard/></VisualState>
+            <VisualState name="Forward">
+                <Storyboard>
+                    <Animation targetName="settingsPage"
+                               name="animationPageTransition"
+                               duration="240"
+                               distance="1"
+                               easing="CubicOut"
+                               direction="forward"
+                               phase="enter"/>
+                </Storyboard>
+            </VisualState>
+            <VisualState name="Backward">
+                <Storyboard>
+                    <Animation targetName="settingsPage"
+                               name="animationPageTransition"
+                               duration="240"
+                               distance="1"
+                               easing="CubicOut"
+                               direction="backward"
+                               phase="exit"/>
+                </Storyboard>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+    <StackPanel verticalAlignment="Top"
+                horizontalAlignment="Stretch"
+                orientation="Vertical">
+        <Grid height="90"
+              horizontalAlignment="Stretch"
+              borderBrush="#4E4B3D"
+              borderThickness="0 0 0 1">
+            <columnDefinitions>
+                <columnDefinition width="12%"/>
+                <columnDefinition width="76%"/>
+                <columnDefinition width="12%"/>
+            </columnDefinitions>
+            <Border id="backNavigation"
+                    padding="10"
+                    verticalAlignment="Center"
+                    horizontalAlignment="Center"
+                    background="#292A23"
+                    cornerRadius="24"
+                    command="{Binding NavigateToMainCommand}">
+                <SvgImage width="40"
+                          height="40"
+                          verticalAlignment="Center"
+                          horizontalAlignment="Center"
+                          source="Icons/back.svg"
+                          tint="#EADCB5"/>
+            </Border>
+            <TextBlock gridColumn="1"
+                       verticalAlignment="Center"
+                       horizontalAlignment="Center"
+                       fontSize="40"
+                       fontWeight="Bold"
+                       foreground="#EADCB5"
+                       text="Настройки"/>
+        </Grid>
+        <TextBlock margin="8 36 0 12"
+                   fontSize="18"
+                   fontWeight="Bold"
+                   foreground="#9D9477"
+                   text="Оформление"/>
+        <Border padding="24"
+                horizontalAlignment="Stretch"
+                background="#292A23"
+                cornerRadius="16"
+                borderBrush="#4E4B3D"
+                borderThickness="1">
+            <Grid height="72"
+                  horizontalAlignment="Stretch">
+                <columnDefinitions>
+                    <columnDefinition width="40%"/>
+                    <columnDefinition width="60%"/>
+                </columnDefinitions>
+                <TextBlock verticalAlignment="Center"
+                           horizontalAlignment="Left"
+                           fontSize="24"
+                           foreground="#EADCB5"
+                           text="Тема"/>
+                <TextBlock gridColumn="1"
+                           verticalAlignment="Center"
+                           horizontalAlignment="Right"
+                           fontSize="20"
+                           foreground="#D5BD7D"
+                           text="{Binding Theme}"/>
+            </Grid>
+        </Border>
+        <TextBlock margin="8 36 0 12"
+                   fontSize="18"
+                   fontWeight="Bold"
+                   foreground="#9D9477"
+                   text="Будильники"/>
+        <Border padding="24"
+                horizontalAlignment="Stretch"
+                background="#292A23"
+                cornerRadius="16"
+                borderBrush="#4E4B3D"
+                borderThickness="1">
+            <Grid height="72"
+                  horizontalAlignment="Stretch">
+                <columnDefinitions>
+                    <columnDefinition width="40%"/>
+                    <columnDefinition width="60%"/>
+                </columnDefinitions>
+                <TextBlock verticalAlignment="Center"
+                           horizontalAlignment="Left"
+                           fontSize="24"
+                           foreground="#EADCB5"
+                           text="Звук"/>
+                <TextBlock gridColumn="1"
+                           verticalAlignment="Center"
+                           horizontalAlignment="Right"
+                           fontSize="20"
+                           foreground="#D5BD7D"
+                           text="{Binding Sound}"/>
+            </Grid>
+        </Border>
+        <Button id="resetAlarmMelodySelectionButton"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                background="#303128"
+                cornerRadius="16"
+                renderer="rendererWave"
+                text="Сбросить мелодии и приложения"
+                command="{Binding ResetAlarmMelodySelectionCommand}"
+                borderBrush="#47483D"
+                borderThickness="1"/>
+        <Button id="shareLogsButton"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                background="#303128"
+                cornerRadius="16"
+                renderer="rendererWave"
+                text="Поделиться логом"
+                command="{Binding ShareLogsCommand}"
+                borderBrush="#47483D"
+                borderThickness="1">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <Animation name="animationSoftPulse"
+                               from="0"
+                               to="1"
+                               duration="1000"
+                               easing="CubicOut"
+                               intensity="0.95"
+                               spread="1.5"
+                               fadeExponent="1.6"/>
+                    <Animation name="animationWaveOpacity"
+                               from="0"
+                               to="1"
+                               duration="1"
+                               easing="Linear"/>
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <Animation name="animationWaveOpacity"
+                               from="Current"
+                               to="0"
+                               duration="280"
+                               easing="CubicOut"/>
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
+        <Button id="exportLogsButton"
+                height="72"
+                margin="0 0 0 10"
+                contentAlignment="Center"
+                horizontalAlignment="Stretch"
+                fontSize="24"
+                fontWeight="Bold"
+                foreground="#F1E8D2"
+                background="#303128"
+                cornerRadius="16"
+                renderer="rendererWave"
+                text="Экспортировать логи"
+                command="{Binding ExportLogsCommand}"
+                borderBrush="#47483D"
+                borderThickness="1">
+            <Button.Storyboards>
+                <Storyboard trigger="PointerDown">
+                    <Animation name="animationSoftPulse"
+                               from="0"
+                               to="1"
+                               duration="1000"
+                               easing="CubicOut"
+                               intensity="0.95"
+                               spread="1.5"
+                               fadeExponent="1.6"/>
+                    <Animation name="animationWaveOpacity"
+                               from="0"
+                               to="1"
+                               duration="1"
+                               easing="Linear"/>
+                </Storyboard>
+                <Storyboard trigger="PointerUp">
+                    <Animation name="animationWaveOpacity"
+                               from="Current"
+                               to="0"
+                               duration="280"
+                               easing="CubicOut"/>
+                </Storyboard>
+            </Button.Storyboards>
+        </Button>
+    </StackPanel>
+</Page>
