@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <PreviewerBuildRoot>$(MSBuildThisFileDirectory)..\!VS_TMP</PreviewerBuildRoot>
-    <OutDir>$(PreviewerBuildRoot)\Build\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</OutDir>
+    <OutDir>$(PreviewerBuildRoot)\Build\$(Configuration)\x64\$(MSBuildProjectName)\</OutDir>
   </PropertyGroup>
 
   <ItemGroup>

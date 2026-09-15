@@ -463,6 +463,29 @@ const char* xp_get_last_error(void) {
     return xr_last_error();
 }
 
+int xp_get_plugin_info(char* pluginInfoJson, int capacity) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (pluginInfoJson == nullptr || capacity <= 0) {
+            throw std::invalid_argument("Plugin-info buffer and positive capacity are required");
+        }
+        const std::string pluginInfo = std::format(
+            R"({{"applicationId":"MobileClock","displayName":"MobileClock","resourceRootRelativePath":"Resources","sourceMarkupDirectory":"{}","sourceEntryMarkupPath":"{}","sourceControlsDirectory":"{}"}})",
+            MOBILECLOCK_PREVIEW_SOURCE_MARKUP_DIRECTORY,
+            MOBILECLOCK_PREVIEW_SOURCE_ENTRY_MARKUP_PATH,
+            MOBILECLOCK_PREVIEW_SOURCE_CONTROLS_DIRECTORY);
+        if (pluginInfo.size() >= static_cast<size_t>(capacity)) {
+            throw std::invalid_argument("Plugin-info buffer is too small");
+        }
+        std::memcpy(pluginInfoJson, pluginInfo.data(), pluginInfo.size());
+        pluginInfoJson[pluginInfo.size()] = '\0';
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
 int xp_get_initial_page_id(void* session, char* pageId, int capacity) {
     return mc_current_page(static_cast<mc_session*>(session), pageId, capacity);
 }

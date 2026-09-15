@@ -27,7 +27,6 @@ internal sealed class PreviewController : IDisposable {
     public NativePreviewSession? Session => this.pluginSessionController.Session;
 
     public (NativePreviewSession Session, bool IsNew) EnsureSession(
-        string resourcesDirectory,
         int width,
         int height) {
         var session = this.Session;
@@ -35,7 +34,7 @@ internal sealed class PreviewController : IDisposable {
             return (session, false);
         }
         this.StopAnimation();
-        return (this.pluginSessionController.CreateSession(resourcesDirectory, width, height), true);
+        return (this.pluginSessionController.CreateSession(width, height), true);
     }
 
     public void ScheduleRender() {

@@ -1,6 +1,6 @@
 # XAML Previewer
 
-Desktop-host для native preview-plugin. Решение Visual Studio: `XamlPreviewer.sln`; собирать нужно в `Debug|x64` или `Release|x64`. DLL приложения выбирается кнопкой «Выбрать приложение» или параметром `--plugin C:\path\Application.PreviewPlugin.dll`.
+Desktop-host для native preview-plugin. Решение Visual Studio: `XamlPreviewer.sln`; собирать нужно в `Debug|x64` или `Release|x64`. DLL приложения выбирается системным диалогом кнопки «Выбрать приложение» или параметром `--plugin C:\path\Application.PreviewPlugin.dll`. Плагин через `xp_get_plugin_info` обязан передать расположение package-ресурсов, исходного XAML, стартовой страницы и каталога контролов; Previewer не использует сохранённый путь к исходникам как fallback.
 
 WPF не разбирает XAML и не строит `Element`-дерево. Он отвечает только за редактор файлов, viewport, выбор страницы, настройки и преобразование координат мыши. Выбранный native plugin создаёт сессию, принимает ввод и копирует кадр из ANGLE-поверхности в WPF `Image`. Состояние страницы, ViewModel, команды, жесты, эффекты и анимации принадлежат приложению, поставившему plugin.
 

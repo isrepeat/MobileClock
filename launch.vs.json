@@ -1,0 +1,19 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "dll",
+      "project": "CMakeLists.txt",
+      "projectTarget": "MobileClock.PreviewPlugin.dll (${workspaceRoot}\\MobileClock.PreviewPlugin\\!VS_TMP\\Build\\Debug\\x64\\MobileClock.PreviewPlugin\\MobileClock.PreviewPlugin.dll)",
+      "name": "XamlPreviewer — MobileClock (Debug)",
+      "exe": "${workspaceRoot}\\XamlPreviewer\\!VS_TMP\\Build\\Debug\\x64\\XamlPreviewer.WPF\\XamlPreviewer.exe",
+      "args": [
+        "--plugin",
+        "${workspaceRoot}\\MobileClock.PreviewPlugin\\!VS_TMP\\Build\\Debug\\x64\\MobileClock.PreviewPlugin\\MobileClock.PreviewPlugin.dll"
+      ],
+      "currentDir": "${workspaceRoot}\\XamlPreviewer\\!VS_TMP\\Build\\Debug\\x64\\XamlPreviewer.WPF",
+      "debugType": "native"
+    }
+  ]
+}

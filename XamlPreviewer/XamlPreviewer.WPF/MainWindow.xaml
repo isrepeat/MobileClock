@@ -793,7 +793,7 @@
         </Style>
     </Window.Resources>
     <!-- Верхняя панель управляет режимом и текущими файлами; ниже располагаются редактор и превью. -->
-    <Grid>
+    <Grid Background="#181818">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -827,7 +827,8 @@
                     Width="90"
                     Margin="0 0 8 0"
                     Click="OpenButtonClick"
-                    Content="Открыть" />
+                    Content="Открыть"
+                    Visibility="Collapsed" />
             <Button Width="145"
                     Margin="0 0 8 0"
                     Click="SelectPreviewPluginButtonClick"

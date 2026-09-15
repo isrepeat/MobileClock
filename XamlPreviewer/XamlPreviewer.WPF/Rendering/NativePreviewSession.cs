@@ -55,6 +55,7 @@ internal sealed class NativePreviewSession : IDisposable {
     }
 
     public int Height => this.renderer.Height;
+    public string InitialPage => this.GetInitialPage();
     public FrameworkElement Surface => this.image;
     public int Width => this.renderer.Width;
 
@@ -270,6 +271,12 @@ internal sealed class NativePreviewSession : IDisposable {
     private string GetCurrentPage() {
         var page = new StringBuilder(128);
         NativeRuntime.Ensure(NativeRuntime.mc_current_page(this.session, page, page.Capacity) != 0);
+        return page.ToString();
+    }
+
+    private string GetInitialPage() {
+        var page = new StringBuilder(128);
+        NativeRuntime.Ensure(NativeRuntime.xp_get_initial_page_id(this.session, page, page.Capacity) != 0);
         return page.ToString();
     }
 

@@ -87,7 +87,7 @@ internal unsafe struct NativeCommand {
 
 internal static class NativeRuntime {
     private const string Library = "XamlPreviewer.Plugin";
-    private const uint PluginAbiVersion = 1;
+    private const uint PluginAbiVersion = 2;
     private static string? pluginPath;
 
     static NativeRuntime() {
@@ -120,6 +120,12 @@ internal static class NativeRuntime {
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_get_navigation_graph")]
     public static extern int xp_get_navigation_graph(IntPtr session, [Out] StringBuilder graphJson, int capacity);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_get_plugin_info")]
+    public static extern int xp_get_plugin_info([Out] StringBuilder pluginInfoJson, int capacity);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_get_initial_page_id")]
+    public static extern int xp_get_initial_page_id(IntPtr session, [Out] StringBuilder pageId, int capacity);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_navigate")]
     public static extern int xp_navigate(IntPtr session, [MarshalAs(UnmanagedType.LPUTF8Str)] string transitionIds);

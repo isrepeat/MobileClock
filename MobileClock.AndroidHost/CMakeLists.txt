@@ -72,8 +72,9 @@ if (ANDROID)
 endif()
 
 # Подключаем только переносимую часть сабмодуля. Windows/WinRT-компоненты
-# UtilityHelpersLib сюда намеренно не попадают.
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../UtilityHelpersLib" UtilityHelpersLib)
+# UtilityHelpersLib сюда намеренно не попадают. Короткое имя бинарного
+# каталога предотвращает превышение MAX_PATH у файлов CMake/Ninja.
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../UtilityHelpersLib" UHLib)
 
 # Единственная нативная библиотека приложения. Gradle лишь упаковывает готовый
 # .so, а компиляция и линковка выполняются этим CMake-проектом.
