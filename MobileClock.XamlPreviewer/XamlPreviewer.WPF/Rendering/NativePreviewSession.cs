@@ -1,6 +1,7 @@
 using System.Windows.Media.Imaging;
 using System.Text;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,11 +9,11 @@ using System.Windows.Media;
 
 namespace XamlPreviewer;
 
-internal sealed record PreviewRoute(string Source, string Target);
+internal sealed record PreviewRoute(string Id, string Source, string Target);
 
 // Native application mode. It is intentionally separate from editable-XAML mode:
-// WPF hosts the image and input only; MobileClock owns the runtime tree.
-internal sealed class MobileClockSession : IDisposable {
+// WPF hosts the image and input only; the loaded plugin owns the runtime tree.
+internal sealed class NativePreviewSession : IDisposable {
     private readonly AnglePreviewRenderer renderer;
     private readonly PreviewCursorSet cursorSet;
     private readonly Image image;
@@ -27,7 +28,7 @@ internal sealed class MobileClockSession : IDisposable {
     public event Action<NativeInspectionResult>? ElementSelected;
     public event Action? RuntimeMarkupReloaded;
 
-    public MobileClockSession(string resourcesDirectory, int width, int height) {
+    public NativePreviewSession(string resourcesDirectory, int width, int height) {
         this.renderer = new AnglePreviewRenderer(resourcesDirectory, width, height);
         this.cursorSet = new PreviewCursorSet();
         this.session = NativeRuntime.mc_create_session(width, height);
@@ -84,7 +85,7 @@ internal sealed class MobileClockSession : IDisposable {
 
     public void NavigatePreviewRoute(IReadOnlyList<string> path) {
         NativeRuntime.Ensure(path.Count > 0);
-        NativeRuntime.Ensure(NativeRuntime.mc_navigate_preview_route_path(this.session, string.Join('>', path)) != 0);
+        NativeRuntime.Ensure(NativeRuntime.xp_navigate(this.session, string.Join('>', path)) != 0);
         this.loadedPage = this.GetCurrentPage();
         this.Render();
     }
@@ -273,12 +274,15 @@ internal sealed class MobileClockSession : IDisposable {
     }
 
     private IReadOnlyList<PreviewRoute> GetPreviewRoutes() {
-        var graph = new StringBuilder(1024);
-        NativeRuntime.Ensure(NativeRuntime.mc_preview_route_graph(this.session, graph, graph.Capacity) != 0);
-        return graph.ToString().Split(';', StringSplitOptions.RemoveEmptyEntries)
-            .Select(value => value.Split('>', 2))
-            .Where(value => value.Length == 2)
-            .Select(value => new PreviewRoute(value[0], value[1]))
+        var graph = new StringBuilder(16384);
+        NativeRuntime.Ensure(NativeRuntime.xp_get_navigation_graph(this.session, graph, graph.Capacity) != 0);
+        using var document = JsonDocument.Parse(graph.ToString());
+        return document.RootElement.GetProperty("transitions")
+            .EnumerateArray()
+            .Select(transition => new PreviewRoute(
+                transition.GetProperty("id").GetString() ?? throw new InvalidDataException("Transition id is required."),
+                transition.GetProperty("sourcePageId").GetString() ?? throw new InvalidDataException("Transition sourcePageId is required."),
+                transition.GetProperty("targetPageId").GetString() ?? throw new InvalidDataException("Transition targetPageId is required.")))
             .ToArray();
     }
 
@@ -301,7 +305,7 @@ internal sealed class MobileClockSession : IDisposable {
     }
 
     private void Render() {
-        this.image.Source = this.renderer.RenderMobileClockSession(this.session);
+        this.image.Source = this.renderer.RenderNativeSession(this.session);
     }
 
     private static NativeColor ParseColor(string color) {

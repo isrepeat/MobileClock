@@ -44,7 +44,7 @@ internal sealed class AnglePreviewRenderer : IDisposable {
         return bitmap;
     }
 
-    public BitmapSource RenderMobileClockSession(IntPtr session) {
+    public BitmapSource RenderNativeSession(IntPtr session) {
         const int bytesPerPixel = 4;
         var stride = this.Width * bytesPerPixel;
         var pixels = new byte[stride * this.Height];

@@ -1,4 +1,4 @@
-#include "NativeBridge.h"
+#include "MobileClockPreviewPlugin.h"
 
 #include <XamlRuntime/InteractionController.h>
 #include <XamlRuntime/ScrollController.h>
@@ -453,6 +453,110 @@ namespace mobileclock::preview::_details {
 
 const char* xr_last_error(void) {
     return xaml::bridge::lastError.c_str();
+}
+
+uint32_t xp_get_abi_version(void) {
+    return xaml_previewer_plugin_abi_version;
+}
+
+const char* xp_get_last_error(void) {
+    return xr_last_error();
+}
+
+int xp_get_initial_page_id(void* session, char* pageId, int capacity) {
+    return mc_current_page(static_cast<mc_session*>(session), pageId, capacity);
+}
+
+int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || graphJson == nullptr || capacity <= 0) {
+            throw std::invalid_argument("Session, graph buffer and positive capacity are required");
+        }
+        const std::string graph = static_cast<mc_session*>(session)->appSessionController.Session().PreviewRouteGraph();
+        std::vector<std::string> pages;
+        std::vector<std::pair<std::string, std::string>> transitions;
+        size_t start = 0;
+        while (start < graph.size()) {
+            const size_t end = graph.find(';', start);
+            const std::string_view route(graph.data() + start, (end == std::string::npos ? graph.size() : end) - start);
+            const size_t separator = route.find('>');
+            if (separator != std::string_view::npos) {
+                const std::string source(route.substr(0, separator));
+                const std::string target(route.substr(separator + 1));
+                transitions.emplace_back(source, target);
+                if (std::find(pages.begin(), pages.end(), source) == pages.end()) {
+                    pages.push_back(source);
+                }
+                if (std::find(pages.begin(), pages.end(), target) == pages.end()) {
+                    pages.push_back(target);
+                }
+            }
+            if (end == std::string::npos) {
+                break;
+            }
+            start = end + 1;
+        }
+        std::string json = "{\"pages\":[";
+        bool first = true;
+        for (const std::string& page : pages) {
+            if (!first) {
+                json += ',';
+            }
+            const std::string_view title = static_cast<mc_session*>(session)->appSessionController.Session().PreviewPageTitle(page);
+            json += std::format("{{\"id\":\"{}\",\"title\":\"{}\",\"role\":\"Content\"}}", page, title);
+            first = false;
+        }
+        json += "],\"transitions\":[";
+        first = true;
+        for (const auto& [source, target] : transitions) {
+            if (!first) {
+                json += ',';
+            }
+            json += std::format("{{\"id\":\"{}.{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"title\":\"{}\",\"kind\":\"Push\",\"isDefault\":true}}", source, target, source, target, target);
+            first = false;
+        }
+        json += "]}";
+        if (json.size() >= static_cast<size_t>(capacity)) {
+            throw std::invalid_argument("Navigation graph buffer is too small");
+        }
+        std::memcpy(graphJson, json.data(), json.size());
+        graphJson[json.size()] = static_cast<char>(0);
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
+}
+
+int xp_navigate(void* session, const char* transitionIds) {
+    try {
+        xaml::bridge::lastError.clear();
+        if (session == nullptr || transitionIds == nullptr) {
+            throw std::invalid_argument("Session and transition identifiers are required");
+        }
+        std::string_view remaining(transitionIds);
+        while (!remaining.empty()) {
+            const size_t separator = remaining.find('>');
+            const std::string_view transition = remaining.substr(0, separator);
+            const size_t targetSeparator = transition.rfind('.');
+            if (targetSeparator == std::string_view::npos || targetSeparator + 1 >= transition.size()) {
+                throw std::invalid_argument("MobileClock transition identifier is invalid");
+            }
+            const std::string target(transition.substr(targetSeparator + 1));
+            if (!mc_navigate_preview_route(static_cast<mc_session*>(session), target.c_str())) {
+                return 0;
+            }
+            if (separator == std::string_view::npos) {
+                break;
+            }
+            remaining.remove_prefix(separator + 1);
+        }
+        return 1;
+    } catch (const std::exception& error) {
+        xaml::bridge::lastError = error.what();
+        return 0;
+    }
 }
 
 mc_session* mc_create_session(int width, int height) {
@@ -996,7 +1100,7 @@ void xr_configure_logging(const char* filePath) {
         filePath == nullptr ? std::filesystem::path{} : std::filesystem::path(filePath),
     });
     utility_helpers::logging::Initialize("XamlPreviewer");
-    LOG_INFO("XamlPreviewer.NativeBridge", "Logging initialized");
+    LOG_INFO("MobileClock.PreviewPlugin", "Logging initialized");
 }
 
 void xr_log_info(const char* message) {

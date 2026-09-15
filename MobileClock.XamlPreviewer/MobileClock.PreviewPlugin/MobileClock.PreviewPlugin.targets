@@ -4,7 +4,7 @@
         <PreviewerBuildRoot>$(MSBuildThisFileDirectory)..\!VS_TMP</PreviewerBuildRoot>
         <OutDir>$(PreviewerBuildRoot)\Build\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</OutDir>
         <IntDir>$(PreviewerBuildRoot)\Intermediate\$(Configuration)\$(Platform)\$(MSBuildProjectName)\</IntDir>
-        <TargetName>XamlPreviewer.NativeBridge</TargetName>
+        <TargetName>MobileClock.PreviewPlugin</TargetName>
         <MobileClockCmake>$(VSInstallDir)Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe</MobileClockCmake>
         <MobileClockNinja>$(VSInstallDir)Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe</MobileClockNinja>
         <MobileClockCmakeBuildDirectory>$(ProjectDir)..\..\Build\cmake\previewer-x64</MobileClockCmakeBuildDirectory>

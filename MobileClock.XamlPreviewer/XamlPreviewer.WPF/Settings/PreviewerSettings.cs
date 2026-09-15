@@ -31,6 +31,8 @@ internal sealed class PreviewerSettings {
 
     public string XamlDirectory { get; set; } = string.Empty;
     public string ResourcesDirectory { get; set; } = string.Empty;
+    public string ControlsDirectory { get; set; } = string.Empty;
+    public string PreviewPluginPath { get; set; } = string.Empty;
     public string? SavedScenarioPath { get; set; }
     public string? SavedScenarioName { get; set; }
     public string? LastMarkupPath { get; set; }
@@ -168,5 +170,4 @@ internal sealed class PreviewerSettings {
             FilePath = settingsPath,
         };
     }
-
 }

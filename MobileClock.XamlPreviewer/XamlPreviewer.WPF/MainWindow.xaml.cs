@@ -4,7 +4,6 @@ using ICSharpCode.AvalonEdit.Search;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -34,7 +33,6 @@ public partial class MainWindow : Window {
         }
     }
 
-    private const string NativeBridgeLibraryName = "XamlPreviewer.NativeBridge.dll";
     private const string NoScenarioName = "None";
     private const double SearchPanelOverlayHeight = 84.0;
     private const double MinimumEditorPaneRatio = 0.2;
@@ -56,10 +54,11 @@ public partial class MainWindow : Window {
     private bool updatingPreviewControls;
     private bool updatingControlPicker;
     private bool settingsPersistenceReady;
-    private MobileClockSession? nativeApplicationSession;
+    private NativePreviewSession? nativeApplicationSession;
     private IReadOnlyList<string>? pendingPreviewRoute;
     private string? deferredNavigationEditorPage;
     private bool isClosing;
+    private bool isNativePluginAvailable;
     private PreviewerSettings settings = null!;
     private string? markupPath;
     private string? markupFileText;
@@ -146,9 +145,17 @@ public partial class MainWindow : Window {
     }
 
     private void WindowLoaded(object sender, RoutedEventArgs eventArgs) {
-        this.UpdateNativeBridgeTitle();
-        NativeRuntime.xr_configure_logging(Path.Combine(AppContext.BaseDirectory, "xaml-previewer.log"));
         this.LoadSettings();
+        var pluginPath = this.GetConfiguredPluginPath();
+        this.isNativePluginAvailable = pluginPath is not null;
+        if (this.isNativePluginAvailable) {
+            NativeRuntime.ConfigurePlugin(pluginPath);
+            NativeRuntime.EnsurePluginCompatibility();
+        }
+        this.UpdateNativePluginTitle();
+        if (this.isNativePluginAvailable) {
+            NativeRuntime.xr_configure_logging(Path.Combine(AppContext.BaseDirectory, "xaml-previewer.log"));
+        }
         this.ConfigureMouseWheelScrolling();
         this.ApplyEditorScale();
         this.InitializePreviewControls();
@@ -163,8 +170,10 @@ public partial class MainWindow : Window {
         var lastMarkupPath = this.settings.LastMarkupPath;
         if (lastMarkupPath is not null && File.Exists(lastMarkupPath)) {
             var lastPageName = this.GetPagePickerPath(lastMarkupPath);
-            NativeRuntime.xr_log_info(
-                $"Preview restore: saved markup='{lastMarkupPath}', matched page='{lastPageName ?? "<none>"}'");
+            if (this.isNativePluginAvailable) {
+                NativeRuntime.xr_log_info(
+                    $"Preview restore: saved markup='{lastMarkupPath}', matched page='{lastPageName ?? "<none>"}'");
+            }
             if (lastPageName is not null) {
                 this.PagePicker.SelectedItem = lastPageName;
             } else {
@@ -187,54 +196,29 @@ public partial class MainWindow : Window {
         }
     }
 
-    private void UpdateNativeBridgeTitle() {
-        var loadedLibraryPath = Path.Combine(AppContext.BaseDirectory, NativeBridgeLibraryName);
-        var loadedLibrary = new FileInfo(loadedLibraryPath);
-        if (!loadedLibrary.Exists) {
-            this.Title = "MobileClock XAML Previewer (DLL не найдена)";
-            WindowTheme.SetTitleBarWarning(this, true);
-            return;
+    private string? GetConfiguredPluginPath() {
+        var arguments = Environment.GetCommandLineArgs();
+        var pluginArgumentIndex = Array.FindIndex(arguments, argument => string.Equals(argument, "--plugin", StringComparison.OrdinalIgnoreCase));
+        if (pluginArgumentIndex >= 0 && pluginArgumentIndex + 1 < arguments.Length) {
+            return arguments[pluginArgumentIndex + 1];
         }
-
-        var expectedLibraryPath = MainWindow.GetExpectedNativeBridgePath();
-        var isCurrent = expectedLibraryPath is not null
-            && File.Exists(expectedLibraryPath)
-            && MainWindow.FilesAreEqual(loadedLibraryPath, expectedLibraryPath);
-        this.Title = $"MobileClock XAML Previewer (DLL: {loadedLibrary.LastWriteTime:yyyy-MM-dd HH:mm:ss}{(isCurrent ? string.Empty : " — СТАРАЯ")})";
-        WindowTheme.SetTitleBarWarning(this, !isCurrent);
-    }
-
-    private static string? GetExpectedNativeBridgePath() {
-        var outputDirectory = new DirectoryInfo(AppContext.BaseDirectory);
-        var configurationDirectory = outputDirectory.Parent?.Parent;
-        if (configurationDirectory?.Parent?.Name != "Build") {
-            return null;
-        }
-
-        return Path.Combine(
-            configurationDirectory.FullName,
-            "x64",
-            "XamlPreviewer.NativeBridge",
-            NativeBridgeLibraryName);
-    }
-
-    private static string? FindRestartScript() {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent) {
-            var scriptPath = Path.Combine(directory.FullName, "Scripts", "run-xaml-previewer-debug.bat");
-            if (File.Exists(scriptPath)) {
-                return scriptPath;
-            }
+        if (!string.IsNullOrWhiteSpace(this.settings.PreviewPluginPath)) {
+            return this.settings.PreviewPluginPath;
         }
         return null;
     }
 
-    private static bool FilesAreEqual(string firstPath, string secondPath) {
-        var first = new FileInfo(firstPath);
-        var second = new FileInfo(secondPath);
-        return first.Length == second.Length
-            && CryptographicOperations.FixedTimeEquals(
-                SHA256.HashData(File.ReadAllBytes(firstPath)),
-                SHA256.HashData(File.ReadAllBytes(secondPath)));
+    private void UpdateNativePluginTitle() {
+        var configuredPluginPath = this.GetConfiguredPluginPath();
+        var loadedLibraryPath = configuredPluginPath is null ? string.Empty : Path.GetFullPath(configuredPluginPath);
+        var loadedLibrary = new FileInfo(loadedLibraryPath);
+        if (!loadedLibrary.Exists) {
+            this.Title = "XAML Previewer (preview-plugin не найден)";
+            WindowTheme.SetTitleBarWarning(this, true);
+            return;
+        }
+        this.Title = $"XAML Previewer ({loadedLibrary.Name}: {loadedLibrary.LastWriteTime:yyyy-MM-dd HH:mm:ss})";
+        WindowTheme.SetTitleBarWarning(this, false);
     }
 
     private void OpenButtonClick(object sender, RoutedEventArgs eventArgs) {
@@ -486,20 +470,20 @@ public partial class MainWindow : Window {
         this.previewLayer.Children.Clear();
     }
 
-    private void RebuildAndRestartButtonClick(object sender, RoutedEventArgs eventArgs) {
-        if (this.isMarkupDirty || this.isScenarioDirty || this.isSettingsDirty) {
-            this.statusPresenter.Information("Сохраните изменения перед пересборкой previewer.");
+    private void SelectPreviewPluginButtonClick(object sender, RoutedEventArgs eventArgs) {
+        var dialog = new Microsoft.Win32.OpenFileDialog {
+            Filter = "XAML Previewer plugin (*.dll)|*.dll|Dynamic libraries (*.dll)|*.dll",
+            Title = "Выберите native DLL приложения",
+        };
+        if (dialog.ShowDialog(this) != true) {
             return;
         }
-        var scriptPath = MainWindow.FindRestartScript();
-        if (scriptPath is null) {
-            this.statusPresenter.Error("Не найден Scripts\\run-xaml-previewer-debug.bat.");
-            return;
-        }
+        this.settings.PreviewPluginPath = dialog.FileName;
+        this.PersistSettings();
         Process.Start(new ProcessStartInfo {
-            FileName = scriptPath,
-            Arguments = Environment.ProcessId.ToString(),
-            WorkingDirectory = Path.GetDirectoryName(scriptPath),
+            FileName = Environment.ProcessPath!,
+            Arguments = $"--plugin \"{dialog.FileName}\"",
+            WorkingDirectory = AppContext.BaseDirectory,
             UseShellExecute = true,
         });
         this.Close();
@@ -1003,10 +987,8 @@ public partial class MainWindow : Window {
             this.ControlPicker.ItemsSource = null;
             return;
         }
-        var projectRoot = Directory.GetParent(this.settings.XamlDirectory)?.Parent?.FullName;
-        var controlsDirectory = projectRoot is null ? null : Path.Combine(projectRoot, "MobileClock.UI", "Controls");
-        var controlPaths = controlsDirectory is not null && Directory.Exists(controlsDirectory)
-            ? Directory.GetFiles(controlsDirectory, "*.xaml", SearchOption.AllDirectories)
+        var controlPaths = Directory.Exists(this.settings.ControlsDirectory)
+            ? Directory.GetFiles(this.settings.ControlsDirectory, "*.xaml", SearchOption.AllDirectories)
                 .ToDictionary(Path.GetFileNameWithoutExtension, StringComparer.Ordinal)
             : new Dictionary<string, string>(StringComparer.Ordinal);
         var discoveredControls = new List<(string Name, string Path, string? Id)>();
@@ -1104,7 +1086,8 @@ public partial class MainWindow : Window {
             this.markupPath,
             this.scenarioPath,
             this.settings.FilePath,
-            this.settings.XamlDirectory);
+            this.settings.XamlDirectory,
+            this.settings.ControlsDirectory);
     }
 
     private void ExternalRefresh() {
@@ -1533,7 +1516,7 @@ public partial class MainWindow : Window {
             this.ClearScenarioMode();
             return;
         }
-        const string pattern = "<\\?mobileclock-preview-scenario\\s+path=\\\"(?<path>[^\\\"]+)\\\"\\s*\\?>";
+        const string pattern = "<\\?xaml-preview-scenario\\s+path=\\\"(?<path>[^\\\"]+)\\\"\\s*\\?>";
         var match = Regex.Match(File.ReadAllText(pagePath), pattern, RegexOptions.CultureInvariant);
         if (!match.Success) {
             this.ClearScenarioMode();
@@ -1608,6 +1591,10 @@ public partial class MainWindow : Window {
         if (this.isClosing) {
             return;
         }
+        if (!this.isNativePluginAvailable) {
+            this.statusPresenter.Information("Выберите native DLL приложения.");
+            return;
+        }
         try {
             var previewSize = this.GetPreviewSize();
             var isNewSession = this.nativeApplicationSession is null
@@ -1617,7 +1604,7 @@ public partial class MainWindow : Window {
                 this.animationTimer.Stop();
                 this.deferredNavigationEditorPage = null;
                 this.nativeApplicationSession?.Dispose();
-                this.nativeApplicationSession = new MobileClockSession(
+                this.nativeApplicationSession = new NativePreviewSession(
                     this.settings.ResourcesDirectory,
                     previewSize.Width,
                     previewSize.Height);

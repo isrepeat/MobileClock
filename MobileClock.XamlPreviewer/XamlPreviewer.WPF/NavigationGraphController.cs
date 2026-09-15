@@ -89,8 +89,9 @@ internal sealed class NavigationGraphController {
         }
         if (string.Equals(this.selectedTarget, target, StringComparison.Ordinal)
             && this.selectedPath.Count > 0) {
-            NativeRuntime.xr_log_info($"Preview graph confirmed route: {string.Join('>', this.selectedPath)}");
-            this.RouteConfirmed?.Invoke(this.selectedPath);
+            var transitionIds = this.GetTransitionIds(this.selectedPath);
+            NativeRuntime.xr_log_info($"Preview graph confirmed transitions: {string.Join('>', transitionIds)}");
+            this.RouteConfirmed?.Invoke(transitionIds);
             return;
         }
         var paths = this.FindPaths(this.currentPage, target);
@@ -126,6 +127,18 @@ internal sealed class NavigationGraphController {
         return result.OrderBy(path => path.Count).ToArray();
     }
 
+    private IReadOnlyList<string> GetTransitionIds(IReadOnlyList<string> pagePath) {
+        var transitionIds = new List<string>(pagePath.Count - 1);
+        for (var index = 0; index + 1 < pagePath.Count; ++index) {
+            var transition = this.routes.FirstOrDefault(route => route.Source == pagePath[index] && route.Target == pagePath[index + 1]);
+            if (transition is null) {
+                throw new InvalidOperationException($"Для {pagePath[index]} → {pagePath[index + 1]} нет native transition.");
+            }
+            transitionIds.Add(transition.Id);
+        }
+        return transitionIds;
+    }
+
     private void NavigationEdgeClick(object sender, MouseButtonEventArgs eventArgs) {
         if (sender is not Polyline { Tag: GraphEdge edge } || this.selectedTarget is null) {
             return;
@@ -156,7 +169,7 @@ internal sealed class NavigationGraphController {
         var graphEdges = this.routes.Select(GraphEdge.FromRoute).Distinct().ToArray();
         foreach (var edge in graphEdges) {
             var (source, target) = this.GetEdgeEndpoints(edge, positions);
-            var points = this.CreateRoutePoints(new PreviewRoute(source, target), positions);
+            var points = this.CreateRoutePoints(new PreviewRoute(string.Empty, source, target), positions);
             var selectedRoute = this.GetSelectedRoute(edge);
             var stroke = selectedRoute is not null
                 ? new SolidColorBrush(Color.FromRgb(239, 191, 65))
@@ -244,7 +257,7 @@ internal sealed class NavigationGraphController {
             var source = this.selectedPath[index - 1];
             var target = this.selectedPath[index];
             if (edge.Connects(source, target)) {
-                return new PreviewRoute(source, target);
+                return new PreviewRoute(string.Empty, source, target);
             }
         }
         return null;

@@ -13,7 +13,7 @@
     <PropertyGroup Label="Globals">
         <VCProjectVersion>18.0</VCProjectVersion>
         <ProjectGuid>{4F503B7D-45FB-4120-A069-6638899C08A8}</ProjectGuid>
-        <RootNamespace>XamlPreviewerNativeBridge</RootNamespace>
+        <RootNamespace>MobileClockPreviewPlugin</RootNamespace>
         <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     </PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -35,12 +35,12 @@
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
     <ItemGroup>
         <ClCompile Include="AngleRenderSurface.cpp" />
-        <ClCompile Include="NativeBridge.cpp" />
+        <ClCompile Include="MobileClockPreviewPlugin.cpp" />
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="AngleRenderSurface.h" />
-        <ClInclude Include="NativeBridge.h" />
+        <ClInclude Include="MobileClockPreviewPlugin.h" />
     </ItemGroup>
-    <Import Project="XamlPreviewer.NativeBridge.targets" />
+    <Import Project="MobileClock.PreviewPlugin.targets" />
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

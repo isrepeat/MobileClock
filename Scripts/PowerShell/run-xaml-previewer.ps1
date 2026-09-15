@@ -12,7 +12,9 @@ try {
     $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $generateXamlScript = Join-Path $projectRoot 'Scripts\PowerShell\generate-xaml.ps1'
     $projectFile = Join-Path $projectRoot 'MobileClock.XamlPreviewer\XamlPreviewer.WPF\XamlPreviewer.WPF.csproj'
+    $pluginProjectFile = Join-Path $projectRoot 'MobileClock.XamlPreviewer\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.vcxproj'
     $previewer = Join-Path $projectRoot "MobileClock.XamlPreviewer\!VS_TMP\Build\$Configuration\x64\XamlPreviewer.WPF\XamlPreviewer.exe"
+    $plugin = Join-Path $projectRoot "MobileClock.XamlPreviewer\!VS_TMP\Build\$Configuration\x64\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.dll"
     $binaryLogDirectory = Join-Path $projectRoot 'MobileClock.XamlPreviewer\!VS_TMP\Logs'
     $binaryLogName = "xaml-previewer-{0:yyyyMMdd-HHmmss}.binlog" -f [DateTime]::Now
     $binaryLogPath = Join-Path $binaryLogDirectory $binaryLogName
@@ -34,6 +36,16 @@ try {
     & $generateXamlScript
 
     New-Item -ItemType Directory -Path $binaryLogDirectory -Force | Out-Null
+    Write-Host "==> Rebuilding MobileClock preview plugin $Configuration x64"
+    & $msBuild $pluginProjectFile '/t:Rebuild' "/p:Configuration=$Configuration" '/p:Platform=x64' '/p:BuildProjectReferences=false' "/bl:$binaryLogPath;ProjectImports=Embed"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "==> MSBuild binary log: $binaryLogPath"
+        throw "MobileClock preview plugin $Configuration build failed with exit code $LASTEXITCODE."
+    }
+    if (-not (Test-Path $plugin)) {
+        throw "MobileClock preview plugin was not produced: $plugin"
+    }
+
     Write-Host "==> Rebuilding XamlPreviewer $Configuration x64"
     & $msBuild $projectFile '/t:Rebuild' "/p:Configuration=$Configuration" '/p:Platform=x64' "/bl:$binaryLogPath;ProjectImports=Embed"
     if ($LASTEXITCODE -ne 0) {
@@ -47,7 +59,7 @@ try {
     }
 
     Write-Host "==> Starting $previewer"
-    Start-Process -FilePath $previewer
+    Start-Process -FilePath $previewer -ArgumentList '--plugin', $plugin
 } catch {
     Write-Error $_
     exit 1

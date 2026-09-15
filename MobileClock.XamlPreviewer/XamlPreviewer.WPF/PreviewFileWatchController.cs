@@ -23,14 +23,12 @@ internal sealed class PreviewFileWatchController : IDisposable {
         this.refreshTimer.Tick += this.RefreshTimerTick;
     }
 
-    public void Configure(string? markupPath, string? scenarioPath, string settingsPath, string xamlDirectory) {
+    public void Configure(string? markupPath, string? scenarioPath, string settingsPath, string xamlDirectory, string controlsDirectory) {
         this.ReplaceWatcher(ref this.markupWatcher, this.CreateFileWatcher(markupPath));
         this.ReplaceWatcher(ref this.scenarioWatcher, this.CreateFileWatcher(scenarioPath));
         this.ReplaceWatcher(ref this.settingsWatcher, this.CreateFileWatcher(settingsPath));
         this.ReplaceWatcher(ref this.xamlDirectoryWatcher, this.CreateDirectoryWatcher(xamlDirectory));
-        var projectRoot = Directory.GetParent(xamlDirectory)?.Parent?.FullName;
-        this.ReplaceWatcher(ref this.controlsWatcher, projectRoot is null ? null
-            : this.CreateDirectoryWatcher(Path.Combine(projectRoot, "MobileClock.UI", "Controls")));
+        this.ReplaceWatcher(ref this.controlsWatcher, this.CreateDirectoryWatcher(controlsDirectory));
     }
 
     public void Dispose() {

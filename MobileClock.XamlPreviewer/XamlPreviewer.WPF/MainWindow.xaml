@@ -5,7 +5,7 @@
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         xmlns:local="clr-namespace:XamlPreviewer"
         xmlns:search="clr-namespace:ICSharpCode.AvalonEdit.Search;assembly=ICSharpCode.AvalonEdit"
-        Title="MobileClock XAML Previewer"
+        Title="XAML Previewer"
         MinWidth="1000"
         MinHeight="650"
         Background="#181818">
@@ -828,6 +828,10 @@
                     Margin="0 0 8 0"
                     Click="OpenButtonClick"
                     Content="Открыть" />
+            <Button Width="145"
+                    Margin="0 0 8 0"
+                    Click="SelectPreviewPluginButtonClick"
+                    Content="Выбрать приложение" />
             <Button x:Name="SaveButton"
                     Width="90"
                     Margin="0 0 16 0"
@@ -839,11 +843,6 @@
                     Margin="0 0 8 0"
                     Click="ResetSessionButtonClick"
                     Content="Перезапустить" />
-            <Button x:Name="RebuildAndRestartButton"
-                    Width="170"
-                    Margin="0 0 16 0"
-                    Click="RebuildAndRestartButtonClick"
-                    Content="Собрать и открыть" />
             <ToggleButton x:Name="NavigationGraphToggleButton"
                           Width="92"
                           Margin="0 0 8 0"

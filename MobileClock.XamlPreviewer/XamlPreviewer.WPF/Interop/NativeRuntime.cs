@@ -1,4 +1,6 @@
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Text;
 
 namespace XamlPreviewer;
@@ -84,7 +86,50 @@ internal unsafe struct NativeCommand {
 }
 
 internal static class NativeRuntime {
-    private const string Library = "XamlPreviewer.NativeBridge.dll";
+    private const string Library = "XamlPreviewer.Plugin";
+    private const uint PluginAbiVersion = 1;
+    private static string? pluginPath;
+
+    static NativeRuntime() {
+        NativeLibrary.SetDllImportResolver(typeof(NativeRuntime).Assembly, NativeRuntime.ResolveLibrary);
+    }
+
+    public static void ConfigurePlugin(string? path) {
+        if (string.IsNullOrWhiteSpace(path)) {
+            return;
+        }
+        var fullPath = Path.GetFullPath(path);
+        if (!File.Exists(fullPath)) {
+            throw new FileNotFoundException("Не найдена DLL preview-plugin.", fullPath);
+        }
+        NativeRuntime.pluginPath = fullPath;
+    }
+
+    private static IntPtr ResolveLibrary(string name, Assembly assembly, DllImportSearchPath? searchPath) {
+        if (!string.Equals(name, NativeRuntime.Library, StringComparison.OrdinalIgnoreCase)) {
+            return IntPtr.Zero;
+        }
+        if (!string.IsNullOrEmpty(NativeRuntime.pluginPath)) {
+            return NativeLibrary.Load(NativeRuntime.pluginPath);
+        }
+        return IntPtr.Zero;
+    }
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_get_abi_version")]
+    private static extern uint xp_get_abi_version();
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_get_navigation_graph")]
+    public static extern int xp_get_navigation_graph(IntPtr session, [Out] StringBuilder graphJson, int capacity);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xp_navigate")]
+    public static extern int xp_navigate(IntPtr session, [MarshalAs(UnmanagedType.LPUTF8Str)] string transitionIds);
+
+    public static void EnsurePluginCompatibility() {
+        var actualVersion = NativeRuntime.xp_get_abi_version();
+        if (actualVersion != NativeRuntime.PluginAbiVersion) {
+            throw new InvalidOperationException($"Preview-plugin ABI {actualVersion} несовместим с ABI {NativeRuntime.PluginAbiVersion} Previewer-а.");
+        }
+    }
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl, EntryPoint = "xr_configure_logging")]
     public static extern void xr_configure_logging([MarshalAs(UnmanagedType.LPUTF8Str)] string filePath);

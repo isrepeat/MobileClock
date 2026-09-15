@@ -1,8 +1,8 @@
-# MobileClock XAML Previewer
+# XAML Previewer
 
-Desktop-host для native `mobileclock::ui::ApplicationSession`. Решение Visual Studio: `XamlPreviewer.sln`; собирать нужно в `Debug|x64` или `Release|x64`.
+Desktop-host для native preview-plugin. Решение Visual Studio: `XamlPreviewer.sln`; собирать нужно в `Debug|x64` или `Release|x64`. DLL приложения выбирается кнопкой «Выбрать приложение» или параметром `--plugin C:\path\Application.PreviewPlugin.dll`.
 
-WPF не разбирает XAML и не строит `Element`-дерево. Он отвечает только за редактор файлов, viewport, выбор страницы, настройки и преобразование координат мыши. `XamlPreviewer.NativeBridge` создаёт native-сессию, передаёт ей ввод и копирует кадр из ANGLE-поверхности в WPF `Image`. Состояние страницы, ViewModel, команды, жесты, эффекты и анимации принадлежат C++-слоям `MobileClock.Application`, `MobileClock.UI` и `MobileClock.Presentation`.
+WPF не разбирает XAML и не строит `Element`-дерево. Он отвечает только за редактор файлов, viewport, выбор страницы, настройки и преобразование координат мыши. Выбранный native plugin создаёт сессию, принимает ввод и копирует кадр из ANGLE-поверхности в WPF `Image`. Состояние страницы, ViewModel, команды, жесты, эффекты и анимации принадлежат приложению, поставившему plugin.
 
 Несохранённый текст в редакторе не влияет на кадр: для отображения реальной страницы нужен сохранённый XAML и пересборка native-слоя, если изменение затрагивает скомпилированную UI-логику. JSON-сценарии, `$interactions`, `$visualStates`, WPF-инспекция элементов и WPF-переходы страниц удалены.
 

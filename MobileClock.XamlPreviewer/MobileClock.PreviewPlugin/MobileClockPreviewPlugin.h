@@ -1,4 +1,5 @@
 #pragma once
+#include "../XamlPreviewer.SDK/include/XamlPreviewerPlugin.h"
 #ifdef _WIN32
 #define XAML_RUNTIME_BRIDGE_API __declspec(dllexport)
 #else

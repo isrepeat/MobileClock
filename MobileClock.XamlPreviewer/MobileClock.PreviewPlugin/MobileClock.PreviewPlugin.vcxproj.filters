@@ -4,7 +4,7 @@
     <ClCompile Include="AngleRenderSurface.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="NativeBridge.cpp">
+    <ClCompile Include="MobileClockPreviewPlugin.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -12,7 +12,7 @@
     <ClInclude Include="AngleRenderSurface.h">
       <Filter>Sources</Filter>
     </ClInclude>
-    <ClInclude Include="NativeBridge.h">
+    <ClInclude Include="MobileClockPreviewPlugin.h">
       <Filter>Sources</Filter>
     </ClInclude>
   </ItemGroup>
