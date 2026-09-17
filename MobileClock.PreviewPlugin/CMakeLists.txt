@@ -1,4 +1,4 @@
-# Native-адаптер MobileClock для независимого XamlPreviewer.
+# Native-адаптер MobileClock для независимого AndroidAppPreviewer.
 # Результат сборки — пакет: DLL, Resources и runtime-библиотеки ANGLE рядом с ней.
 file(GLOB mobileclock_preview_plugin_source_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
@@ -29,6 +29,22 @@ set_target_properties(mobileclock_preview_plugin PROPERTIES
         "${CMAKE_CURRENT_SOURCE_DIR}/!VS_TMP/Build/$<CONFIG>/x64/MobileClock.PreviewPlugin"
 )
 
+set(ANDROID_APP_PREVIEWER_ROOT
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../AndroidAppPreviewer"
+    CACHE PATH "Path to the AndroidAppPreviewer repository")
+set(mobileclock_android_app_previewer_project
+    "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.WPF/AndroidAppPreviewer.WPF.csproj")
+set(mobileclock_android_app_previewer_sdk_header
+    "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.SDK/include/AndroidAppPreviewerPlugin.h")
+if (NOT EXISTS "${mobileclock_android_app_previewer_project}")
+    message(FATAL_ERROR
+        "AndroidAppPreviewer.WPF was not found. Set ANDROID_APP_PREVIEWER_ROOT to the AndroidAppPreviewer repository.")
+endif()
+if (NOT EXISTS "${mobileclock_android_app_previewer_sdk_header}")
+    message(FATAL_ERROR
+        "AndroidAppPreviewer SDK contract was not found at ${mobileclock_android_app_previewer_sdk_header}")
+endif()
+
 # ANGLE остаётся NuGet-пакетом, но CMake использует его напрямую: без vcxproj.
 if (DEFINED ENV{NUGET_PACKAGES})
     set(mobileclock_nuget_packages "$ENV{NUGET_PACKAGES}")
@@ -50,6 +66,7 @@ target_compile_definitions(mobileclock_preview_plugin PRIVATE
 )
 target_include_directories(mobileclock_preview_plugin PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/.."
+    "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.SDK/include"
     "${mobileclock_angle_directory}/build/native/include"
 )
 # OpenGLESRenderer компилируется как самостоятельная static library и не
@@ -79,33 +96,33 @@ find_program(mobileclock_msbuild_executable
         "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin"
 )
 if (NOT mobileclock_msbuild_executable)
-    message(FATAL_ERROR "MSBuild.exe is required to build XamlPreviewer.WPF")
+    message(FATAL_ERROR "MSBuild.exe is required to build AndroidAppPreviewer.WPF")
 endif()
-add_custom_target(mobileclock_xaml_previewer_host
+add_custom_target(mobileclock_android_app_previewer_host
     COMMAND "${mobileclock_msbuild_executable}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../XamlPreviewer/XamlPreviewer.WPF/XamlPreviewer.WPF.csproj"
+        "${mobileclock_android_app_previewer_project}"
         /t:Build
         "/p:Configuration=$<CONFIG>"
         /p:Platform=x64
     USES_TERMINAL
 )
-add_dependencies(mobileclock_preview_plugin mobileclock_xaml_previewer_host)
+add_dependencies(mobileclock_preview_plugin mobileclock_android_app_previewer_host)
 
 # При F5 для CMake target-а Visual Studio не пытается выполнить DLL напрямую.
 # Вместо этого она запускает общий WPF-хост и передаёт ему свежую DLL через --plugin.
 # Аргумент имеет приоритет над сохранённым вручную выбором plugin-а в настройках Previewer.
-set(mobileclock_xaml_previewer_output_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/../XamlPreviewer/!VS_TMP/Build/$<CONFIG>/x64/XamlPreviewer.WPF")
+set(mobileclock_android_app_previewer_output_directory
+    "${ANDROID_APP_PREVIEWER_ROOT}/!VS_TMP/Build/$<CONFIG>/x64/AndroidAppPreviewer.WPF")
 set_target_properties(mobileclock_preview_plugin PROPERTIES
     VS_DEBUGGER_COMMAND
-        "${mobileclock_xaml_previewer_output_directory}/XamlPreviewer.exe"
+        "${mobileclock_android_app_previewer_output_directory}/AndroidAppPreviewer.exe"
     VS_DEBUGGER_COMMAND_ARGUMENTS
         "--plugin \"$<TARGET_FILE:mobileclock_preview_plugin>\""
     VS_DEBUGGER_WORKING_DIRECTORY
-        "${mobileclock_xaml_previewer_output_directory}"
+        "${mobileclock_android_app_previewer_output_directory}"
 )
 
-# Плагин сообщает Previewer-у resourceRootRelativePath = Resources.
+# Плагин сообщает AndroidAppPreviewer resourceRootRelativePath = Resources.
 # Поэтому после каждой сборки формируем этот каталог рядом с выбранной DLL.
 add_custom_command(TARGET mobileclock_preview_plugin POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory

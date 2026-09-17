@@ -6,13 +6,13 @@
       "type": "dll",
       "project": "CMakeLists.txt",
       "projectTarget": "MobileClock.PreviewPlugin.dll (${workspaceRoot}\\MobileClock.PreviewPlugin\\!VS_TMP\\Build\\Debug\\x64\\MobileClock.PreviewPlugin\\MobileClock.PreviewPlugin.dll)",
-      "name": "XamlPreviewer — MobileClock (Debug)",
-      "exe": "${workspaceRoot}\\XamlPreviewer\\!VS_TMP\\Build\\Debug\\x64\\XamlPreviewer.WPF\\XamlPreviewer.exe",
+      "name": "AndroidAppPreviewer — MobileClock (Debug)",
+      "exe": "${workspaceRoot}\\..\\AndroidAppPreviewer\\!VS_TMP\\Build\\Debug\\x64\\AndroidAppPreviewer.WPF\\AndroidAppPreviewer.exe",
       "args": [
         "--plugin",
         "${workspaceRoot}\\MobileClock.PreviewPlugin\\!VS_TMP\\Build\\Debug\\x64\\MobileClock.PreviewPlugin\\MobileClock.PreviewPlugin.dll"
       ],
-      "currentDir": "${workspaceRoot}\\XamlPreviewer\\!VS_TMP\\Build\\Debug\\x64\\XamlPreviewer.WPF",
+      "currentDir": "${workspaceRoot}\\..\\AndroidAppPreviewer\\!VS_TMP\\Build\\Debug\\x64\\AndroidAppPreviewer.WPF",
       "debugType": "native"
     }
   ]

@@ -11,16 +11,21 @@ $ErrorActionPreference = 'Stop'
 try {
     $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $generateXamlScript = Join-Path $projectRoot 'Scripts\PowerShell\generate-xaml.ps1'
-    $projectFile = Join-Path $projectRoot 'XamlPreviewer\XamlPreviewer.WPF\XamlPreviewer.WPF.csproj'
-    $previewer = Join-Path $projectRoot "XamlPreviewer\!VS_TMP\Build\$Configuration\x64\XamlPreviewer.WPF\XamlPreviewer.exe"
+    $previewerRoot = Join-Path (Split-Path -Parent $projectRoot) 'AndroidAppPreviewer'
+    $projectFile = Join-Path $previewerRoot 'AndroidAppPreviewer.WPF\AndroidAppPreviewer.WPF.csproj'
+    $previewer = Join-Path $previewerRoot "!VS_TMP\Build\$Configuration\x64\AndroidAppPreviewer.WPF\AndroidAppPreviewer.exe"
     $plugin = Join-Path $projectRoot "MobileClock.PreviewPlugin\!VS_TMP\Build\$Configuration\x64\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.dll"
-    $binaryLogDirectory = Join-Path $projectRoot 'XamlPreviewer\!VS_TMP\Logs'
-    $binaryLogName = "xaml-previewer-{0:yyyyMMdd-HHmmss}.binlog" -f [DateTime]::Now
+    $binaryLogDirectory = Join-Path $projectRoot 'MobileClock.PreviewPlugin\!VS_TMP\Logs'
+    $binaryLogName = "android-app-previewer-{0:yyyyMMdd-HHmmss}.binlog" -f [DateTime]::Now
     $binaryLogPath = Join-Path $binaryLogDirectory $binaryLogName
     $visualStudioMsBuild = 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
     $visualStudioCmake = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
     $visualStudioNinja = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe'
     $cmakeBuildDirectory = Join-Path $projectRoot 'Build\cmake\previewer-x64'
+
+    if (-not (Test-Path $projectFile)) {
+        throw "AndroidAppPreviewer was not found at $previewerRoot. Clone it alongside MobileClock or provide the repository there."
+    }
 
     if (Test-Path $visualStudioMsBuild) {
         $msBuild = $visualStudioMsBuild
@@ -61,16 +66,16 @@ try {
         throw "MobileClock preview plugin was not produced: $plugin"
     }
 
-    Write-Host "==> Rebuilding XamlPreviewer $Configuration x64"
+    Write-Host "==> Rebuilding AndroidAppPreviewer $Configuration x64"
     & $msBuild $projectFile '/t:Rebuild' "/p:Configuration=$Configuration" '/p:Platform=x64' "/bl:$binaryLogPath;ProjectImports=Embed"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "==> MSBuild binary log: $binaryLogPath"
-        throw "XamlPreviewer $Configuration build failed with exit code $LASTEXITCODE."
+        throw "AndroidAppPreviewer $Configuration build failed with exit code $LASTEXITCODE."
     }
 
     Write-Host "==> MSBuild binary log: $binaryLogPath"
     if (-not (Test-Path $previewer)) {
-        throw "XamlPreviewer executable was not produced: $previewer"
+        throw "AndroidAppPreviewer executable was not produced: $previewer"
     }
 
     Write-Host "==> Starting $previewer"

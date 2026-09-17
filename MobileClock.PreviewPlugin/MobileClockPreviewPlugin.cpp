@@ -286,7 +286,7 @@ namespace mobileclock::preview::_details {
         do {
             length = GetModuleFileNameW(nullptr, executablePath.data(), static_cast<DWORD>(executablePath.size()));
             if (length == 0) {
-                throw std::runtime_error("Cannot locate XamlPreviewer executable");
+                throw std::runtime_error("Cannot locate AndroidAppPreviewer executable");
             }
             if (length < executablePath.size() - 1) {
                 break;
@@ -328,7 +328,7 @@ namespace mobileclock::preview::_details {
         void Clear() const {
             std::error_code error;
             if (!std::filesystem::remove(this->path, error) && error) {
-                LOG_WARNING("XamlPreviewer.State", "Cannot delete previewer state '{}': {}", this->path.string(), error.message());
+                LOG_WARNING("AndroidAppPreviewer.State", "Cannot delete previewer state '{}': {}", this->path.string(), error.message());
             }
         }
 
@@ -336,13 +336,13 @@ namespace mobileclock::preview::_details {
             const std::filesystem::path temporaryPath = this->path.string() + ".tmp";
             std::ofstream stream(temporaryPath, std::ios::binary | std::ios::trunc);
             if (!stream) {
-                LOG_WARNING("XamlPreviewer.State", "Cannot save previewer state '{}'", this->path.string());
+                LOG_WARNING("AndroidAppPreviewer.State", "Cannot save previewer state '{}'", this->path.string());
                 return false;
             }
             stream << JS::serializeStruct(data);
             stream.flush();
             if (!stream) {
-                LOG_WARNING("XamlPreviewer.State", "Cannot flush previewer state '{}'", temporaryPath.string());
+                LOG_WARNING("AndroidAppPreviewer.State", "Cannot flush previewer state '{}'", temporaryPath.string());
                 return false;
             }
             stream.close();
@@ -350,7 +350,7 @@ namespace mobileclock::preview::_details {
                 temporaryPath.c_str(),
                 this->path.c_str(),
                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
-                LOG_WARNING("XamlPreviewer.State", "Cannot replace previewer state '{}'", this->path.string());
+                LOG_WARNING("AndroidAppPreviewer.State", "Cannot replace previewer state '{}'", this->path.string());
                 return false;
             }
             return true;
@@ -386,7 +386,7 @@ struct mc_session {
             if (!this->appSessionController.Session().NavigatePreviewRoute(
                 mobileclock::application::ui::page::XiaomiThemesPageViewModel::PageName,
                 error)) {
-                LOG_WARNING("XamlPreviewer.Session", "Cannot open Xiaomi Themes: {}", error);
+                LOG_WARNING("AndroidAppPreviewer.Session", "Cannot open Xiaomi Themes: {}", error);
             }
         });
         this->appSessionController.Session().Initialize({static_cast<float>(width), static_cast<float>(height)});
@@ -647,28 +647,28 @@ int mc_navigate_preview_route(mc_session* session, const char* target) {
             throw std::invalid_argument("Session and target page are required");
         }
         LOG_INFO(
-            "XamlPreviewer.Route",
+            "AndroidAppPreviewer.Route",
             "Native route request: current='{}', target='{}'",
             session->appSessionController.Session().CurrentPageName(),
             target);
         if (!session->appSessionController.Session().NavigatePreviewRoute(target, xaml::bridge::lastError)) {
-            LOG_WARNING("XamlPreviewer.Route", "Native route rejected: {}", xaml::bridge::lastError);
+            LOG_WARNING("AndroidAppPreviewer.Route", "Native route rejected: {}", xaml::bridge::lastError);
             return 0;
         }
         if (session->appSessionController.Session().CurrentPageName() != target) {
             xaml::bridge::lastError = std::format("Preview route did not reach {}", target);
             LOG_ERROR(
-                "XamlPreviewer.Route",
+                "AndroidAppPreviewer.Route",
                 "Native route failed after pending actions: target='{}', actual='{}'",
                 target,
                 session->appSessionController.Session().CurrentPageName());
             return 0;
         }
-        LOG_INFO("XamlPreviewer.Route", "Native route completed: active='{}'", session->appSessionController.Session().CurrentPageName());
+        LOG_INFO("AndroidAppPreviewer.Route", "Native route completed: active='{}'", session->appSessionController.Session().CurrentPageName());
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
-        LOG_ERROR("XamlPreviewer.Route", "Native route threw: {}", xaml::bridge::lastError);
+        LOG_ERROR("AndroidAppPreviewer.Route", "Native route threw: {}", xaml::bridge::lastError);
         return 0;
     }
 }
@@ -680,7 +680,7 @@ int mc_navigate_preview_route_path(mc_session* session, const char* path) {
             throw std::invalid_argument("Session and route path are required");
         }
         LOG_INFO(
-            "XamlPreviewer.Route",
+            "AndroidAppPreviewer.Route",
             "Native explicit route request: current='{}', path='{}'",
             session->appSessionController.Session().CurrentPageName(),
             path);
@@ -700,26 +700,26 @@ int mc_navigate_preview_route_path(mc_session* session, const char* path) {
             start = separator + 1;
         }
         if (!session->appSessionController.Session().NavigatePreviewRoute(pages, xaml::bridge::lastError)) {
-            LOG_WARNING("XamlPreviewer.Route", "Native explicit route rejected: {}", xaml::bridge::lastError);
+            LOG_WARNING("AndroidAppPreviewer.Route", "Native explicit route rejected: {}", xaml::bridge::lastError);
             return 0;
         }
         if (session->appSessionController.Session().CurrentPageName() != pages.back()) {
             xaml::bridge::lastError = std::format("Preview route did not reach {}", pages.back());
             LOG_ERROR(
-                "XamlPreviewer.Route",
+                "AndroidAppPreviewer.Route",
                 "Native explicit route failed after pending actions: target='{}', actual='{}'",
                 pages.back(),
                 session->appSessionController.Session().CurrentPageName());
             return 0;
         }
         LOG_INFO(
-            "XamlPreviewer.Route",
+            "AndroidAppPreviewer.Route",
             "Native explicit route completed: active='{}'",
             session->appSessionController.Session().CurrentPageName());
         return 1;
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
-        LOG_ERROR("XamlPreviewer.Route", "Native explicit route threw: {}", xaml::bridge::lastError);
+        LOG_ERROR("AndroidAppPreviewer.Route", "Native explicit route threw: {}", xaml::bridge::lastError);
         return 0;
     }
 }
@@ -836,7 +836,7 @@ int mc_reload_markup(mc_session* session, const char* page, const char* markup, 
         // после уведомления об успешной перезагрузке.
         return 1;
 #else
-        xaml::bridge::lastError = "Runtime markup is available only in XamlPreviewer";
+        xaml::bridge::lastError = "Runtime markup is available only in AndroidAppPreviewer";
         return 0;
 #endif
     } catch (const std::exception& error) {
@@ -1045,7 +1045,7 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
         return 0;
     }
     LOG_INFO(
-        "XamlPreviewer.Inspection",
+        "AndroidAppPreviewer.Inspection",
         "Source selection requested at {}:{} in {}",
         line,
         column,
@@ -1056,7 +1056,7 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
         line,
         column);
     if (element == nullptr) {
-        LOG_INFO("XamlPreviewer.Inspection", "Source selection found no element");
+        LOG_INFO("AndroidAppPreviewer.Inspection", "Source selection found no element");
         return 0;
     }
     // Не стираем текущий выбор, пока новая позиция редактора не сопоставлена
@@ -1065,7 +1065,7 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
     mobileclock::preview::_details::SetSelectedWireframe(*session, *element);
     const xaml::Rect& bounds = element->Bounds();
     LOG_INFO(
-        "XamlPreviewer.Inspection",
+        "AndroidAppPreviewer.Inspection",
         "Source selection resolved to {}:{} id='{}' bounds=({}, {}, {}, {})",
         element->SourceLine(),
         element->SourceColumn(),
@@ -1122,13 +1122,13 @@ void xr_configure_logging(const char* filePath) {
     utility_helpers::logging::Configure({
         filePath == nullptr ? std::filesystem::path{} : std::filesystem::path(filePath),
     });
-    utility_helpers::logging::Initialize("XamlPreviewer");
+    utility_helpers::logging::Initialize("AndroidAppPreviewer");
     LOG_INFO("MobileClock.PreviewPlugin", "Logging initialized");
 }
 
 void xr_log_info(const char* message) {
     if (message != nullptr) {
-        LOG_INFO("XamlPreviewer.Interaction", "{}", message);
+        LOG_INFO("AndroidAppPreviewer.Interaction", "{}", message);
     }
 }
 

@@ -10,6 +10,7 @@ Build/Gradle/.gradle/
 Build/Gradle/local.properties
 MobileClock.Native/!VS_TMP/
 \!VS_TMP/
+XamlPreviewer/
 
 # Local configuration file (SDK path, etc.)
 local.properties

@@ -1,5 +1,5 @@
 #pragma once
-#include "../XamlPreviewer/XamlPreviewer.SDK/include/XamlPreviewerPlugin.h"
+#include <AndroidAppPreviewerPlugin.h>
 #ifdef _WIN32
 #define XAML_RUNTIME_BRIDGE_API __declspec(dllexport)
 #else
