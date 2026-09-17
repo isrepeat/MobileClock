@@ -45,19 +45,6 @@ if (NOT EXISTS "${mobileclock_android_app_previewer_sdk_header}")
         "AndroidAppPreviewer SDK contract was not found at ${mobileclock_android_app_previewer_sdk_header}")
 endif()
 
-# ANGLE остаётся NuGet-пакетом, но CMake использует его напрямую: без vcxproj.
-if (DEFINED ENV{NUGET_PACKAGES})
-    set(mobileclock_nuget_packages "$ENV{NUGET_PACKAGES}")
-else()
-    set(mobileclock_nuget_packages "$ENV{USERPROFILE}/.nuget/packages")
-endif()
-set(mobileclock_angle_directory
-    "${mobileclock_nuget_packages}/angle.windows.x64/1.0.0")
-if (NOT EXISTS "${mobileclock_angle_directory}/build/native/lib/x64/libEGL.lib")
-    message(FATAL_ERROR
-        "ANGLE.Windows.x64 1.0.0 is required at ${mobileclock_angle_directory}")
-endif()
-
 target_compile_definitions(mobileclock_preview_plugin PRIVATE
     MOBILECLOCK_XAML_PREVIEWER=1
     MOBILECLOCK_PREVIEW_SOURCE_MARKUP_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.Application/UI"
@@ -67,13 +54,6 @@ target_compile_definitions(mobileclock_preview_plugin PRIVATE
 target_include_directories(mobileclock_preview_plugin PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/.."
     "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.SDK/include"
-    "${mobileclock_angle_directory}/build/native/include"
-)
-# OpenGLESRenderer компилируется как самостоятельная static library и не
-# наследует include-каталоги потребляющего plugin-а. На desktop его GLES3 API
-# предоставляет ANGLE, поэтому задаём заголовки непосредственно этой цели.
-target_include_directories(utility_helpers_open_gles_renderer PRIVATE
-    "${mobileclock_angle_directory}/build/native/include"
 )
 target_link_libraries(mobileclock_preview_plugin PRIVATE
     mobileclock_application
@@ -83,8 +63,6 @@ target_link_libraries(mobileclock_preview_plugin PRIVATE
     utility_helpers::xaml_runtime
     utility_helpers::logging
     utility_helpers::open_gles_renderer
-    "${mobileclock_angle_directory}/build/native/lib/x64/libEGL.lib"
-    "${mobileclock_angle_directory}/build/native/lib/x64/libGLESv2.lib"
 )
 
 # WPF-хост не входит в CMake-граф, поэтому вызываем его обычную MSBuild-сборку
@@ -131,10 +109,12 @@ add_custom_command(TARGET mobileclock_preview_plugin POST_BUILD
 )
 
 # ANGLE загружается Windows-лоадером из каталога DLL, поэтому кладём runtime туда же.
+set(mobileclock_angle_runtime_directory
+    "${XAML_RUNTIME_PACKAGE_ROOT}/runtimes/win-x64/native/${CMAKE_BUILD_TYPE}")
 foreach (mobileclock_angle_runtime_file IN ITEMS libEGL.dll libGLESv2.dll z.dll)
     add_custom_command(TARGET mobileclock_preview_plugin POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${mobileclock_angle_directory}/runtimes/win-x64/native/${mobileclock_angle_runtime_file}"
+            "${mobileclock_angle_runtime_directory}/${mobileclock_angle_runtime_file}"
             "$<TARGET_FILE_DIR:mobileclock_preview_plugin>/${mobileclock_angle_runtime_file}"
     )
 endforeach()

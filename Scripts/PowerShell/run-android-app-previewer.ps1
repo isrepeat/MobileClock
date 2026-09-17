@@ -3,10 +3,37 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
 
+    [string]$XamlRuntimePackageRoot,
+
     [int]$ParentProcessId = 0
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Initialize-VisualStudioEnvironment {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$VisualStudioRoot
+    )
+
+    # CMake can discover cl.exe from Visual Studio, but Ninja inherits the
+    # PowerShell environment and therefore also needs INCLUDE/LIB/PATH from
+    # VsDevCmd. This makes the script runnable outside a Developer Prompt.
+    $developerCommand = Join-Path $VisualStudioRoot 'Common7\Tools\VsDevCmd.bat'
+    if (-not (Test-Path -LiteralPath $developerCommand)) {
+        throw "Visual Studio developer command was not found: $developerCommand"
+    }
+
+    $environmentLines = & cmd.exe /c "`"$developerCommand`" -arch=x64 -host_arch=x64 >nul && set"
+    foreach ($environmentLine in $environmentLines) {
+        $separatorIndex = $environmentLine.IndexOf('=')
+        if ($separatorIndex -gt 0) {
+            $name = $environmentLine.Substring(0, $separatorIndex)
+            $value = $environmentLine.Substring($separatorIndex + 1)
+            Set-Item -LiteralPath "Env:$name" -Value $value
+        }
+    }
+}
 
 try {
     $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -23,6 +50,14 @@ try {
     $visualStudioNinja = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe'
     $cmakeBuildDirectory = Join-Path $projectRoot 'Build\cmake\previewer-x64'
 
+    if ([string]::IsNullOrWhiteSpace($XamlRuntimePackageRoot)) {
+        $nugetPackagesRoot = if ([string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) { Join-Path $env:USERPROFILE '.nuget\packages' } else { $env:NUGET_PACKAGES }
+        $XamlRuntimePackageRoot = Join-Path $nugetPackagesRoot 'xamlruntime\1.0.0'
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $XamlRuntimePackageRoot 'build\native\cmake\XamlRuntimeConfig.cmake'))) {
+        throw "XamlRuntime NuGet package was not installed: $XamlRuntimePackageRoot"
+    }
+
     if (-not (Test-Path $projectFile)) {
         throw "AndroidAppPreviewer was not found at $previewerRoot. Clone it alongside MobileClock or provide the repository there."
     }
@@ -32,6 +67,7 @@ try {
     } else {
         $msBuild = (Get-Command MSBuild.exe -ErrorAction Stop).Source
     }
+    Initialize-VisualStudioEnvironment -VisualStudioRoot 'C:\Program Files\Microsoft Visual Studio\18\Community'
 
     if ($ParentProcessId -gt 0) {
         $parentProcess = Get-Process -Id $ParentProcessId -ErrorAction SilentlyContinue
@@ -54,7 +90,8 @@ try {
     } else {
         $ninja = (Get-Command ninja.exe -ErrorAction Stop).Source
     }
-    & $cmake '-S' $projectRoot '-B' $cmakeBuildDirectory '-G' 'Ninja' "-DCMAKE_BUILD_TYPE=$Configuration" "-DCMAKE_MAKE_PROGRAM=$ninja"
+    $cmakeArguments = @('-S', $projectRoot, '-B', $cmakeBuildDirectory, '-G', 'Ninja', "-DCMAKE_BUILD_TYPE=$Configuration", "-DCMAKE_MAKE_PROGRAM=$ninja", "-DXAML_RUNTIME_PACKAGE_ROOT=$XamlRuntimePackageRoot")
+    & $cmake @cmakeArguments
     if ($LASTEXITCODE -ne 0) {
         throw "MobileClock preview-plugin CMake configure failed with exit code $LASTEXITCODE."
     }
