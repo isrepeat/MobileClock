@@ -26,7 +26,7 @@ set_target_properties(mobileclock_preview_plugin PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     RUNTIME_OUTPUT_DIRECTORY
-        "${CMAKE_CURRENT_SOURCE_DIR}/!VS_TMP/Build/$<CONFIG>/x64/MobileClock.PreviewPlugin"
+        "${CMAKE_SOURCE_DIR}/Build/MobileClock.PreviewPlugin/Build/$<CONFIG>/x64/MobileClock.PreviewPlugin"
 )
 
 set(ANDROID_APP_PREVIEWER_ROOT
@@ -60,9 +60,9 @@ target_link_libraries(mobileclock_preview_plugin PRIVATE
     mobileclock_presentation
     mobileclock_ui
     utility_helpers::new
-    utility_helpers::xaml_runtime
-    utility_helpers::logging
-    utility_helpers::open_gles_renderer
+    XamlRuntime::Runtime
+    XamlRuntime::Logging
+    XamlRuntime::OpenGLESRenderer
 )
 
 # WPF-хост не входит в CMake-граф, поэтому вызываем его обычную MSBuild-сборку
@@ -109,9 +109,24 @@ add_custom_command(TARGET mobileclock_preview_plugin POST_BUILD
 )
 
 # ANGLE загружается Windows-лоадером из каталога DLL, поэтому кладём runtime туда же.
-set(mobileclock_angle_runtime_directory
-    "${XAML_RUNTIME_PACKAGE_ROOT}/runtimes/win-x64/native/${CMAKE_BUILD_TYPE}")
-foreach (mobileclock_angle_runtime_file IN ITEMS libEGL.dll libGLESv2.dll z.dll)
+# Берём каталог импортированной библиотеки: он принадлежит тому же NuGet-пакету,
+# который CMake выбрал для линковки XamlRuntime::OpenGLESRenderer.
+get_target_property(mobileclock_angle_runtime_library
+    XamlRuntime::OpenGLESRenderer
+    IMPORTED_LOCATION)
+get_filename_component(mobileclock_angle_runtime_directory
+    "${mobileclock_angle_runtime_library}"
+    DIRECTORY)
+set(mobileclock_angle_z_runtime_file z.dll)
+set(mobileclock_angle_runtime_files libEGL.dll libGLESv2.dll)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(mobileclock_angle_z_runtime_file zd.dll)
+    # Keep third-party ANGLE PDB deployment disabled until source-level ANGLE
+    # debugging is explicitly needed.
+    # list(APPEND mobileclock_angle_runtime_files libEGL.pdb libGLESv2.pdb zd.pdb)
+endif()
+list(APPEND mobileclock_angle_runtime_files ${mobileclock_angle_z_runtime_file})
+foreach (mobileclock_angle_runtime_file IN LISTS mobileclock_angle_runtime_files)
     add_custom_command(TARGET mobileclock_preview_plugin POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "${mobileclock_angle_runtime_directory}/${mobileclock_angle_runtime_file}"

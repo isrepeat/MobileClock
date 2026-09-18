@@ -21,16 +21,17 @@
 namespace xaml::bridge::_details {
     EGLDisplay SharedDisplay() {
         // EGL display belongs to the bridge, not an individual preview page.
-        static const std::shared_ptr<void> display = []() {
+        // The plugin DLL may be unloaded after libEGL/libGLESv2 has started its
+        // own process teardown. Do not call eglTerminate from a DLL static
+        // destructor: ANGLE can then access an already released D3D11 object.
+        static const EGLDisplay display = []() {
             EGLDisplay value = eglGetDisplay(EGL_DEFAULT_DISPLAY);
             if (value == EGL_NO_DISPLAY || eglInitialize(value, nullptr, nullptr) == EGL_FALSE) {
                 throw std::runtime_error("ANGLE could not initialize EGL");
             }
-            return std::shared_ptr<void>(value, [](void* value) {
-                eglTerminate(value);
-            });
+            return value;
         }();
-        return display.get();
+        return display;
     }
 
 } // namespace _details

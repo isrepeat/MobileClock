@@ -213,11 +213,11 @@ set_target_properties(mobileclock_presentation PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 target_link_libraries(mobileclock_presentation PUBLIC
-    utility_helpers::xaml_runtime
+    XamlRuntime::Runtime
 )
 if (ANDROID)
     target_link_libraries(mobileclock_presentation PUBLIC
-        utility_helpers::open_gles_renderer
+        XamlRuntime::OpenGLESRenderer
     )
 endif()
 
@@ -244,7 +244,7 @@ set_target_properties(mobileclock_ui PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 target_link_libraries(mobileclock_ui PUBLIC
-    utility_helpers::xaml_runtime
+    XamlRuntime::Runtime
 )
 
 # Application — общий platform-neutral runtime. Android и desktop previewer
@@ -288,7 +288,7 @@ set_target_properties(mobileclock_application PROPERTIES
 target_link_libraries(mobileclock_application PUBLIC
     mobileclock_ui
     mobileclock_presentation
-    utility_helpers::xaml_runtime
+    XamlRuntime::Runtime
 )
 
 # Android host owns JNI, EGL, Android assets and platform actions. Its public
@@ -333,9 +333,9 @@ if (ANDROID)
     # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
     target_link_libraries(mobileclock_android_host
         mobileclock_application
-        utility_helpers::open_gles_renderer
+        XamlRuntime::OpenGLESRenderer
         utility_helpers::new
-        utility_helpers::xaml_runtime
+        XamlRuntime::Runtime
         # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
         # preset. Линкуем рантайм статически, не требуя отдельный libc++_shared.so.
         c++_static

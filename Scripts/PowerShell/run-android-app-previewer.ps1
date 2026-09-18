@@ -3,8 +3,6 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug',
 
-    [string]$XamlRuntimePackageRoot,
-
     [int]$ParentProcessId = 0
 )
 
@@ -38,25 +36,19 @@ function Initialize-VisualStudioEnvironment {
 try {
     $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $generateXamlScript = Join-Path $projectRoot 'Scripts\PowerShell\generate-xaml.ps1'
+    $artifactDirectory = Join-Path $projectRoot 'Build\MobileClock.PreviewPlugin'
     $previewerRoot = Join-Path (Split-Path -Parent $projectRoot) 'AndroidAppPreviewer'
     $projectFile = Join-Path $previewerRoot 'AndroidAppPreviewer.WPF\AndroidAppPreviewer.WPF.csproj'
     $previewer = Join-Path $previewerRoot "!VS_TMP\Build\$Configuration\x64\AndroidAppPreviewer.WPF\AndroidAppPreviewer.exe"
-    $plugin = Join-Path $projectRoot "MobileClock.PreviewPlugin\!VS_TMP\Build\$Configuration\x64\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.dll"
-    $binaryLogDirectory = Join-Path $projectRoot 'MobileClock.PreviewPlugin\!VS_TMP\Logs'
+    $plugin = Join-Path $artifactDirectory "Build\$Configuration\x64\MobileClock.PreviewPlugin\MobileClock.PreviewPlugin.dll"
+    $binaryLogDirectory = Join-Path $artifactDirectory 'Logs'
     $binaryLogName = "android-app-previewer-{0:yyyyMMdd-HHmmss}.binlog" -f [DateTime]::Now
     $binaryLogPath = Join-Path $binaryLogDirectory $binaryLogName
     $visualStudioMsBuild = 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
     $visualStudioCmake = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
     $visualStudioNinja = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe'
-    $cmakeBuildDirectory = Join-Path $projectRoot 'Build\cmake\previewer-x64'
+    $cmakeBuildDirectory = Join-Path $artifactDirectory 'Intermediate\CMake'
 
-    if ([string]::IsNullOrWhiteSpace($XamlRuntimePackageRoot)) {
-        $nugetPackagesRoot = if ([string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) { Join-Path $env:USERPROFILE '.nuget\packages' } else { $env:NUGET_PACKAGES }
-        $XamlRuntimePackageRoot = Join-Path $nugetPackagesRoot 'xamlruntime\1.0.0'
-    }
-    if (-not (Test-Path -LiteralPath (Join-Path $XamlRuntimePackageRoot 'build\native\cmake\XamlRuntimeConfig.cmake'))) {
-        throw "XamlRuntime NuGet package was not installed: $XamlRuntimePackageRoot"
-    }
 
     if (-not (Test-Path $projectFile)) {
         throw "AndroidAppPreviewer was not found at $previewerRoot. Clone it alongside MobileClock or provide the repository there."
@@ -90,7 +82,7 @@ try {
     } else {
         $ninja = (Get-Command ninja.exe -ErrorAction Stop).Source
     }
-    $cmakeArguments = @('-S', $projectRoot, '-B', $cmakeBuildDirectory, '-G', 'Ninja', "-DCMAKE_BUILD_TYPE=$Configuration", "-DCMAKE_MAKE_PROGRAM=$ninja", "-DXAML_RUNTIME_PACKAGE_ROOT=$XamlRuntimePackageRoot")
+    $cmakeArguments = @('-S', $projectRoot, '-B', $cmakeBuildDirectory, '-G', 'Ninja', "-DCMAKE_BUILD_TYPE=$Configuration", "-DCMAKE_MAKE_PROGRAM=$ninja")
     & $cmake @cmakeArguments
     if ($LASTEXITCODE -ne 0) {
         throw "MobileClock preview-plugin CMake configure failed with exit code $LASTEXITCODE."
