@@ -34,15 +34,9 @@ set(ANDROID_APP_PREVIEWER_ROOT
     CACHE PATH "Path to the AndroidAppPreviewer repository")
 set(mobileclock_android_app_previewer_project
     "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.WPF/AndroidAppPreviewer.WPF.csproj")
-set(mobileclock_android_app_previewer_sdk_header
-    "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.SDK/include/AndroidAppPreviewerPlugin.h")
 if (NOT EXISTS "${mobileclock_android_app_previewer_project}")
     message(FATAL_ERROR
         "AndroidAppPreviewer.WPF was not found. Set ANDROID_APP_PREVIEWER_ROOT to the AndroidAppPreviewer repository.")
-endif()
-if (NOT EXISTS "${mobileclock_android_app_previewer_sdk_header}")
-    message(FATAL_ERROR
-        "AndroidAppPreviewer SDK contract was not found at ${mobileclock_android_app_previewer_sdk_header}")
 endif()
 
 target_compile_definitions(mobileclock_preview_plugin PRIVATE
@@ -53,13 +47,13 @@ target_compile_definitions(mobileclock_preview_plugin PRIVATE
 )
 target_include_directories(mobileclock_preview_plugin PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/.."
-    "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.SDK/include"
 )
 target_link_libraries(mobileclock_preview_plugin PRIVATE
     mobileclock_application
     mobileclock_presentation
     mobileclock_ui
     utility_helpers::new
+    AndroidAppPreviewerPlugin::SDK
     XamlRuntime::Runtime
     XamlRuntime::Logging
     XamlRuntime::OpenGLESRenderer

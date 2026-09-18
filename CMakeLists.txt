@@ -3,6 +3,8 @@ project(MobileClock LANGUAGES C CXX)
 
 include(cmake/InstallXamlRuntime.cmake)
 fn_mobileclock_install_xaml_runtime()
+include(cmake/InstallAndroidAppPreviewerPluginSdk.cmake)
+fn_mobileclock_install_android_app_previewer_plugin_sdk()
 
 # Короткое имя сохраняет пути к промежуточным объектам ниже MAX_PATH, не
 # меняя имя исходной папки MobileClock.AndroidHost.

@@ -1,4 +1,4 @@
-#include "MobileClockPreviewPlugin.h"
+#include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
 
 #include <XamlRuntime/InteractionController.h>
 #include <XamlRuntime/ScrollController.h>
@@ -167,19 +167,19 @@ namespace xaml::bridge {
         // IRenderBackend
         //
         void BeginClip(const Rect& bounds) override {
-            this->Append(xr_command_type_begin_clip, bounds);
+            this->Append(AndroidAppPreviewerPluginSDK::xp_command_type_begin_clip, bounds);
         }
 
         void EndClip() override {
-            this->Append(xr_command_type_end_clip, {});
+            this->Append(AndroidAppPreviewerPluginSDK::xp_command_type_end_clip, {});
         }
 
         void DrawOutline(const Rect& bounds, attr::Color color) override {
-            this->Append(xr_command_type_outline, bounds, color);
+            this->Append(AndroidAppPreviewerPluginSDK::xp_command_type_outline, bounds, color);
         }
 
         void DrawRoundedRect(const Rect& bounds, attr::Color color, float cornerRadius) override {
-            this->Append(xr_command_type_rounded_rect, bounds, color, cornerRadius);
+            this->Append(AndroidAppPreviewerPluginSDK::xp_command_type_rounded_rect, bounds, color, cornerRadius);
         }
 
         void DrawRoundedRectOutline(
@@ -187,8 +187,8 @@ namespace xaml::bridge {
             attr::Color color,
             float cornerRadius,
             float thickness) override {
-            xr_command& command = this->Append(
-                xr_command_type_rounded_rect_outline,
+            AndroidAppPreviewerPluginSDK::xp_command& command = this->Append(
+                AndroidAppPreviewerPluginSDK::xp_command_type_rounded_rect_outline,
                 bounds,
                 color,
                 cornerRadius);
@@ -208,7 +208,7 @@ namespace xaml::bridge {
             float fontSize,
             std::string_view fontWeight,
             attr::Alignment) override {
-            xr_command& command = this->Append(xr_command_type_text, bounds, color, fontSize);
+            AndroidAppPreviewerPluginSDK::xp_command& command = this->Append(AndroidAppPreviewerPluginSDK::xp_command_type_text, bounds, color, fontSize);
             Copy(text, command.text, sizeof(command.text));
             Copy(fontWeight, command.auxiliary, sizeof(command.auxiliary));
         }
@@ -217,17 +217,17 @@ namespace xaml::bridge {
             const Rect& bounds,
             std::string_view source,
             attr::Color tint) override {
-            xr_command& command = this->Append(xr_command_type_image, bounds, tint);
+            AndroidAppPreviewerPluginSDK::xp_command& command = this->Append(AndroidAppPreviewerPluginSDK::xp_command_type_image, bounds, tint);
             Copy(source, command.text, sizeof(command.text));
         }
 
-        const std::vector<xr_command>& Commands() const {
+        const std::vector<AndroidAppPreviewerPluginSDK::xp_command>& Commands() const {
             return this->commands;
         }
 
     private:
-        xr_command& Append(
-            xr_command_type type,
+        AndroidAppPreviewerPluginSDK::xp_command& Append(
+            AndroidAppPreviewerPluginSDK::xp_command_type type,
             const Rect& bounds,
             attr::Color color = {},
             float value = 0.0f) {
@@ -247,23 +247,24 @@ namespace xaml::bridge {
         }
 
     private:
-        std::vector<xr_command> commands;
+        std::vector<AndroidAppPreviewerPluginSDK::xp_command> commands;
     };
 
     thread_local std::string lastError;
 }
 
-struct xr_animation_controller {
+namespace AndroidAppPreviewerPluginSDK {
+struct xp_animation_controller {
     mobileclock::presentation::core::PreviewSession value;
     xaml::ScrollController scrollController;
 };
 
-struct xr_interaction_controller {
+struct xp_interaction_controller {
     xaml::InteractionController value;
 };
 
-struct xr_angle_surface {
-    explicit xr_angle_surface(
+struct xp_angle_surface {
+    explicit xp_angle_surface(
         int width,
         int height,
         const char* fontPath,
@@ -277,6 +278,7 @@ struct xr_angle_surface {
     int height;
     xaml::bridge::AngleRenderSurface value;
 };
+}
 
 namespace mobileclock::preview::_details {
     namespace model = mobileclock::application::model;
@@ -362,8 +364,9 @@ namespace mobileclock::preview::_details {
 
 } // namespace _details
 
-struct mc_session {
-    explicit mc_session(int width, int height)
+namespace AndroidAppPreviewerPluginSDK {
+struct xp_session {
+    explicit xp_session(int width, int height)
         : stateStorage(mobileclock::preview::_details::PreviewerStatePath())
         , stateStore(stateStorage.Load(), [this](const mobileclock::application::model::ApplicationStateDocument& data) {
             return this->stateStorage.Save(data);
@@ -414,9 +417,10 @@ struct mc_session {
         {0.30f, 0.64f, 1.0f, 1.0f},
     };
 };
+}
 
 namespace mobileclock::preview::_details {
-    void ClearInspectionWireframe(mc_session& session) {
+    void ClearInspectionWireframe(AndroidAppPreviewerPluginSDK::xp_session& session) {
         if (session.inspectionElement != nullptr && !session.inspectionElementLifetime.expired()) {
             session.inspectionElement->ClearInspectionWireframe();
         }
@@ -424,7 +428,7 @@ namespace mobileclock::preview::_details {
         session.inspectionElementLifetime.reset();
     }
 
-    void ClearSelectedWireframe(mc_session& session) {
+    void ClearSelectedWireframe(AndroidAppPreviewerPluginSDK::xp_session& session) {
         if (session.selectedElement != nullptr && !session.selectedElementLifetime.expired()) {
             session.selectedElement->ClearSelectedWireframe();
         }
@@ -432,7 +436,7 @@ namespace mobileclock::preview::_details {
         session.selectedElementLifetime.reset();
     }
 
-    void SetInspectionWireframe(mc_session& session, xaml::Element& element) {
+    void SetInspectionWireframe(AndroidAppPreviewerPluginSDK::xp_session& session, xaml::Element& element) {
         if (session.inspectionElement != &element) {
             ClearInspectionWireframe(session);
             session.inspectionElement = &element;
@@ -441,7 +445,7 @@ namespace mobileclock::preview::_details {
         element.SetInspectionWireframe(session.inspectionWireframe);
     }
 
-    void SetSelectedWireframe(mc_session& session, xaml::Element& element) {
+    void SetSelectedWireframe(AndroidAppPreviewerPluginSDK::xp_session& session, xaml::Element& element) {
         if (session.selectedElement != &element) {
             ClearSelectedWireframe(session);
             session.selectedElement = &element;
@@ -451,7 +455,10 @@ namespace mobileclock::preview::_details {
     }
 } // namespace _details
 
-const char* xr_last_error(void) {
+namespace AndroidAppPreviewerPluginSDK {
+extern "C" {
+
+const char* xp_last_error(void) {
     return xaml::bridge::lastError.c_str();
 }
 
@@ -460,7 +467,7 @@ uint32_t xp_get_abi_version(void) {
 }
 
 const char* xp_get_last_error(void) {
-    return xr_last_error();
+    return xp_last_error();
 }
 
 int xp_get_plugin_info(char* pluginInfoJson, int capacity) {
@@ -487,7 +494,7 @@ int xp_get_plugin_info(char* pluginInfoJson, int capacity) {
 }
 
 int xp_get_initial_page_id(void* session, char* pageId, int capacity) {
-    return mc_current_page(static_cast<mc_session*>(session), pageId, capacity);
+    return xp_session_current_page(static_cast<xp_session*>(session), pageId, capacity);
 }
 
 int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
@@ -496,7 +503,8 @@ int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
         if (session == nullptr || graphJson == nullptr || capacity <= 0) {
             throw std::invalid_argument("Session, graph buffer and positive capacity are required");
         }
-        const std::string graph = static_cast<mc_session*>(session)->appSessionController.Session().PreviewRouteGraph();
+        xp_session& previewSession = *static_cast<xp_session*>(session);
+        const std::string graph = previewSession.appSessionController.Session().PreviewRouteGraph();
         std::vector<std::string> pages;
         std::vector<std::pair<std::string, std::string>> transitions;
         size_t start = 0;
@@ -520,23 +528,26 @@ int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
             }
             start = end + 1;
         }
-        std::string json = "{\"pages\":[";
+        std::string json = std::format(
+            "{{\"currentPageId\":\"{}\",\"layoutRootPageId\":\"MainPage\",\"pages\":[",
+            previewSession.appSessionController.Session().CurrentPageName());
         bool first = true;
         for (const std::string& page : pages) {
             if (!first) {
                 json += ',';
             }
-            const std::string_view title = static_cast<mc_session*>(session)->appSessionController.Session().PreviewPageTitle(page);
-            json += std::format("{{\"id\":\"{}\",\"title\":\"{}\",\"role\":\"Content\"}}", page, title);
+            const std::string_view title = previewSession.appSessionController.Session().PreviewPageTitle(page);
+            json += std::format("{{\"id\":\"{}\",\"title\":\"{}\"}}", page, title);
             first = false;
         }
         json += "],\"transitions\":[";
         first = true;
-        for (const auto& [source, target] : transitions) {
+        for (size_t index = 0; index < transitions.size(); ++index) {
+            const auto& [source, target] = transitions[index];
             if (!first) {
                 json += ',';
             }
-            json += std::format("{{\"id\":\"{}.{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"title\":\"{}\",\"kind\":\"Push\",\"isDefault\":true}}", source, target, source, target, target);
+            json += std::format("{{\"id\":\"route-{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"page\",\"title\":\"{}\",\"isDefault\":true}}", index, source, target, target);
             first = false;
         }
         json += "]}";
@@ -552,28 +563,47 @@ int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
     }
 }
 
-int xp_navigate(void* session, const char* transitionIds) {
+int xp_navigate(void* session, const char* navigationRequestJson) {
     try {
         xaml::bridge::lastError.clear();
-        if (session == nullptr || transitionIds == nullptr) {
-            throw std::invalid_argument("Session and transition identifiers are required");
+        if (session == nullptr || navigationRequestJson == nullptr) {
+            throw std::invalid_argument("Session and navigation request are required");
         }
-        std::string_view remaining(transitionIds);
-        while (!remaining.empty()) {
-            const size_t separator = remaining.find('>');
-            const std::string_view transition = remaining.substr(0, separator);
-            const size_t targetSeparator = transition.rfind('.');
-            if (targetSeparator == std::string_view::npos || targetSeparator + 1 >= transition.size()) {
-                throw std::invalid_argument("MobileClock transition identifier is invalid");
+        const std::string graph = static_cast<xp_session*>(session)->appSessionController.Session().PreviewRouteGraph();
+        std::vector<std::string> targets;
+        size_t start = 0;
+        while (start < graph.size()) {
+            const size_t end = graph.find(';', start);
+            const std::string_view route(graph.data() + start, (end == std::string::npos ? graph.size() : end) - start);
+            const size_t separator = route.find('>');
+            if (separator != std::string_view::npos) {
+                targets.emplace_back(route.substr(separator + 1));
             }
-            const std::string target(transition.substr(targetSeparator + 1));
-            if (!mc_navigate_preview_route(static_cast<mc_session*>(session), target.c_str())) {
-                return 0;
-            }
-            if (separator == std::string_view::npos) {
+            if (end == std::string::npos) {
                 break;
             }
-            remaining.remove_prefix(separator + 1);
+            start = end + 1;
+        }
+        std::string_view request(navigationRequestJson);
+        size_t position = 0;
+        size_t transitionCount = 0;
+        while ((position = request.find("route-", position)) != std::string_view::npos) {
+            position += 6;
+            const size_t end = request.find_first_not_of("0123456789", position);
+            const std::string_view number = request.substr(position, end - position);
+            if (number.empty()) {
+                throw std::invalid_argument("Navigation request contains an invalid transition id");
+            }
+            const size_t routeIndex = static_cast<size_t>(std::stoul(std::string(number)));
+            if (routeIndex >= targets.size()
+                || !xp_session_navigate_preview_route(static_cast<xp_session*>(session), targets[routeIndex].c_str())) {
+                return 0;
+            }
+            ++transitionCount;
+            position = end;
+        }
+        if (transitionCount == 0) {
+            throw std::invalid_argument("Navigation request does not contain transitionIds");
         }
         return 1;
     } catch (const std::exception& error) {
@@ -582,21 +612,21 @@ int xp_navigate(void* session, const char* transitionIds) {
     }
 }
 
-mc_session* mc_create_session(int width, int height) {
+xp_session* xp_create_session(int width, int height) {
     try {
         xaml::bridge::lastError.clear();
-        return new mc_session(width, height);
+        return new xp_session(width, height);
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
         return nullptr;
     }
 }
 
-void mc_destroy_session(mc_session* session) {
+void xp_destroy_session(xp_session* session) {
     delete session;
 }
 
-int mc_load_page(mc_session* session, const char* page) {
+int xp_session_load_page(xp_session* session, const char* page) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || page == nullptr) {
@@ -614,7 +644,7 @@ int mc_load_page(mc_session* session, const char* page) {
     }
 }
 
-int mc_current_page(mc_session* session, char* page, int capacity) {
+int xp_session_current_page(xp_session* session, char* page, int capacity) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || page == nullptr || capacity <= 0) {
@@ -633,14 +663,14 @@ int mc_current_page(mc_session* session, char* page, int capacity) {
     }
 }
 
-int mc_is_transitioning(mc_session* session) {
+int xp_session_is_transitioning(xp_session* session) {
     if (session == nullptr) {
         return 0;
     }
     return session->appSessionController.Session().IsTransitioning() ? 1 : 0;
 }
 
-int mc_navigate_preview_route(mc_session* session, const char* target) {
+int xp_session_navigate_preview_route(xp_session* session, const char* target) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || target == nullptr) {
@@ -673,7 +703,7 @@ int mc_navigate_preview_route(mc_session* session, const char* target) {
     }
 }
 
-int mc_navigate_preview_route_path(mc_session* session, const char* path) {
+int xp_session_navigate_preview_route_path(xp_session* session, const char* path) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || path == nullptr) {
@@ -724,7 +754,7 @@ int mc_navigate_preview_route_path(mc_session* session, const char* path) {
     }
 }
 
-int mc_preview_route_graph(mc_session* session, char* graph, int capacity) {
+int xp_session_preview_route_graph(xp_session* session, char* graph, int capacity) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || graph == nullptr || capacity <= 0) {
@@ -743,7 +773,7 @@ int mc_preview_route_graph(mc_session* session, char* graph, int capacity) {
     }
 }
 
-int mc_preview_page_title(mc_session* session, const char* page, char* title, int capacity) {
+int xp_session_preview_page_title(xp_session* session, const char* page, char* title, int capacity) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || page == nullptr || title == nullptr || capacity <= 0) {
@@ -762,7 +792,7 @@ int mc_preview_page_title(mc_session* session, const char* page, char* title, in
     }
 }
 
-int mc_apply_preview_scenario(mc_session* session, const char* page, const char* json) {
+int xp_session_apply_preview_scenario(xp_session* session, const char* page, const char* json) {
     try {
         xaml::bridge::lastError.clear();
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -788,7 +818,7 @@ int mc_apply_preview_scenario(mc_session* session, const char* page, const char*
     }
 }
 
-int mc_export_preview_state(mc_session* session) {
+int xp_session_export_preview_state(xp_session* session) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr) {
@@ -806,7 +836,7 @@ int mc_export_preview_state(mc_session* session) {
     }
 }
 
-int mc_can_save_preview_state(mc_session* session) {
+int xp_session_can_save_preview_state(xp_session* session) {
     try {
         if (session == nullptr) {
             throw std::invalid_argument("Session is required");
@@ -818,7 +848,7 @@ int mc_can_save_preview_state(mc_session* session) {
     }
 }
 
-int mc_reload_markup(mc_session* session, const char* page, const char* markup, const char* sourcePath) {
+int xp_session_reload_markup(xp_session* session, const char* page, const char* markup, const char* sourcePath) {
     try {
         xaml::bridge::lastError.clear();
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
@@ -844,7 +874,7 @@ int mc_reload_markup(mc_session* session, const char* page, const char* markup, 
         return 0;
     }
 }
-int mc_resize(mc_session* session, int width, int height) {
+int xp_session_resize(xp_session* session, int width, int height) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || width <= 0 || height <= 0) {
@@ -861,7 +891,7 @@ int mc_resize(mc_session* session, int width, int height) {
     }
 }
 
-int mc_set_animation_playback_rate(mc_session* session, float value) {
+int xp_session_set_animation_playback_rate(xp_session* session, float value) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr) {
@@ -875,7 +905,7 @@ int mc_set_animation_playback_rate(mc_session* session, float value) {
     }
 }
 
-int mc_set_status(mc_session* session, const char* value) {
+int xp_session_set_status(xp_session* session, const char* value) {
     try {
         xaml::bridge::lastError.clear();
         if (session == nullptr || value == nullptr) {
@@ -889,7 +919,7 @@ int mc_set_status(mc_session* session, const char* value) {
     }
 }
 
-int mc_pointer_down(mc_session* session, float x, float y) {
+int xp_session_pointer_down(xp_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
@@ -897,7 +927,7 @@ int mc_pointer_down(mc_session* session, float x, float y) {
     return 1;
 }
 
-int mc_pointer_move(mc_session* session, float x, float y) {
+int xp_session_pointer_move(xp_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
@@ -905,7 +935,7 @@ int mc_pointer_move(mc_session* session, float x, float y) {
     return 1;
 }
 
-int mc_pointer_up(mc_session* session, float x, float y) {
+int xp_session_pointer_up(xp_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
@@ -913,7 +943,7 @@ int mc_pointer_up(mc_session* session, float x, float y) {
     return 1;
 }
 
-int mc_pointer_cancel(mc_session* session) {
+int xp_session_pointer_cancel(xp_session* session) {
     if (session == nullptr) {
         return 0;
     }
@@ -921,7 +951,7 @@ int mc_pointer_cancel(mc_session* session) {
     return 1;
 }
 
-int mc_cursor_kind(mc_session* session, float x, float y) {
+int xp_session_cursor_kind(xp_session* session, float x, float y) {
     if (session == nullptr) {
         return 0;
     }
@@ -942,11 +972,11 @@ int mc_cursor_kind(mc_session* session, float x, float y) {
     return 0;
 }
 
-int mc_inspect(
-    mc_session* session,
+int xp_session_inspect(
+    xp_session* session,
     float x,
     float y,
-    mc_inspection_result* result) {
+    xp_session_inspection_result* result) {
     if (session == nullptr || result == nullptr) {
         return 0;
     }
@@ -970,13 +1000,13 @@ int mc_inspect(
     return 1;
 }
 
-int mc_set_inspection_wireframe(
-    mc_session* session,
+int xp_session_set_inspection_wireframe(
+    xp_session* session,
     float thickness,
     int lineStyle,
-    xr_color color,
-    xr_color marginColor,
-    xr_color paddingColor) {
+    xp_color color,
+    xp_color marginColor,
+    xp_color paddingColor) {
     if (session == nullptr || thickness <= 0.0f || (lineStyle != 0 && lineStyle != 1)) {
         return 0;
     }
@@ -997,13 +1027,13 @@ int mc_set_inspection_wireframe(
     return 1;
 }
 
-int mc_set_selected_wireframe(
-    mc_session* session,
+int xp_session_set_selected_wireframe(
+    xp_session* session,
     float thickness,
     int lineStyle,
-    xr_color color,
-    xr_color marginColor,
-    xr_color paddingColor) {
+    xp_color color,
+    xp_color marginColor,
+    xp_color paddingColor) {
     if (session == nullptr || thickness <= 0.0f || (lineStyle != 0 && lineStyle != 1)) {
         return 0;
     }
@@ -1024,7 +1054,7 @@ int mc_set_selected_wireframe(
     return 1;
 }
 
-int mc_clear_inspection_wireframe(mc_session* session) {
+int xp_session_clear_inspection_wireframe(xp_session* session) {
     if (session == nullptr) {
         return 0;
     }
@@ -1032,7 +1062,7 @@ int mc_clear_inspection_wireframe(mc_session* session) {
     return 1;
 }
 
-int mc_clear_selected_inspection_element(mc_session* session) {
+int xp_session_clear_selected_inspection_element(xp_session* session) {
     if (session == nullptr) {
         return 0;
     }
@@ -1040,7 +1070,7 @@ int mc_clear_selected_inspection_element(mc_session* session) {
     return 1;
 }
 
-int mc_select_inspection_element(mc_session* session, const char* sourcePath, int line, int column) {
+int xp_session_select_inspection_element(xp_session* session, const char* sourcePath, int line, int column) {
     if (session == nullptr || sourcePath == nullptr || line <= 0 || column <= 0) {
         return 0;
     }
@@ -1077,7 +1107,7 @@ int mc_select_inspection_element(mc_session* session, const char* sourcePath, in
     return 1;
 }
 
-int mc_pin_inspection_element(mc_session* session) {
+int xp_session_pin_inspection_element(xp_session* session) {
     if (session == nullptr || session->inspectionElement == nullptr) {
         return 0;
     }
@@ -1089,7 +1119,7 @@ int mc_pin_inspection_element(mc_session* session) {
     return 1;
 }
 
-int mc_update(mc_session* session) {
+int xp_session_update(xp_session* session) {
     if (session == nullptr) {
         return 0;
     }
@@ -1097,9 +1127,9 @@ int mc_update(mc_session* session) {
     return 1;
 }
 
-int mc_render_angle_surface(
-    mc_session* session,
-    xr_angle_surface* surface,
+int xp_session_render_angle_surface(
+    xp_session* session,
+    xp_angle_surface* surface,
     unsigned char* destination,
     int destinationStride,
     int destinationCapacity) {
@@ -1118,7 +1148,7 @@ int mc_render_angle_surface(
     }
 }
 
-void xr_configure_logging(const char* filePath) {
+void xp_configure_logging(const char* filePath) {
     utility_helpers::logging::Configure({
         filePath == nullptr ? std::filesystem::path{} : std::filesystem::path(filePath),
     });
@@ -1126,27 +1156,27 @@ void xr_configure_logging(const char* filePath) {
     LOG_INFO("MobileClock.PreviewPlugin", "Logging initialized");
 }
 
-void xr_log_info(const char* message) {
+void xp_log_info(const char* message) {
     if (message != nullptr) {
         LOG_INFO("AndroidAppPreviewer.Interaction", "{}", message);
     }
 }
 
-xr_element* xr_create_element(const char* type) {
+xp_element* xp_create_element(const char* type) {
     try {
         xaml::bridge::lastError.clear();
-        return reinterpret_cast<xr_element*>(new xaml::Element(xaml::ParseElementType(type)));
+        return reinterpret_cast<xp_element*>(new xaml::Element(xaml::ParseElementType(type)));
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
         return nullptr;
     }
 }
 
-void xr_destroy_element(xr_element* element) {
+void xp_destroy_element(xp_element* element) {
     delete reinterpret_cast<xaml::Element*>(element);
 }
 
-int xr_items_remove_item(xr_element* target) {
+int xp_items_remove_item(xp_element* target) {
     try {
         xaml::bridge::lastError.clear();
         if (target == nullptr) {
@@ -1159,7 +1189,7 @@ int xr_items_remove_item(xr_element* target) {
     }
 }
 
-int xr_add_child(xr_element* parent, xr_element* child) {
+int xp_add_child(xp_element* parent, xp_element* child) {
     try {
         xaml::bridge::lastError.clear();
         if (parent == nullptr || child == nullptr) {
@@ -1177,8 +1207,8 @@ int xr_add_child(xr_element* parent, xr_element* child) {
     }
 }
 
-int xr_set_attribute(
-    xr_element* element,
+int xp_set_attribute(
+    xp_element* element,
     const char* name,
     const char* value) {
     try {
@@ -1194,13 +1224,13 @@ int xr_set_attribute(
     }
 }
 
-xr_element* xr_find_element(xr_element* root, const char* id) {
+xp_element* xp_find_element(xp_element* root, const char* id) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr || id == nullptr || *id == '\0') {
             throw std::invalid_argument("root and id are required");
         }
-        return reinterpret_cast<xr_element*>(xaml::bridge::_details::FindElement(
+        return reinterpret_cast<xp_element*>(xaml::bridge::_details::FindElement(
             *reinterpret_cast<xaml::Element*>(root), id));
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -1208,7 +1238,7 @@ xr_element* xr_find_element(xr_element* root, const char* id) {
     }
 }
 
-int xr_find_element_count(xr_element* root, const char* id) {
+int xp_find_element_count(xp_element* root, const char* id) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr || id == nullptr || *id == '\0') {
@@ -1221,13 +1251,13 @@ int xr_find_element_count(xr_element* root, const char* id) {
     }
 }
 
-xr_element* xr_find_element_at(xr_element* root, const char* id, int index) {
+xp_element* xp_find_element_at(xp_element* root, const char* id, int index) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr || id == nullptr || *id == '\0' || index < 0) {
             throw std::invalid_argument("root, id and non-negative index are required");
         }
-        return reinterpret_cast<xr_element*>(xaml::bridge::_details::FindElementAt(
+        return reinterpret_cast<xp_element*>(xaml::bridge::_details::FindElementAt(
             *reinterpret_cast<xaml::Element*>(root), id, index));
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -1235,7 +1265,7 @@ xr_element* xr_find_element_at(xr_element* root, const char* id, int index) {
     }
 }
 
-int xr_add_storyboard_animation(xr_element* element, int trigger, const char* name,
+int xp_add_storyboard_animation(xp_element* element, int trigger, const char* name,
     const char* const* keys, const char* const* values, int count) {
     try {
         xaml::bridge::lastError.clear();
@@ -1267,7 +1297,7 @@ int xr_add_storyboard_animation(xr_element* element, int trigger, const char* na
     }
 }
 
-int xr_attach_animations(xr_element* root, xr_animation_controller* animations) {
+int xp_attach_animations(xp_element* root, xp_animation_controller* animations) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr) {
@@ -1284,9 +1314,9 @@ int xr_attach_animations(xr_element* root, xr_animation_controller* animations) 
     }
 }
 
-int xr_set_page_transition(
-    xr_element* root,
-    xr_animation_controller* animations,
+int xp_set_page_transition(
+    xp_element* root,
+    xp_animation_controller* animations,
     const char* from,
     const char* to,
     int backward,
@@ -1309,8 +1339,8 @@ int xr_set_page_transition(
     }
 }
 
-int xr_add_storyboard_track(
-    xr_element* element,
+int xp_add_storyboard_track(
+    xp_element* element,
     int trigger,
     int property,
     float from,
@@ -1342,8 +1372,8 @@ int xr_add_storyboard_track(
     }
 }
 
-int xr_add_visual_state_track(
-    xr_element* scope,
+int xp_add_visual_state_track(
+    xp_element* scope,
     const char* groupName,
     const char* stateName,
     const char* targetName,
@@ -1384,8 +1414,8 @@ int xr_add_visual_state_track(
     }
 }
 
-int xr_go_to_visual_state(
-    xr_element* scope,
+int xp_go_to_visual_state(
+    xp_element* scope,
     const char* groupName,
     const char* stateName,
     int useTransitions) {
@@ -1402,7 +1432,7 @@ int xr_go_to_visual_state(
     }
 }
 
-int xr_supported_attribute_count(const char* elementType) {
+int xp_supported_attribute_count(const char* elementType) {
     try {
         xaml::bridge::lastError.clear();
         if (elementType == nullptr) {
@@ -1418,7 +1448,7 @@ int xr_supported_attribute_count(const char* elementType) {
     }
 }
 
-const char* xr_supported_attribute_name(
+const char* xp_supported_attribute_name(
     const char* elementType,
     int index) {
     try {
@@ -1444,11 +1474,11 @@ const char* xr_supported_attribute_name(
     }
 }
 
-int xr_supported_element_count(void) {
+int xp_supported_element_count(void) {
     return 18;
 }
 
-const char* xr_supported_element_name(int index) {
+const char* xp_supported_element_name(int index) {
     static constexpr std::string_view names[]{
         "Page", "StackPanel", "Grid", "Border", "TextBlock", "Button", "IconButton", "ToggleSwitch",
         "ScrollViewer", "Image", "SvgImage", "ListView", "ListView.ItemTemplate", "DataTemplate",
@@ -1457,7 +1487,7 @@ const char* xr_supported_element_name(int index) {
     return index >= 0 && index < static_cast<int>(std::size(names)) ? names[index].data() : "";
 }
 
-int xr_layout(xr_element* root, float width, float height) {
+int xp_layout(xp_element* root, float width, float height) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr) {
@@ -1471,13 +1501,13 @@ int xr_layout(xr_element* root, float width, float height) {
     }
 }
 
-xr_element* xr_hit_test(xr_element* root, float x, float y) {
+xp_element* xp_hit_test(xp_element* root, float x, float y) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr) {
             throw std::invalid_argument("root is required");
         }
-        return reinterpret_cast<xr_element*>(xaml::HitTest(
+        return reinterpret_cast<xp_element*>(xaml::HitTest(
             *reinterpret_cast<xaml::Element*>(root), x, y));
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -1487,13 +1517,13 @@ xr_element* xr_hit_test(xr_element* root, float x, float y) {
 
 // Возвращает previewer-у любой видимый элемент под указателем,
 // включая элементы, которые не являются enabled или interactive.
-xr_element* xr_hit_test_visual(xr_element* root, float x, float y) {
+xp_element* xp_hit_test_visual(xp_element* root, float x, float y) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr) {
             throw std::invalid_argument("root is required");
         }
-        return reinterpret_cast<xr_element*>(xaml::bridge::_details::HitTestVisual(
+        return reinterpret_cast<xp_element*>(xaml::bridge::_details::HitTestVisual(
             *reinterpret_cast<xaml::Element*>(root), x, y));
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
@@ -1501,7 +1531,7 @@ xr_element* xr_hit_test_visual(xr_element* root, float x, float y) {
     }
 }
 
-int xr_hit_test_cursor_kind(xr_element* root, float x, float y) {
+int xp_hit_test_cursor_kind(xp_element* root, float x, float y) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr) {
@@ -1529,7 +1559,7 @@ int xr_hit_test_cursor_kind(xr_element* root, float x, float y) {
 }
 
 // Копирует рассчитанные layout-границы элемента в структуру C bridge.
-int xr_element_bounds(const xr_element* element, xr_rect* bounds) {
+int xp_element_bounds(const xp_element* element, xp_rect* bounds) {
     try {
         xaml::bridge::lastError.clear();
         if (element == nullptr || bounds == nullptr) {
@@ -1544,8 +1574,8 @@ int xr_element_bounds(const xr_element* element, xr_rect* bounds) {
     }
 }
 
-int xr_get_scroll_offsets(
-    xr_element* root,
+int xp_get_scroll_offsets(
+    xp_element* root,
     const char* scrollViewerId,
     float* horizontalOffset,
     float* verticalOffset) {
@@ -1569,8 +1599,8 @@ int xr_get_scroll_offsets(
     }
 }
 
-int xr_set_scroll_offsets(
-    xr_element* root,
+int xp_set_scroll_offsets(
+    xp_element* root,
     const char* scrollViewerId,
     float horizontalOffset,
     float verticalOffset) {
@@ -1594,7 +1624,7 @@ int xr_set_scroll_offsets(
     }
 }
 
-int xr_scroll_by(xr_element* root, float x, float y, float horizontalDelta, float verticalDelta) {
+int xp_scroll_by(xp_element* root, float x, float y, float horizontalDelta, float verticalDelta) {
     try {
         xaml::bridge::lastError.clear();
         if (root == nullptr || !std::isfinite(horizontalDelta) || !std::isfinite(verticalDelta)) {
@@ -1627,9 +1657,9 @@ int xr_scroll_by(xr_element* root, float x, float y, float horizontalDelta, floa
     }
 }
 
-int xr_scroll_begin(
-    xr_element* root,
-    xr_animation_controller* animations,
+int xp_scroll_begin(
+    xp_element* root,
+    xp_animation_controller* animations,
     float x,
     float y) {
     try {
@@ -1650,7 +1680,7 @@ int xr_scroll_begin(
     }
 }
 
-int xr_scroll_drag(xr_animation_controller* animations, float verticalDelta) {
+int xp_scroll_drag(xp_animation_controller* animations, float verticalDelta) {
     try {
         xaml::bridge::lastError.clear();
         if (animations == nullptr || !std::isfinite(verticalDelta)) {
@@ -1663,13 +1693,13 @@ int xr_scroll_drag(xr_animation_controller* animations, float verticalDelta) {
     }
 }
 
-void xr_scroll_end(xr_animation_controller* animations) {
+void xp_scroll_end(xp_animation_controller* animations) {
     if (animations != nullptr) {
         animations->scrollController.End();
     }
 }
 
-int xr_set_render_offset_x(xr_element* element, float value) {
+int xp_set_render_offset_x(xp_element* element, float value) {
     try {
         xaml::bridge::lastError.clear();
         if (element == nullptr || !std::isfinite(value)) {
@@ -1683,9 +1713,9 @@ int xr_set_render_offset_x(xr_element* element, float value) {
     }
 }
 
-int xr_animate_render_offset_x(
-    xr_element* element,
-    xr_animation_controller* animations,
+int xp_animate_render_offset_x(
+    xp_element* element,
+    xp_animation_controller* animations,
     float value,
     int durationMilliseconds) {
     try {
@@ -1708,14 +1738,14 @@ int xr_animate_render_offset_x(
     }
 }
 
-const char* xr_element_id(const xr_element* element) {
+const char* xp_element_id(const xp_element* element) {
     if (element == nullptr) {
         return "";
     }
     return reinterpret_cast<const xaml::Element*>(element)->Id().c_str();
 }
 
-int xr_handle_tap(xr_element* element, xr_animation_controller* animations) {
+int xp_handle_tap(xp_element* element, xp_animation_controller* animations) {
     try {
         xaml::bridge::lastError.clear();
         if (element == nullptr || animations == nullptr) {
@@ -1735,7 +1765,7 @@ int xr_handle_tap(xr_element* element, xr_animation_controller* animations) {
     }
 }
 
-int xr_handle_pointer_down(xr_element* element, xr_animation_controller* animations) {
+int xp_handle_pointer_down(xp_element* element, xp_animation_controller* animations) {
     try {
         xaml::bridge::lastError.clear();
         if (element == nullptr || animations == nullptr) {
@@ -1750,7 +1780,7 @@ int xr_handle_pointer_down(xr_element* element, xr_animation_controller* animati
     }
 }
 
-int xr_handle_pointer_up(xr_element* element, xr_animation_controller* animations) {
+int xp_handle_pointer_up(xp_element* element, xp_animation_controller* animations) {
     try {
         xaml::bridge::lastError.clear();
         if (element == nullptr || animations == nullptr) {
@@ -1761,39 +1791,39 @@ int xr_handle_pointer_up(xr_element* element, xr_animation_controller* animation
             animations->value.Animations().Start(target, xaml::AnimationTrigger::pointerUp);
             return 1;
         }
-        return xr_handle_tap(element, animations);
+        return xp_handle_tap(element, animations);
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
         return 0;
     }
 }
 
-xr_animation_controller* xr_create_animation_controller(void) {
+xp_animation_controller* xp_create_animation_controller(void) {
     try {
         xaml::bridge::lastError.clear();
-        return new xr_animation_controller();
+        return new xp_animation_controller();
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
         return nullptr;
     }
 }
 
-void xr_destroy_animation_controller(xr_animation_controller* animations) {
+void xp_destroy_animation_controller(xp_animation_controller* animations) {
     delete animations;
 }
 
-xr_interaction_controller* xr_create_interaction_controller(void) {
-    return new xr_interaction_controller();
+xp_interaction_controller* xp_create_interaction_controller(void) {
+    return new xp_interaction_controller();
 }
 
-void xr_destroy_interaction_controller(xr_interaction_controller* controller) {
+void xp_destroy_interaction_controller(xp_interaction_controller* controller) {
     delete controller;
 }
 
-int xr_interaction_pointer_down(
-    xr_interaction_controller* controller,
-    xr_element* root,
-    xr_animation_controller* animations,
+int xp_interaction_pointer_down(
+    xp_interaction_controller* controller,
+    xp_element* root,
+    xp_animation_controller* animations,
     float x,
     float y) {
     if (controller == nullptr || root == nullptr || animations == nullptr) {
@@ -1807,17 +1837,17 @@ int xr_interaction_pointer_down(
     return controller->value.HasCapture() ? 1 : 0;
 }
 
-int xr_interaction_pointer_move(xr_interaction_controller* controller, float x, float y) {
+int xp_interaction_pointer_move(xp_interaction_controller* controller, float x, float y) {
     return controller != nullptr && controller->value.PointerMove(x, y) ? 1 : 0;
 }
 
-int xr_interaction_pointer_up(
-    xr_interaction_controller* controller,
-    xr_element* root,
-    xr_animation_controller* animations,
+int xp_interaction_pointer_up(
+    xp_interaction_controller* controller,
+    xp_element* root,
+    xp_animation_controller* animations,
     float x,
     float y,
-    xr_interaction_result* result) {
+    xp_interaction_result* result) {
     if (controller == nullptr || root == nullptr || animations == nullptr || result == nullptr) {
         return 0;
     }
@@ -1825,14 +1855,14 @@ int xr_interaction_pointer_up(
         *reinterpret_cast<xaml::Element*>(root), animations->value.Animations(), x, y);
     result->kind = static_cast<int>(nativeResult.kind);
     result->direction = static_cast<int>(nativeResult.direction);
-    result->target = reinterpret_cast<xr_element*>(nativeResult.target);
+    result->target = reinterpret_cast<xp_element*>(nativeResult.target);
     result->item_index = nativeResult.itemIndex;
     return 1;
 }
 
-int xr_interaction_scroll_wheel(
-    xr_interaction_controller* controller,
-    xr_element* root,
+int xp_interaction_scroll_wheel(
+    xp_interaction_controller* controller,
+    xp_element* root,
     float x,
     float y,
     float horizontalDelta,
@@ -1841,12 +1871,12 @@ int xr_interaction_scroll_wheel(
         && controller->value.ScrollWheel(*reinterpret_cast<xaml::Element*>(root), x, y, horizontalDelta, verticalDelta) ? 1 : 0;
 }
 
-int xr_interaction_update(xr_interaction_controller* controller) {
+int xp_interaction_update(xp_interaction_controller* controller) {
     return controller != nullptr && controller->value.Update() ? 1 : 0;
 }
 
-int xr_set_animation_playback_rate(
-    xr_animation_controller* animations,
+int xp_set_animation_playback_rate(
+    xp_animation_controller* animations,
     float playbackRate) {
     try {
         xaml::bridge::lastError.clear();
@@ -1861,7 +1891,7 @@ int xr_set_animation_playback_rate(
     }
 }
 
-int xr_update_animations(xr_animation_controller* animations) {
+int xp_update_animations(xp_animation_controller* animations) {
     try {
         xaml::bridge::lastError.clear();
         if (animations == nullptr) {
@@ -1875,7 +1905,7 @@ int xr_update_animations(xr_animation_controller* animations) {
     }
 }
 
-xr_angle_surface* xr_create_angle_surface(
+xp_angle_surface* xp_create_angle_surface(
     int width,
     int height,
     const char* fontPath,
@@ -1885,20 +1915,20 @@ xr_angle_surface* xr_create_angle_surface(
         if (fontPath == nullptr || resourceRoot == nullptr) {
             throw std::invalid_argument("fontPath and resourceRoot are required");
         }
-        return new xr_angle_surface(width, height, fontPath, resourceRoot);
+        return new xp_angle_surface(width, height, fontPath, resourceRoot);
     } catch (const std::exception& error) {
         xaml::bridge::lastError = error.what();
         return nullptr;
     }
 }
 
-void xr_destroy_angle_surface(xr_angle_surface* surface) {
+void xp_destroy_angle_surface(xp_angle_surface* surface) {
     delete surface;
 }
 
-int xr_render_angle_surface(
-    xr_angle_surface* surface,
-    const xr_element* root,
+int xp_render_angle_surface(
+    xp_angle_surface* surface,
+    const xp_element* root,
     unsigned char* destination,
     int destinationStride,
     int destinationCapacity) {
@@ -1910,7 +1940,7 @@ int xr_render_angle_surface(
             throw std::invalid_argument("Invalid persistent ANGLE render arguments");
         }
         surface->value.Render(
-            *reinterpret_cast<xaml::Element*>(const_cast<xr_element*>(root)),
+            *reinterpret_cast<xaml::Element*>(const_cast<xp_element*>(root)),
             destination,
             destinationStride);
         return 1;
@@ -1920,9 +1950,9 @@ int xr_render_angle_surface(
     }
 }
 
-int xr_render(
-    const xr_element* root,
-    xr_command* destination,
+int xp_render(
+    const xp_element* root,
+    xp_command* destination,
     int capacity) {
     try {
         xaml::bridge::lastError.clear();
@@ -1930,7 +1960,7 @@ int xr_render(
             throw std::invalid_argument("root is required");
         }
         xaml::bridge::RecordingBackend backend;
-        xaml::Render(*reinterpret_cast<xaml::Element*>(const_cast<xr_element*>(root)), backend);
+        xaml::Render(*reinterpret_cast<xaml::Element*>(const_cast<xp_element*>(root)), backend);
         const auto& commands = backend.Commands();
         if (destination != nullptr && capacity > 0) {
             const size_t count = std::min(commands.size(), static_cast<size_t>(capacity));
@@ -1943,8 +1973,8 @@ int xr_render(
     }
 }
 
-int xr_render_angle(
-    const xr_element* root,
+int xp_render_angle(
+    const xp_element* root,
     const char* fontPath,
     int width,
     int height,
@@ -1962,7 +1992,7 @@ int xr_render_angle(
 
         xaml::bridge::AngleRenderSurface surface(width, height, fontPath, resourceRoot);
         surface.Render(
-            *reinterpret_cast<xaml::Element*>(const_cast<xr_element*>(root)),
+            *reinterpret_cast<xaml::Element*>(const_cast<xp_element*>(root)),
             destination,
             destinationStride);
         return 1;
@@ -1970,4 +2000,7 @@ int xr_render_angle(
         xaml::bridge::lastError = error.what();
         return 0;
     }
+}
+
+}
 }
