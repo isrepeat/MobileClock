@@ -28,6 +28,9 @@ set_target_properties(mobileclock_preview_plugin PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY
         "${CMAKE_SOURCE_DIR}/Build/MobileClock.PreviewPlugin/Build/$<CONFIG>/x64/MobileClock.PreviewPlugin"
 )
+if (MSVC)
+    target_compile_options(mobileclock_preview_plugin PRIVATE /utf-8)
+endif()
 
 set(ANDROID_APP_PREVIEWER_ROOT
     "${CMAKE_CURRENT_SOURCE_DIR}/../../AndroidAppPreviewer"
