@@ -1,3 +1,5 @@
+include("${CMAKE_CURRENT_LIST_DIR}/NuGetSource.cmake")
+
 function(fn_mobileclock_find_latest_xaml_runtime_package packages_root package_name output_variable)
     # Пакеты NuGet располагаются в отдельных папках <имя>.<версия>.
     # Берём наиболее новую только при наличии стандартного CMake-контракта.
@@ -26,13 +28,9 @@ function(fn_mobileclock_install_xaml_runtime)
     if (NOT mobileclock_xaml_runtime_config_directory)
         # Без -Version NuGet устанавливает последнюю доступную версию пакета.
         find_program(mobileclock_nuget_executable NAMES nuget.exe REQUIRED)
-        set(mobileclock_xaml_runtime_source https://api.nuget.org/v3/index.json)
-        if (EXISTS "C:/NugetFeed")
-            set(mobileclock_xaml_runtime_source "C:/NugetFeed")
-        endif()
         execute_process(
             COMMAND "${mobileclock_nuget_executable}" install "${mobileclock_xaml_runtime_package_name}"
-                -Source "${mobileclock_xaml_runtime_source}"
+                -Source "${MOBILECLOCK_NUGET_SOURCE}"
                 -OutputDirectory "${mobileclock_xaml_runtime_packages_root}"
                 -NonInteractive
             COMMAND_ERROR_IS_FATAL ANY
@@ -50,5 +48,9 @@ function(fn_mobileclock_install_xaml_runtime)
     unset(${mobileclock_xaml_runtime_package_name}_DIR CACHE)
     find_package(${mobileclock_xaml_runtime_package_name} CONFIG REQUIRED
         PATHS "${mobileclock_xaml_runtime_config_directory}"
-        NO_DEFAULT_PATH)
+        NO_DEFAULT_PATH
+        # The NuGet package is on the Windows host, not in the Android NDK
+        # sysroot.  Without this CMake prepends the sysroot during an Android
+        # cross-compile and therefore misses the existing Config.cmake file.
+        NO_CMAKE_FIND_ROOT_PATH)
 endfunction()

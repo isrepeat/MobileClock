@@ -1,3 +1,5 @@
+include("${CMAKE_CURRENT_LIST_DIR}/NuGetSource.cmake")
+
 function(fn_mobileclock_install_android_app_previewer_plugin_sdk)
     set(mobileclock_plugin_sdk_package_name AndroidAppPreviewer.PluginSDK)
     set(mobileclock_plugin_sdk_packages_root "${CMAKE_SOURCE_DIR}/Build/MobileClock/NuGetPackages")
@@ -9,11 +11,11 @@ function(fn_mobileclock_install_android_app_previewer_plugin_sdk)
     if (EXISTS "${mobileclock_plugin_sdk_legacy_directory}")
         file(REMOVE_RECURSE "${mobileclock_plugin_sdk_legacy_directory}")
     endif()
-    if (EXISTS "C:/NugetFeed")
+    if (IS_DIRECTORY "${MOBILECLOCK_NUGET_SOURCE}")
         # Native CMake-проекты не выполняют NuGet restore. Поэтому перед
         # find_package выбираем максимальный доступный пакет из локального feed,
         # как это сделал бы floating PackageReference в WPF-проекте.
-        file(GLOB mobileclock_plugin_sdk_archives "C:/NugetFeed/${mobileclock_plugin_sdk_package_name}.*.nupkg")
+        file(GLOB mobileclock_plugin_sdk_archives "${MOBILECLOCK_NUGET_SOURCE}/${mobileclock_plugin_sdk_package_name}.*.nupkg")
         list(SORT mobileclock_plugin_sdk_archives COMPARE NATURAL ORDER DESCENDING)
         list(LENGTH mobileclock_plugin_sdk_archives mobileclock_plugin_sdk_archive_count)
         if (mobileclock_plugin_sdk_archive_count GREATER 0)
@@ -45,7 +47,8 @@ function(fn_mobileclock_install_android_app_previewer_plugin_sdk)
             unset(AndroidAppPreviewerPlugin_DIR CACHE)
             find_package(AndroidAppPreviewerPlugin CONFIG REQUIRED
                 PATHS "${mobileclock_plugin_sdk_config_directory}"
-                NO_DEFAULT_PATH)
+                NO_DEFAULT_PATH
+                NO_CMAKE_FIND_ROOT_PATH)
             return()
         endif()
     endif()
@@ -61,7 +64,8 @@ function(fn_mobileclock_install_android_app_previewer_plugin_sdk)
             unset(AndroidAppPreviewerPlugin_DIR CACHE)
             find_package(AndroidAppPreviewerPlugin CONFIG REQUIRED
                 PATHS "${mobileclock_plugin_sdk_config_directory}"
-                NO_DEFAULT_PATH)
+                NO_DEFAULT_PATH
+                NO_CMAKE_FIND_ROOT_PATH)
             return()
         endif()
     endforeach()
@@ -69,13 +73,9 @@ function(fn_mobileclock_install_android_app_previewer_plugin_sdk)
     # Последний fallback нужен для окружений без локального feed и кэша.
     # После nuget install повторяем выбор уже распакованного package layout.
     find_program(mobileclock_plugin_sdk_nuget_executable NAMES nuget.exe REQUIRED)
-    set(mobileclock_plugin_sdk_source https://api.nuget.org/v3/index.json)
-    if (EXISTS "C:/NugetFeed")
-        set(mobileclock_plugin_sdk_source "C:/NugetFeed")
-    endif()
     execute_process(
         COMMAND "${mobileclock_plugin_sdk_nuget_executable}" install "${mobileclock_plugin_sdk_package_name}"
-            -Source "${mobileclock_plugin_sdk_source}"
+            -Source "${MOBILECLOCK_NUGET_SOURCE}"
             -OutputDirectory "${mobileclock_plugin_sdk_packages_root}"
             -NonInteractive
         COMMAND_ERROR_IS_FATAL ANY)

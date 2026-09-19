@@ -34,14 +34,10 @@ function Invoke-Checked {
     }
 }
 
-# Prefer the CMake bundled with Visual Studio, but permit a standalone CMake
-# installation when this script is run outside Visual Studio.
-$visualStudioCmake = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
-if (Test-Path $visualStudioCmake) {
-    $cmake = $visualStudioCmake
-} else {
-    $cmake = (Get-Command cmake -ErrorAction Stop).Source
-}
+# Resolve the installed Visual Studio tools without fixing an edition or path.
+. (Join-Path $PSScriptRoot 'Resolve-BuildTools.ps1')
+$tools = Resolve-MobileClockBuildTools
+$cmake = $tools.CMake
 
 & (Join-Path $PSScriptRoot 'generate-xaml.ps1')
 
@@ -50,9 +46,9 @@ try {
     $cmakePreset = 'android-arm64-debug'
     Write-Host "==> Building native $Architecture library with CMake"
     if ($Clean) {
-        Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset)
+        Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset, "-DCMAKE_MAKE_PROGRAM=$($tools.Ninja)")
     } else {
-        Invoke-Checked $cmake @('--preset', $cmakePreset)
+        Invoke-Checked $cmake @('--preset', $cmakePreset, "-DCMAKE_MAKE_PROGRAM=$($tools.Ninja)")
     }
     Invoke-Checked $cmake @('--build', '--preset', $cmakePreset)
 } finally {

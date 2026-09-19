@@ -35,12 +35,6 @@ endif()
 set(ANDROID_APP_PREVIEWER_ROOT
     "${CMAKE_CURRENT_SOURCE_DIR}/../../AndroidAppPreviewer"
     CACHE PATH "Path to the AndroidAppPreviewer repository")
-set(mobileclock_android_app_previewer_project
-    "${ANDROID_APP_PREVIEWER_ROOT}/AndroidAppPreviewer.WPF/AndroidAppPreviewer.WPF.csproj")
-if (NOT EXISTS "${mobileclock_android_app_previewer_project}")
-    message(FATAL_ERROR
-        "AndroidAppPreviewer.WPF was not found. Set ANDROID_APP_PREVIEWER_ROOT to the AndroidAppPreviewer repository.")
-endif()
 
 target_compile_definitions(mobileclock_preview_plugin PRIVATE
     MOBILECLOCK_XAML_PREVIEWER=1
@@ -62,29 +56,8 @@ target_link_libraries(mobileclock_preview_plugin PRIVATE
     XamlRuntime::OpenGLESRenderer
 )
 
-# WPF-хост не входит в CMake-граф, поэтому вызываем его обычную MSBuild-сборку
-# как зависимость plugin-а. Благодаря этому F5 актуализирует и DLL, и Previewer.
-find_program(mobileclock_msbuild_executable
-    NAMES MSBuild.exe
-    HINTS
-        "$ENV{VSINSTALLDIR}/MSBuild/Current/Bin"
-        "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin"
-)
-if (NOT mobileclock_msbuild_executable)
-    message(FATAL_ERROR "MSBuild.exe is required to build AndroidAppPreviewer.WPF")
-endif()
-add_custom_target(mobileclock_android_app_previewer_host
-    COMMAND "${mobileclock_msbuild_executable}"
-        "${mobileclock_android_app_previewer_project}"
-        /t:Build
-        "/p:Configuration=$<CONFIG>"
-        /p:Platform=x64
-    USES_TERMINAL
-)
-add_dependencies(mobileclock_preview_plugin mobileclock_android_app_previewer_host)
-
-# При F5 для CMake target-а Visual Studio не пытается выполнить DLL напрямую.
-# Вместо этого она запускает общий WPF-хост и передаёт ему свежую DLL через --plugin.
+# WPF-хост — внешний готовый инструмент, а не build dependency плагина.
+# При F5 Visual Studio запускает его и передаёт свежую DLL через --plugin.
 # Аргумент имеет приоритет над сохранённым вручную выбором plugin-а в настройках Previewer.
 set(mobileclock_android_app_previewer_output_directory
     "${ANDROID_APP_PREVIEWER_ROOT}/!VS_TMP/Build/$<CONFIG>/x64/AndroidAppPreviewer.WPF")
