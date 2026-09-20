@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?mobileclock-preview-scenario path="Scenarios/XiaomiThemesPage.json"?>
+<?xaml-preview-scenario path="Scenario/XiaomiThemesPage.json"?>
 <Page id="xiaomiThemesPage"
       background="#171813"
       xmlns="urn:mobileclock:xaml">

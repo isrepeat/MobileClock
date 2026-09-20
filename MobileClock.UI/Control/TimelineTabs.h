@@ -26,19 +26,17 @@ namespace mobileclock::ui::control {
 #endif
 
         template <typename TViewModel>
-        static std::unique_ptr<TimelineTabs> Create(TViewModel& viewModel, xaml::BindingScope& bindings) {
+        static std::unique_ptr<TimelineTabs> Create(TViewModel& viewModel, xaml::BindingScope&) {
             auto control = std::make_unique<TimelineTabs>();
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::TimelineTabsXaml::BuildContent(viewModel, *bindings);
             control->InitializeComponent(
-                xaml::generated::TimelineTabsXaml::BuildContent(viewModel, bindings));
+                std::move(content), std::move(bindings));
             return control;
         }
 
     private:
         void OnInitialized() override;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    private:
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

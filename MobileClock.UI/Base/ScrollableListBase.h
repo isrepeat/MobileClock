@@ -46,8 +46,5 @@ namespace mobileclock::ui::base {
         void OnInitialized() override;
         bool IsIn(const xaml::Element& pageRoot) const override;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

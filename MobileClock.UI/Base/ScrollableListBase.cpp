@@ -67,8 +67,7 @@ namespace mobileclock::ui::base {
             if (context.beforeCommit) {
                 context.beforeCommit();
             }
-            this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             this->OnTemplateReplaced();
             diagnostics.clear();
             return true;

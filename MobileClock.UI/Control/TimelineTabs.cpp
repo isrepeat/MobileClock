@@ -24,10 +24,7 @@ namespace mobileclock::ui::control {
               if (context.beforeCommit) {
                   context.beforeCommit();
               }
-              // TimelineTabs остаётся тем же native-экземпляром; меняется только
-              // дерево его шаблона и связанный с ним набор runtime-подписок.
-              this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             diagnostics.clear();
             return true;
         } catch (const std::exception& error) {

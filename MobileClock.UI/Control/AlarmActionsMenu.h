@@ -64,7 +64,7 @@ namespace mobileclock::ui::control {
 #endif
 
         template<typename TViewModel>
-        static std::unique_ptr<AlarmActionsMenu> Create(TViewModel& viewModel, xaml::BindingScope& bindings) {
+        static std::unique_ptr<AlarmActionsMenu> Create(TViewModel& viewModel, xaml::BindingScope&) {
             auto control = std::make_unique<AlarmActionsMenu>();
             control->status = viewModel.Status();
             control->updateApplicationCommand = viewModel.UpdateApplicationCommand();
@@ -75,8 +75,10 @@ namespace mobileclock::ui::control {
             control->parentUnsubscribe = viewModel.Subscribe([menu = control.get(), &viewModel](auto) {
                 menu->SetStatus(viewModel.Status());
             });
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::AlarmActionsMenuXaml::BuildContent(*control, *bindings);
             control->InitializeComponent(
-                xaml::generated::AlarmActionsMenuXaml::BuildContent(*control, bindings));
+                std::move(content), std::move(bindings));
             return control;
         }
 
@@ -108,8 +110,5 @@ namespace mobileclock::ui::control {
         xaml::Element::Command toggleMenuCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

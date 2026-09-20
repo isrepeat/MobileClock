@@ -40,6 +40,10 @@ namespace mobileclock::ui::control {
     // UserControl
     //
     AlarmActionsMenu::~AlarmActionsMenu() {
+        // Подписки шаблона обращаются к полям меню. Снимаем их до уничтожения
+        // членов производного класса, а не в деструкторе базового UserControl.
+        this->ClearContentBindings();
+        // Отдельная подписка на ViewModel также не должна вызывать удалённое меню.
         if (this->parentUnsubscribe) {
             this->parentUnsubscribe();
         }
@@ -138,8 +142,7 @@ namespace mobileclock::ui::control {
             if (context.beforeCommit) {
                 context.beforeCommit();
             }
-            this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             this->ApplyState(false);
             diagnostics.clear();
             return true;

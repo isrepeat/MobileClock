@@ -26,11 +26,13 @@ namespace mobileclock::ui::control {
         static std::unique_ptr<AlarmMelodyList> Create(
             TViewModel& viewModel,
             const TItemsSource& itemsSource,
-            xaml::BindingScope& bindings) {
+            xaml::BindingScope&) {
             auto control = std::make_unique<AlarmMelodyList>();
             control->itemsSource.Set(static_cast<const void*>(&itemsSource));
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::AlarmMelodyListXaml::BuildContent(viewModel, itemsSource, *bindings);
             control->InitializeComponent(
-                xaml::generated::AlarmMelodyListXaml::BuildContent(viewModel, itemsSource, bindings));
+                std::move(content), std::move(bindings));
             using Item = std::remove_cvref_t<decltype(*itemsSource.begin())>;
             control->SetSelectionPredicate([&viewModel](const void* dataContext) {
                 const auto* item = static_cast<const Item*>(dataContext);

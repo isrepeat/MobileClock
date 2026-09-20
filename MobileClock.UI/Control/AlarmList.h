@@ -33,12 +33,14 @@ namespace mobileclock::ui::control {
         static std::unique_ptr<AlarmList> Create(
             TViewModel& viewModel,
             const TItemsSource& itemsSource,
-            xaml::BindingScope& bindings) {
+            xaml::BindingScope&) {
             auto control = std::make_unique<AlarmList>();
             control->SetItemsSource(itemsSource);
             control->SetRemoveHandler([&viewModel](const void* dataContext) { return viewModel.RemoveItem(dataContext); });
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::AlarmListXaml::BuildContent(viewModel, itemsSource, *bindings);
             control->InitializeComponent(
-                xaml::generated::AlarmListXaml::BuildContent(viewModel, itemsSource, bindings));
+                std::move(content), std::move(bindings));
             return control;
         }
 
@@ -63,8 +65,5 @@ namespace mobileclock::ui::control {
             this->itemsSource.Set(static_cast<const void*>(&value));
         }
         xaml::DependentProperty<const void*> itemsSource;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }
