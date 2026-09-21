@@ -6,6 +6,7 @@
 
 #include <string_view>
 #include <string>
+#include <vector>
 
 namespace mobileclock::application::core {
     class AppSessionController;
@@ -31,8 +32,10 @@ namespace mobileclock::application::core {
         void SetAlarmMelody(model::AlarmMelody alarmMelody);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
+        bool NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error);
         bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
         std::string PreviewRouteGraph() const;
+        std::vector<PageManager::PreviewRoute> PreviewRoutes() const;
         std::string_view PreviewPageTitle(std::string_view pageName) const;
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
         bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);

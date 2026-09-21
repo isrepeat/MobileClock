@@ -362,6 +362,56 @@ namespace mobileclock::preview::_details {
         std::filesystem::path path;
     };
 
+    std::vector<std::string> ParsePreviewTransitionIds(std::string_view json) {
+        const size_t property = json.find("\"transitionIds\"");
+        if (property == std::string_view::npos) {
+            throw std::invalid_argument("Navigation request does not contain transitionIds");
+        }
+        const size_t arrayStart = json.find('[', property);
+        const size_t arrayEnd = arrayStart == std::string_view::npos
+            ? std::string_view::npos
+            : json.find(']', arrayStart);
+        if (arrayStart == std::string_view::npos || arrayEnd == std::string_view::npos) {
+            throw std::invalid_argument("Navigation request contains an invalid transitionIds array");
+        }
+        std::vector<std::string> result;
+        size_t position = arrayStart + 1;
+        while (position < arrayEnd) {
+            while (position < arrayEnd && std::isspace(static_cast<unsigned char>(json[position]))) {
+                ++position;
+            }
+            if (position == arrayEnd) {
+                break;
+            }
+            if (json[position] != '\"') {
+                throw std::invalid_argument("Navigation transition ID must be a JSON string");
+            }
+            const size_t valueStart = ++position;
+            const size_t valueEnd = json.find('\"', valueStart);
+            if (valueEnd == std::string_view::npos || valueEnd > arrayEnd) {
+                throw std::invalid_argument("Navigation transition ID is not terminated");
+            }
+            if (json.substr(valueStart, valueEnd - valueStart).find('\\') != std::string_view::npos) {
+                throw std::invalid_argument("Navigation transition ID must not contain JSON escapes");
+            }
+            result.emplace_back(json.substr(valueStart, valueEnd - valueStart));
+            position = valueEnd + 1;
+            while (position < arrayEnd && std::isspace(static_cast<unsigned char>(json[position]))) {
+                ++position;
+            }
+            if (position < arrayEnd) {
+                if (json[position] != ',') {
+                    throw std::invalid_argument("Navigation transition IDs must be comma-separated");
+                }
+                ++position;
+            }
+        }
+        if (result.empty()) {
+            throw std::invalid_argument("Navigation request does not contain transition IDs");
+        }
+        return result;
+    }
+
 } // namespace _details
 
 namespace AndroidAppPreviewerPluginSDK {
@@ -504,35 +554,21 @@ int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
             throw std::invalid_argument("Session, graph buffer and positive capacity are required");
         }
         xp_session& previewSession = *static_cast<xp_session*>(session);
-        const std::string graph = previewSession.appSessionController.Session().PreviewRouteGraph();
-        std::vector<std::string> pages;
-        std::vector<std::pair<std::string, std::string>> transitions;
-        size_t start = 0;
-        while (start < graph.size()) {
-            const size_t end = graph.find(';', start);
-            const std::string_view route(graph.data() + start, (end == std::string::npos ? graph.size() : end) - start);
-            const size_t separator = route.find('>');
-            if (separator != std::string_view::npos) {
-                const std::string source(route.substr(0, separator));
-                const std::string target(route.substr(separator + 1));
-                transitions.emplace_back(source, target);
-                if (std::find(pages.begin(), pages.end(), source) == pages.end()) {
-                    pages.push_back(source);
-                }
-                if (std::find(pages.begin(), pages.end(), target) == pages.end()) {
-                    pages.push_back(target);
-                }
+        const std::vector routes = previewSession.appSessionController.Session().PreviewRoutes();
+        std::vector<std::string_view> pages;
+        for (const auto& route : routes) {
+            if (std::find(pages.begin(), pages.end(), route.source) == pages.end()) {
+                pages.push_back(route.source);
             }
-            if (end == std::string::npos) {
-                break;
+            if (std::find(pages.begin(), pages.end(), route.target) == pages.end()) {
+                pages.push_back(route.target);
             }
-            start = end + 1;
         }
         std::string json = std::format(
             "{{\"currentPageId\":\"{}\",\"layoutRootPageId\":\"MainPage\",\"pages\":[",
             previewSession.appSessionController.Session().CurrentPageName());
         bool first = true;
-        for (const std::string& page : pages) {
+        for (const std::string_view page : pages) {
             if (!first) {
                 json += ',';
             }
@@ -542,12 +578,17 @@ int xp_get_navigation_graph(void* session, char* graphJson, int capacity) {
         }
         json += "],\"transitions\":[";
         first = true;
-        for (size_t index = 0; index < transitions.size(); ++index) {
-            const auto& [source, target] = transitions[index];
+        for (const auto& route : routes) {
             if (!first) {
                 json += ',';
             }
-            json += std::format("{{\"id\":\"route-{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"page\",\"title\":\"{}\",\"isDefault\":true}}", index, source, target, target);
+            json += std::format(
+                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"page\",\"title\":\"{}\",\"isDefault\":{}}}",
+                route.id,
+                route.source,
+                route.target,
+                route.title,
+                route.isDefault ? "true" : "false");
             first = false;
         }
         json += "]}";
@@ -569,41 +610,16 @@ int xp_navigate(void* session, const char* navigationRequestJson) {
         if (session == nullptr || navigationRequestJson == nullptr) {
             throw std::invalid_argument("Session and navigation request are required");
         }
-        const std::string graph = static_cast<xp_session*>(session)->appSessionController.Session().PreviewRouteGraph();
-        std::vector<std::string> targets;
-        size_t start = 0;
-        while (start < graph.size()) {
-            const size_t end = graph.find(';', start);
-            const std::string_view route(graph.data() + start, (end == std::string::npos ? graph.size() : end) - start);
-            const size_t separator = route.find('>');
-            if (separator != std::string_view::npos) {
-                targets.emplace_back(route.substr(separator + 1));
-            }
-            if (end == std::string::npos) {
-                break;
-            }
-            start = end + 1;
+        const std::vector<std::string> ids = mobileclock::preview::_details::ParsePreviewTransitionIds(navigationRequestJson);
+        std::vector<std::string_view> transitionIds;
+        transitionIds.reserve(ids.size());
+        for (const std::string& id : ids) {
+            transitionIds.push_back(id);
         }
-        std::string_view request(navigationRequestJson);
-        size_t position = 0;
-        size_t transitionCount = 0;
-        while ((position = request.find("route-", position)) != std::string_view::npos) {
-            position += 6;
-            const size_t end = request.find_first_not_of("0123456789", position);
-            const std::string_view number = request.substr(position, end - position);
-            if (number.empty()) {
-                throw std::invalid_argument("Navigation request contains an invalid transition id");
-            }
-            const size_t routeIndex = static_cast<size_t>(std::stoul(std::string(number)));
-            if (routeIndex >= targets.size()
-                || !xp_session_navigate_preview_route(static_cast<xp_session*>(session), targets[routeIndex].c_str())) {
-                return 0;
-            }
-            ++transitionCount;
-            position = end;
-        }
-        if (transitionCount == 0) {
-            throw std::invalid_argument("Navigation request does not contain transitionIds");
+        if (!static_cast<xp_session*>(session)->appSessionController.Session().NavigatePreviewTransitions(
+            transitionIds,
+            xaml::bridge::lastError)) {
+            return 0;
         }
         return 1;
     } catch (const std::exception& error) {

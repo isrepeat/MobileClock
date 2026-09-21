@@ -209,6 +209,52 @@ namespace mobileclock::application::core {
         return this->ExecutePreviewRoute(route, error);
     }
 
+    bool PageManager::NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
+        error.clear();
+        if (this->currentPage == nullptr || transitionIds.empty()) {
+            error = "Preview route requires an initialized application session and transition IDs";
+            LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
+            return false;
+        }
+        std::string serializedTransitionIds;
+        std::vector<const NavigationRoute*> route;
+        route.reserve(transitionIds.size());
+        for (const std::string_view id : transitionIds) {
+            if (!serializedTransitionIds.empty()) {
+                serializedTransitionIds += '>';
+            }
+            serializedTransitionIds += id;
+        }
+        LOG_INFO(
+            "MobileClock.PreviewRoute",
+            "Explicit route request: current='{}', transitionIds='{}'",
+            this->currentPage->Name(),
+            serializedTransitionIds);
+        std::string_view expectedSource = this->currentPage->Name();
+        for (const std::string_view id : transitionIds) {
+            const auto edge = std::find_if(Routes().begin(), Routes().end(), [id](const NavigationRoute& candidate) {
+                return candidate.id == id;
+            });
+            if (edge == Routes().end()) {
+                error = std::format("Unknown preview transition '{}'", id);
+                LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
+                return false;
+            }
+            if (edge->source != expectedSource) {
+                error = std::format(
+                    "Preview transition '{}' starts at {}, but the active route page is {}",
+                    id,
+                    edge->source,
+                    expectedSource);
+                LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
+                return false;
+            }
+            route.push_back(&*edge);
+            expectedSource = edge->target;
+        }
+        return this->ExecutePreviewRoute(route, error);
+    }
+
     bool PageManager::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
         error.clear();
         if (this->currentPage == nullptr || path.empty()) {
@@ -216,18 +262,6 @@ namespace mobileclock::application::core {
             LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
             return false;
         }
-        std::string serializedPath;
-        for (const std::string_view page : path) {
-            if (!serializedPath.empty()) {
-                serializedPath += '>';
-            }
-            serializedPath += page;
-        }
-        LOG_INFO(
-            "MobileClock.PreviewRoute",
-            "Explicit route request: current='{}', path='{}'",
-            this->currentPage->Name(),
-            serializedPath);
         if (path.front() != this->currentPage->Name()) {
             error = std::format("Preview route starts at {}, but the active page is {}", path.front(), this->currentPage->Name());
             LOG_WARNING("MobileClock.PreviewRoute", "Explicit route rejected: {}", error);
@@ -257,6 +291,15 @@ namespace mobileclock::application::core {
             result += route.source;
             result += '>';
             result += route.target;
+        }
+        return result;
+    }
+
+    std::vector<PageManager::PreviewRoute> PageManager::PreviewRoutes() const {
+        std::vector<PreviewRoute> result;
+        result.reserve(Routes().size());
+        for (const NavigationRoute& route : Routes()) {
+            result.push_back({route.id, route.source, route.target, route.title, route.isDefault});
         }
         return result;
     }
@@ -435,12 +478,15 @@ namespace mobileclock::application::core {
     //
     template <typename TSource, typename TTarget, NavigationTrigger TTrigger,
         mobileclock::presentation::core::NavigationDirection TDirection>
-    PageManager::NavigationRoute PageManager::MakeRoute() {
+    PageManager::NavigationRoute PageManager::MakeRoute(std::string_view id, std::string_view title, bool isDefault) {
         return {
+            id,
             TSource::PageName,
             TTrigger,
             TTarget::PageName,
             TDirection,
+            title,
+            isDefault,
         };
     }
 
@@ -462,16 +508,16 @@ namespace mobileclock::application::core {
 
     std::span<const PageManager::NavigationRoute> PageManager::Routes() {
         static const std::array routes{
-            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::createAlarm, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::editAlarm, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<ui::page::MainPageViewModel, ui::page::SettingsPageViewModel, NavigationTrigger::navigateToSettings, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::createAlarm, mobileclock::presentation::core::NavigationDirection::forward>("main-create-alarm", "Новый будильник"),
+            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::editAlarm, mobileclock::presentation::core::NavigationDirection::forward>("main-edit-alarm", "Изменить будильник", false),
+            MakeRoute<ui::page::MainPageViewModel, ui::page::SettingsPageViewModel, NavigationTrigger::navigateToSettings, mobileclock::presentation::core::NavigationDirection::forward>("main-open-settings", "Открыть настройки"),
+            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>("add-alarm-to-main", "Вернуться на главную"),
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody, mobileclock::presentation::core::NavigationDirection::forward>(),
-            MakeRoute<ui::page::XiaomiThemesPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody, mobileclock::presentation::core::NavigationDirection::backward>(),
-            MakeRoute<ui::page::XiaomiThemesPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody, mobileclock::presentation::core::NavigationDirection::forward>("add-alarm-choose-melody", "Выбрать мелодию"),
+            MakeRoute<ui::page::XiaomiThemesPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::applySelectedMelody, mobileclock::presentation::core::NavigationDirection::backward>("xiaomi-themes-apply-melody", "Применить выбранную мелодию"),
+            MakeRoute<ui::page::XiaomiThemesPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::cancelMelodySelection, mobileclock::presentation::core::NavigationDirection::backward>("xiaomi-themes-cancel-melody", "Отменить выбор мелодии", false),
 #endif
-            MakeRoute<ui::page::SettingsPageViewModel, ui::page::MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>(),
+            MakeRoute<ui::page::SettingsPageViewModel, ui::page::MainPageViewModel, NavigationTrigger::navigateToMain, mobileclock::presentation::core::NavigationDirection::backward>("settings-to-main", "Вернуться на главную"),
         };
         return routes;
     }
@@ -487,7 +533,8 @@ namespace mobileclock::application::core {
             const std::string_view previousPage = this->CurrentPageName();
             LOG_INFO(
                 "MobileClock.PreviewRoute",
-                "Executing transition: {} -> {}",
+                "Executing transition '{}': {} -> {}",
+                edge->id,
                 edge->source,
                 edge->target);
             this->isTransitioning = false;

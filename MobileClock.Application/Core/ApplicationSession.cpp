@@ -55,12 +55,20 @@ namespace mobileclock::application::core {
         return this->pageManager.NavigatePreviewRoute(target, error);
     }
 
+    bool ApplicationSession::NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
+        return this->pageManager.NavigatePreviewTransitions(transitionIds, error);
+    }
+
     bool ApplicationSession::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
         return this->pageManager.NavigatePreviewRoute(path, error);
     }
 
     std::string ApplicationSession::PreviewRouteGraph() const {
         return this->pageManager.PreviewRouteGraph();
+    }
+
+    std::vector<PageManager::PreviewRoute> ApplicationSession::PreviewRoutes() const {
+        return this->pageManager.PreviewRoutes();
     }
 
     std::string_view ApplicationSession::PreviewPageTitle(std::string_view pageName) const {

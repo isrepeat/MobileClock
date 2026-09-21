@@ -15,6 +15,7 @@
 #include <string_view>
 #include <string>
 #include <span>
+#include <vector>
 
 namespace xaml {
     class IRenderBackend;
@@ -45,9 +46,19 @@ namespace mobileclock::application::core {
         void AddAlarmMelody(model::AlarmMelody alarmMelody);
         void SetAlarmMelody(model::AlarmMelody alarmMelody);
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
+        struct PreviewRoute final {
+            std::string_view id;
+            std::string_view source;
+            std::string_view target;
+            std::string_view title;
+            bool isDefault;
+        };
+
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
+        bool NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error);
         bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
         std::string PreviewRouteGraph() const;
+        std::vector<PreviewRoute> PreviewRoutes() const;
         std::string_view PreviewPageTitle(std::string_view pageName) const;
         bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
         bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
@@ -73,15 +84,18 @@ namespace mobileclock::application::core {
 #endif
 
         struct NavigationRoute final {
+            std::string_view id;
             std::string_view source;
             NavigationTrigger trigger;
             std::string_view target;
             mobileclock::presentation::core::NavigationDirection direction;
+            std::string_view title;
+            bool isDefault;
         };
 
         template <typename TSource, typename TTarget, NavigationTrigger TTrigger,
             mobileclock::presentation::core::NavigationDirection TDirection>
-        static NavigationRoute MakeRoute();
+        static NavigationRoute MakeRoute(std::string_view id, std::string_view title, bool isDefault = true);
 
         static std::span<const NavigationRoute> Routes();
         bool Navigate(std::string_view pageName, mobileclock::presentation::core::NavigationDirection direction);
