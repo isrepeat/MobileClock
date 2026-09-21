@@ -25,6 +25,7 @@ set_target_properties(mobileclock_preview_plugin PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
+    WINDOWS_EXPORT_ALL_SYMBOLS OFF
     RUNTIME_OUTPUT_DIRECTORY
         "${CMAKE_SOURCE_DIR}/Build/MobileClock.PreviewPlugin/Build/$<CONFIG>/x64/MobileClock.PreviewPlugin"
 )

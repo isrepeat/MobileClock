@@ -13,7 +13,7 @@ namespace mobileclock::preview {
     }
 
     uint32_t PreviewPluginApi::AbiVersion() {
-        return AndroidAppPreviewerPluginSDK::xaml_previewer_plugin_abi_version;
+        return AndroidAppPreviewerPluginSDK::android_app_previewer_plugin_abi_version;
     }
 
     bool PreviewPluginApi::WritePluginInfo(char* destination, int capacity) {

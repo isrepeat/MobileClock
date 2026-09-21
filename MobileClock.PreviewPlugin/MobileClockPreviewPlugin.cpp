@@ -19,6 +19,7 @@
 #include "Session/PreviewSession.h"
 #include "Bridge/PreviewPluginBridge.h"
 #include "Bridge/TextBuffer.h"
+#include "Api/PreviewPluginLegacyApi.h"
 #include "Api/PreviewPluginApi.h"
 
 #include <unordered_map>
