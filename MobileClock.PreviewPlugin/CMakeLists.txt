@@ -1,6 +1,6 @@
 # Native-адаптер MobileClock для независимого AndroidAppPreviewer.
 # Результат сборки — пакет: DLL, Resources и runtime-библиотеки ANGLE рядом с ней.
-file(GLOB mobileclock_preview_plugin_source_files CONFIGURE_DEPENDS
+file(GLOB_RECURSE mobileclock_preview_plugin_source_files CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
@@ -37,7 +37,6 @@ set(ANDROID_APP_PREVIEWER_ROOT
     CACHE PATH "Path to the AndroidAppPreviewer repository")
 
 target_compile_definitions(mobileclock_preview_plugin PRIVATE
-    MOBILECLOCK_XAML_PREVIEWER=1
     MOBILECLOCK_PREVIEW_SOURCE_MARKUP_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.Application/UI"
     MOBILECLOCK_PREVIEW_SOURCE_ENTRY_MARKUP_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.Application/UI/Page/MainPage.xaml"
     MOBILECLOCK_PREVIEW_SOURCE_CONTROLS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.UI/Control"

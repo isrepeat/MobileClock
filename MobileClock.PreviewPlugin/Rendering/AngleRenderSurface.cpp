@@ -1,24 +1,26 @@
 #define NOMINMAX
-#include <EGL/egl.h>
-#include <GLES3/gl3.h>
-#include <HelpersNew/Filesystem/ReadAllBytes.h>
+#include "AngleRenderSurface.h"
+
 #include <ESRenderer/OpenGlRenderer.h>
+#include <GLES3/gl3.h>
+#include <EGL/egl.h>
+
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/XamlLayout.h>
+#include <HelpersNew/Filesystem/ReadAllBytes.h>
 
 #include "../../MobileClock.Presentation/Core/Registrations.h"
 #include "../../MobileClock.Application/Core/ApplicationSession.h"
-#include "AngleRenderSurface.h"
 
-#include <algorithm>
 #include <filesystem>
-#include <fstream>
+#include <algorithm>
 #include <stdexcept>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace xaml::bridge::_details {
+namespace mobileclock::preview::rendering::_details {
     EGLDisplay SharedDisplay() {
         // EGL display belongs to the bridge, not an individual preview page.
         // The plugin DLL may be unloaded after libEGL/libGLESv2 has started its
@@ -36,7 +38,10 @@ namespace xaml::bridge::_details {
 
 } // namespace _details
 
-namespace xaml::bridge {
+namespace mobileclock::preview::rendering {
+    using xaml::Element;
+    using xaml::RendererRegistry;
+
     class AngleRenderSurface::Implementation {
     public:
         Implementation(
