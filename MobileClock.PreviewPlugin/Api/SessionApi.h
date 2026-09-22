@@ -1,5 +1,6 @@
 #pragma once
 #include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
+#include <XamlRuntime/XamlLayout.h>
 
 namespace mobileclock::preview::api {
     using namespace AndroidAppPreviewerPluginSDK;
@@ -125,5 +126,46 @@ namespace mobileclock::preview::api {
             int destinationStride,
             int destinationCapacity
         );
+
+    private:
+        static bool LoadPage(
+            xp_session& session,
+            const char* page);
+        static bool ApplyScenario(
+            xp_session& session,
+            const char* page,
+            const char* json);
+        static bool ReloadMarkup(
+            xp_session& session,
+            const char* page,
+            const char* markup,
+            const char* sourcePath);
+        static bool Inspect(
+            xp_session& session,
+            float x,
+            float y,
+            xp_session_inspection_result& result);
+        static bool SetInspectionWireframe(
+            xp_session& session,
+            float thickness,
+            int lineStyle,
+            xp_color color,
+            xp_color marginColor,
+            xp_color paddingColor);
+        static bool Update(xp_session& session);
+        static bool Render(
+            xp_session& session,
+            xp_angle_surface& surface,
+            unsigned char* destination,
+            int destinationStride,
+            int destinationCapacity);
+        static void ClearInspectionWireframe(xp_session& session);
+        static void ClearSelectedWireframe(xp_session& session);
+        static void SetInspectionWireframe(
+            xp_session& session,
+            xaml::Element& element);
+        static void SetSelectedWireframe(
+            xp_session& session,
+            xaml::Element& element);
     };
 }

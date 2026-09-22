@@ -16,7 +16,6 @@
 #include "../Rendering/AngleRenderSurface.h"
 #include "../Rendering/RecordingBackend.h"
 #include "../Session/PreviewNavigationController.h"
-#include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
 #include "../Bridge/Diagnostic.h"
 #include "../Bridge/ElementTree.h"

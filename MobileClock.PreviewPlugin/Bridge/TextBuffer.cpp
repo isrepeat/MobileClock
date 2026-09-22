@@ -1,7 +1,7 @@
 #include "TextBuffer.h"
 
-#include <cstring>
 #include <stdexcept>
+#include <cstring>
 
 namespace mobileclock::preview::bridge {
     void TextBuffer::Write(

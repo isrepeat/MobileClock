@@ -16,8 +16,6 @@
 #include "../Rendering/AngleRenderSurface.h"
 #include "../Rendering/RecordingBackend.h"
 #include "../Session/PreviewNavigationController.h"
-#include "../Session/PreviewSessionInspection.h"
-#include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
 #include "../Bridge/Diagnostic.h"
 #include "../Bridge/ElementTree.h"
@@ -43,6 +41,10 @@
 
 namespace mobileclock::preview::api {
     using namespace AndroidAppPreviewerPluginSDK;
+
+    //
+    // API
+    //
     xp_session* SessionApi::xp_create_session(
         int width,
         int height
@@ -69,7 +71,7 @@ namespace mobileclock::preview::api {
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
-            return mobileclock::preview::session::PreviewSessionApi(*session).LoadPage(page) ? 1 : 0;
+            return LoadPage(*session, page) ? 1 : 0;
         } catch (const std::exception& error) {
             mobileclock::preview::bridge::LastError() = error.what();
             return 0;
@@ -253,7 +255,7 @@ namespace mobileclock::preview::api {
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
-            return mobileclock::preview::session::PreviewSessionApi(*session).ApplyScenario(page, json) ? 1 : 0;
+            return ApplyScenario(*session, page, json) ? 1 : 0;
         } catch (const std::exception& error) {
             mobileclock::preview::bridge::LastError() = error.what();
             return 0;
@@ -300,7 +302,7 @@ namespace mobileclock::preview::api {
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
-            return mobileclock::preview::session::PreviewSessionApi(*session).ReloadMarkup(page, markup, sourcePath) ? 1 : 0;
+            return ReloadMarkup(*session, page, markup, sourcePath) ? 1 : 0;
         } catch (const std::exception& error) {
             mobileclock::preview::bridge::LastError() = error.what();
             return 0;
@@ -317,7 +319,7 @@ namespace mobileclock::preview::api {
             if (session == nullptr || width <= 0 || height <= 0) {
                 throw std::invalid_argument("Session and positive dimensions are required");
             }
-            mobileclock::preview::session::PreviewSessionInspection::ClearInspectionWireframe(*session);
+            ClearInspectionWireframe(*session);
             session->value.Resize(width, height);
             return 1;
         } catch (const std::exception& error) {
@@ -438,7 +440,7 @@ namespace mobileclock::preview::api {
         if (session == nullptr || result == nullptr) {
             return 0;
         }
-        return mobileclock::preview::session::PreviewSessionApi(*session).Inspect(x, y, *result) ? 1 : 0;
+        return Inspect(*session, x, y, *result) ? 1 : 0;
     }
 
     int SessionApi::xp_session_set_inspection_wireframe(
@@ -452,8 +454,13 @@ namespace mobileclock::preview::api {
         if (session == nullptr) {
             return 0;
         }
-        return mobileclock::preview::session::PreviewSessionApi(*session).SetInspectionWireframe(
-            thickness, lineStyle, color, marginColor, paddingColor) ? 1 : 0;
+        return SetInspectionWireframe(
+            *session,
+            thickness,
+            lineStyle,
+            color,
+            marginColor,
+            paddingColor) ? 1 : 0;
     }
 
     int SessionApi::xp_session_set_selected_wireframe(
@@ -476,7 +483,7 @@ namespace mobileclock::preview::api {
         };
         if (session->selectedElement != nullptr) {
             if (session->selectedElementLifetime.expired()) {
-                mobileclock::preview::session::PreviewSessionInspection::ClearSelectedWireframe(*session);
+                ClearSelectedWireframe(*session);
             } else {
                 session->selectedElement->SetSelectedWireframe(session->selectedWireframe);
             }
@@ -488,7 +495,7 @@ namespace mobileclock::preview::api {
         if (session == nullptr) {
             return 0;
         }
-        mobileclock::preview::session::PreviewSessionInspection::ClearInspectionWireframe(*session);
+        ClearInspectionWireframe(*session);
         return 1;
     }
 
@@ -496,7 +503,7 @@ namespace mobileclock::preview::api {
         if (session == nullptr) {
             return 0;
         }
-        mobileclock::preview::session::PreviewSessionInspection::ClearSelectedWireframe(*session);
+        ClearSelectedWireframe(*session);
         return 1;
     }
 
@@ -526,8 +533,8 @@ namespace mobileclock::preview::api {
         }
         // Не стираем текущий выбор, пока новая позиция редактора не сопоставлена
         // с элементом preview: перевод фокуса после клика меняет caret.
-        mobileclock::preview::session::PreviewSessionInspection::ClearSelectedWireframe(*session);
-        mobileclock::preview::session::PreviewSessionInspection::SetSelectedWireframe(*session, *element);
+        ClearSelectedWireframe(*session);
+        SetSelectedWireframe(*session, *element);
         const xaml::Rect& bounds = element->Bounds();
         LOG_INFO(
             "AndroidAppPreviewer.Inspection",
@@ -547,10 +554,10 @@ namespace mobileclock::preview::api {
             return 0;
         }
         if (session->inspectionElementLifetime.expired()) {
-            mobileclock::preview::session::PreviewSessionInspection::ClearInspectionWireframe(*session);
+            ClearInspectionWireframe(*session);
             return 0;
         }
-        mobileclock::preview::session::PreviewSessionInspection::SetSelectedWireframe(*session, *session->inspectionElement);
+        SetSelectedWireframe(*session, *session->inspectionElement);
         return 1;
     }
 
@@ -558,7 +565,7 @@ namespace mobileclock::preview::api {
         if (session == nullptr) {
             return 0;
         }
-        return mobileclock::preview::session::PreviewSessionApi(*session).Update() ? 1 : 0;
+        return Update(*session) ? 1 : 0;
     }
 
     int SessionApi::xp_session_render_angle_surface(
@@ -573,11 +580,171 @@ namespace mobileclock::preview::api {
             if (session == nullptr || surface == nullptr) {
                 throw std::invalid_argument("Session and surface are required");
             }
-            return mobileclock::preview::session::PreviewSessionApi(*session).Render(
-                *surface, destination, destinationStride, destinationCapacity) ? 1 : 0;
+            return Render(
+                *session,
+                *surface,
+                destination,
+                destinationStride,
+                destinationCapacity) ? 1 : 0;
         } catch (const std::exception& error) {
             mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
+    }
+
+    //
+    // Internal
+    //
+    bool SessionApi::LoadPage(
+        xp_session& session,
+        const char* page) {
+        if (page == nullptr) {
+            throw std::invalid_argument("Page is required");
+        }
+        ClearInspectionWireframe(session);
+        ClearSelectedWireframe(session);
+        if (!session.value.Session().LoadPage(page)) {
+            throw std::invalid_argument("Unknown MobileClock page");
+        }
+        return true;
+    }
+
+    bool SessionApi::ApplyScenario(
+        xp_session& session,
+        const char* page,
+        const char* json) {
+        if (page == nullptr || json == nullptr) {
+            throw std::invalid_argument("Page and scenario are required");
+        }
+        ClearInspectionWireframe(session);
+        ClearSelectedWireframe(session);
+        if (!session.value.Session().ApplyPreviewScenario(page, json, mobileclock::preview::bridge::LastError())) {
+            if (mobileclock::preview::bridge::LastError().empty()) {
+                mobileclock::preview::bridge::LastError() = "Preview scenario was not applied";
+            }
+            return false;
+        }
+        return true;
+    }
+
+    bool SessionApi::ReloadMarkup(
+        xp_session& session,
+        const char* page,
+        const char* markup,
+        const char* sourcePath) {
+        if (page == nullptr || markup == nullptr || sourcePath == nullptr) {
+            throw std::invalid_argument("Page, markup and source path are required");
+        }
+        ClearInspectionWireframe(session);
+        ClearSelectedWireframe(session);
+        return session.value.Session().ReloadMarkup(page, markup, sourcePath, mobileclock::preview::bridge::LastError());
+    }
+
+    bool SessionApi::Inspect(
+        xp_session& session,
+        float x,
+        float y,
+        xp_session_inspection_result& result) {
+        xaml::Element* element = mobileclock::preview::bridge::ElementTree::HitTestVisual(
+            session.value.Session().Root(), x, y);
+        while (element != nullptr && element->SourceLine() <= 0) {
+            element = element->Parent();
+        }
+        if (element == nullptr) {
+            ClearInspectionWireframe(session);
+            return false;
+        }
+        SetInspectionWireframe(session, *element);
+        const xaml::Rect bounds = element->Bounds();
+        result = { element->SourceLine(), element->SourceColumn() };
+        std::strncpy(result.sourcePath, element->SourcePath().c_str(), sizeof(result.sourcePath) - 1);
+        result.sourcePath[sizeof(result.sourcePath) - 1] = '\0';
+        result.bounds = { bounds.x, bounds.y, bounds.width, bounds.height };
+        return true;
+    }
+
+    bool SessionApi::SetInspectionWireframe(
+        xp_session& session,
+        float thickness,
+        int lineStyle,
+        xp_color color,
+        xp_color marginColor,
+        xp_color paddingColor) {
+        if (thickness <= 0.0f || (lineStyle != 0 && lineStyle != 1)) {
+            return false;
+        }
+        session.inspectionWireframe = {
+            thickness,
+            lineStyle == 0 ? xaml::attr::WireframeLineStyle::solid : xaml::attr::WireframeLineStyle::dashed,
+            {color.red, color.green, color.blue, color.alpha},
+            {marginColor.red, marginColor.green, marginColor.blue, marginColor.alpha},
+            {paddingColor.red, paddingColor.green, paddingColor.blue, paddingColor.alpha},
+        };
+        if (session.inspectionElement != nullptr) {
+            if (session.inspectionElementLifetime.expired()) {
+                ClearInspectionWireframe(session);
+            }
+            else {
+                session.inspectionElement->SetInspectionWireframe(session.inspectionWireframe);
+            }
+        }
+        return true;
+    }
+
+    bool SessionApi::Update(xp_session& session) {
+        session.value.Session().Update();
+        return true;
+    }
+
+    bool SessionApi::Render(
+        xp_session& session,
+        xp_angle_surface& surface,
+        unsigned char* destination,
+        int destinationStride,
+        int destinationCapacity) {
+        if (destination == nullptr || destinationStride < surface.width * 4
+            || destinationCapacity / destinationStride < surface.height) {
+            throw std::invalid_argument("Invalid MobileClock ANGLE render arguments");
+        }
+        surface.value.Render(session.value.Session(), destination, destinationStride);
+        return true;
+    }
+
+    void SessionApi::ClearInspectionWireframe(xp_session& session) {
+        if (session.inspectionElement != nullptr && !session.inspectionElementLifetime.expired()) {
+            session.inspectionElement->ClearInspectionWireframe();
+        }
+        session.inspectionElement = nullptr;
+        session.inspectionElementLifetime.reset();
+    }
+
+    void SessionApi::ClearSelectedWireframe(xp_session& session) {
+        if (session.selectedElement != nullptr && !session.selectedElementLifetime.expired()) {
+            session.selectedElement->ClearSelectedWireframe();
+        }
+        session.selectedElement = nullptr;
+        session.selectedElementLifetime.reset();
+    }
+
+    void SessionApi::SetInspectionWireframe(
+        xp_session& session,
+        xaml::Element& element) {
+        if (session.inspectionElement != &element) {
+            ClearInspectionWireframe(session);
+            session.inspectionElement = &element;
+            session.inspectionElementLifetime = element.LifetimeToken();
+        }
+        element.SetInspectionWireframe(session.inspectionWireframe);
+    }
+
+    void SessionApi::SetSelectedWireframe(
+        xp_session& session,
+        xaml::Element& element) {
+        if (session.selectedElement != &element) {
+            ClearSelectedWireframe(session);
+            session.selectedElement = &element;
+            session.selectedElementLifetime = element.LifetimeToken();
+        }
+        element.SetSelectedWireframe(session.selectedWireframe);
     }
 } // namespace mobileclock::preview::api

@@ -1,9 +1,9 @@
 #pragma once
 #include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
-#include <XamlRuntime/Animation.h>
 #include <XamlRuntime/InteractionController.h>
 #include <XamlRuntime/ScrollController.h>
 #include <XamlRuntime/XamlLayout.h>
+#include <XamlRuntime/Animation.h>
 
 #include "MobileClock.Presentation/Core/PreviewSession.h"
 
