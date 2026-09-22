@@ -2,9 +2,9 @@
 
 #include "../Bridge/TextBuffer.h"
 
+#include <stdexcept>
 #include <cstring>
 #include <format>
-#include <stdexcept>
 #include <string>
 
 namespace mobileclock::preview {

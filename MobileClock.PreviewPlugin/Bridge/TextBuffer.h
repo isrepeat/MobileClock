@@ -3,7 +3,9 @@
 #include <string_view>
 
 namespace mobileclock::preview::bridge {
+    //
     // Записывает строку в буфер C ABI с обязательным нулевым терминатором.
+    //
     class TextBuffer final {
     public:
         static void Write(

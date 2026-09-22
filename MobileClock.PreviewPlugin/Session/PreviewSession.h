@@ -9,8 +9,10 @@
 namespace mobileclock::preview {
     class PreviewNavigationController;
 
+    //
     // Владеет состоянием одного запуска preview и скрывает детали persistent state
     // от C ABI плагина.
+    //
     class PreviewSession final {
     public:
         PreviewSession(int width, int height);

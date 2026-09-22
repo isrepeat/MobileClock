@@ -8,7 +8,9 @@
 #include <vector>
 
 namespace mobileclock::preview::rendering {
+    //
     // Собирает команды XAML-рендера в формат диагностики AndroidAppPreviewer.
+    //
     class RecordingBackend final : public xaml::IRenderBackend {
     public:
         //

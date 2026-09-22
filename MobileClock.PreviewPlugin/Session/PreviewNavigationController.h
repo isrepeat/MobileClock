@@ -8,7 +8,9 @@ namespace mobileclock::application::core {
 }
 
 namespace mobileclock::preview {
+    //
     // Адаптирует модель маршрутов приложения к JSON-протоколу AndroidAppPreviewer.
+    //
     class PreviewNavigationController final {
     public:
         explicit PreviewNavigationController(mobileclock::application::core::ApplicationSession& session);

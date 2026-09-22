@@ -2,7 +2,9 @@
 #include "../Bridge/PreviewPluginBridge.h"
 
 namespace mobileclock::preview {
+    //
     // Объектный фасад операций одного preview-сеанса поверх C ABI handle.
+    //
     class PreviewSessionApi final {
     public:
         explicit PreviewSessionApi(AndroidAppPreviewerPluginSDK::xp_session& session);

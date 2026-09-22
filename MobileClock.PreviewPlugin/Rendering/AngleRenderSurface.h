@@ -11,7 +11,9 @@ namespace mobileclock::application::core {
 }
 
 namespace mobileclock::preview::rendering {
+    //
     // Изолирует EGL pbuffer и OpenGL ES ресурсы от C ABI native bridge.
+    //
     class AngleRenderSurface {
     public:
         AngleRenderSurface(

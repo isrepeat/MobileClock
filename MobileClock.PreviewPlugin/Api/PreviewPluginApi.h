@@ -4,7 +4,9 @@
 #include <cstdint>
 
 namespace mobileclock::preview {
+    //
     // Фасад сведений о плагине и жизненного цикла C ABI session handle.
+    //
     class PreviewPluginApi final {
     public:
         static const char* LastError();

@@ -1,6 +1,12 @@
 #include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
 
-#include "PreviewPluginRuntime.h"
+#include "Api/XamlCompletionApi.h"
+#include "Api/InteractionApi.h"
+#include "Api/RenderingApi.h"
+#include "Api/MetadataApi.h"
+#include "Api/SessionApi.h"
+#include "Api/ElementApi.h"
+#include "Api/LoggingApi.h"
 
 namespace _details {
     using namespace AndroidAppPreviewerPluginSDK;
