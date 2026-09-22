@@ -20,26 +20,21 @@ endfunction()
 function(fn_mobileclock_install_xaml_runtime)
     set(mobileclock_xaml_runtime_package_name XamlRuntime)
     set(mobileclock_xaml_runtime_packages_root "${CMAKE_SOURCE_DIR}/Build/MobileClock/NuGetPackages")
+    # Без -Version NuGet устанавливает последнюю доступную версию пакета.
+    # Выполняем install при каждой конфигурации: уже скачанная старая версия
+    # не должна блокировать получение нового пакета из локального feed-а.
+    find_program(mobileclock_nuget_executable NAMES nuget.exe REQUIRED)
+    execute_process(
+        COMMAND "${mobileclock_nuget_executable}" install "${mobileclock_xaml_runtime_package_name}"
+            -Source "${MOBILECLOCK_NUGET_SOURCE}"
+            -OutputDirectory "${mobileclock_xaml_runtime_packages_root}"
+            -NonInteractive
+        COMMAND_ERROR_IS_FATAL ANY
+    )
     fn_mobileclock_find_latest_xaml_runtime_package(
         "${mobileclock_xaml_runtime_packages_root}"
         "${mobileclock_xaml_runtime_package_name}"
         mobileclock_xaml_runtime_config_directory)
-
-    if (NOT mobileclock_xaml_runtime_config_directory)
-        # Без -Version NuGet устанавливает последнюю доступную версию пакета.
-        find_program(mobileclock_nuget_executable NAMES nuget.exe REQUIRED)
-        execute_process(
-            COMMAND "${mobileclock_nuget_executable}" install "${mobileclock_xaml_runtime_package_name}"
-                -Source "${MOBILECLOCK_NUGET_SOURCE}"
-                -OutputDirectory "${mobileclock_xaml_runtime_packages_root}"
-                -NonInteractive
-            COMMAND_ERROR_IS_FATAL ANY
-        )
-        fn_mobileclock_find_latest_xaml_runtime_package(
-            "${mobileclock_xaml_runtime_packages_root}"
-            "${mobileclock_xaml_runtime_package_name}"
-            mobileclock_xaml_runtime_config_directory)
-    endif()
 
     if (NOT mobileclock_xaml_runtime_config_directory)
         message(FATAL_ERROR "NuGet installation did not provide ${mobileclock_xaml_runtime_package_name}Config.cmake.")
