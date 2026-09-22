@@ -5,7 +5,6 @@
 #include <GLES3/gl3.h>
 #include <EGL/egl.h>
 
-#include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 #include <XamlRuntime/XamlLayout.h>
 #include <HelpersNew/Filesystem/ReadAllBytes.h>
@@ -15,7 +14,6 @@
 
 #include <filesystem>
 #include <algorithm>
-#include <chrono>
 #include <stdexcept>
 #include <fstream>
 #include <memory>
@@ -66,19 +64,6 @@ namespace mobileclock::preview::rendering {
             int destinationStride);
 
     private:
-#if defined(_DEBUG)
-        struct FrameTiming final {
-            std::chrono::steady_clock::duration makeCurrent;
-            std::chrono::steady_clock::duration render;
-            std::chrono::steady_clock::duration finish;
-            std::chrono::steady_clock::duration readback;
-            std::chrono::steady_clock::duration copy;
-            std::chrono::steady_clock::duration releaseCurrent;
-        };
-
-        void LogFrameTiming(const FrameTiming& timing);
-#endif
-
         int width;
         int height;
         EGLDisplay display = EGL_NO_DISPLAY;
@@ -86,11 +71,6 @@ namespace mobileclock::preview::rendering {
         EGLContext context = EGL_NO_CONTEXT;
         RendererRegistry renderers;
         std::unique_ptr<es_renderer::OpenGlRenderer> renderer;
-#if defined(_DEBUG)
-        std::chrono::steady_clock::time_point frameTimingWindowStarted = std::chrono::steady_clock::now();
-        size_t timedFrameCount = 0;
-        FrameTiming totalFrameTiming{};
-#endif
     };
 
     AngleRenderSurface::Implementation::Implementation(
@@ -255,32 +235,17 @@ namespace mobileclock::preview::rendering {
         if (destination == nullptr || destinationStride < this->width * 4) {
             throw std::invalid_argument("Invalid ANGLE render buffer arguments");
         }
-#if defined(_DEBUG)
-        const auto frameStarted = std::chrono::steady_clock::now();
-#endif
         if (eglMakeCurrent(this->display, this->surface, this->surface, this->context) == EGL_FALSE) {
             throw std::runtime_error("ANGLE could not activate the offscreen context");
         }
-#if defined(_DEBUG)
-        const auto makeCurrentCompleted = std::chrono::steady_clock::now();
-#endif
         this->renderer->BeginFrame();
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         session.Render(*this->renderer);
-#if defined(_DEBUG)
-        const auto renderCompleted = std::chrono::steady_clock::now();
-#endif
         glFinish();
-#if defined(_DEBUG)
-        const auto finishCompleted = std::chrono::steady_clock::now();
-#endif
 
         std::vector<unsigned char> pixels(static_cast<size_t>(this->width) * static_cast<size_t>(this->height) * 4);
         glPixelStorei(GL_PACK_ALIGNMENT, 4);
         glReadPixels(0, 0, this->width, this->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-#if defined(_DEBUG)
-        const auto readbackCompleted = std::chrono::steady_clock::now();
-#endif
         for (int y = 0; y < this->height; ++y) {
             const unsigned char* source = pixels.data() + static_cast<size_t>(this->height - y - 1) * this->width * 4;
             unsigned char* row = destination + static_cast<size_t>(y) * destinationStride;
@@ -291,59 +256,10 @@ namespace mobileclock::preview::rendering {
                 row[x * 4 + 3] = source[x * 4 + 3];
             }
         }
-#if defined(_DEBUG)
-        const auto copyCompleted = std::chrono::steady_clock::now();
-#endif
         if (eglMakeCurrent(this->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE) {
             throw std::runtime_error("ANGLE could not release the offscreen context");
         }
-#if defined(_DEBUG)
-        this->LogFrameTiming({
-            makeCurrentCompleted - frameStarted,
-            renderCompleted - makeCurrentCompleted,
-            finishCompleted - renderCompleted,
-            readbackCompleted - finishCompleted,
-            copyCompleted - readbackCompleted,
-            std::chrono::steady_clock::now() - copyCompleted,
-        });
-#endif
     }
-
-#if defined(_DEBUG)
-    void AngleRenderSurface::Implementation::LogFrameTiming(const FrameTiming& timing) {
-        const auto now = std::chrono::steady_clock::now();
-        this->timedFrameCount++;
-        this->totalFrameTiming.makeCurrent += timing.makeCurrent;
-        this->totalFrameTiming.render += timing.render;
-        this->totalFrameTiming.finish += timing.finish;
-        this->totalFrameTiming.readback += timing.readback;
-        this->totalFrameTiming.copy += timing.copy;
-        this->totalFrameTiming.releaseCurrent += timing.releaseCurrent;
-
-        const auto elapsed = now - this->frameTimingWindowStarted;
-        if (elapsed < std::chrono::seconds(1)) {
-            return;
-        }
-
-        const auto milliseconds = [count = this->timedFrameCount](std::chrono::steady_clock::duration duration) {
-            return std::chrono::duration<double, std::milli>(duration).count() / static_cast<double>(count);
-        };
-        LOG_INFO(
-            "MobileClock.PreviewPlugin.Rendering",
-            "ANGLE frame timing: fps={:.1f}; makeCurrent={:.2f} ms; render={:.2f} ms; finish={:.2f} ms; readback={:.2f} ms; copy={:.2f} ms; releaseCurrent={:.2f} ms",
-            static_cast<double>(this->timedFrameCount) / std::chrono::duration<double>(elapsed).count(),
-            milliseconds(this->totalFrameTiming.makeCurrent),
-            milliseconds(this->totalFrameTiming.render),
-            milliseconds(this->totalFrameTiming.finish),
-            milliseconds(this->totalFrameTiming.readback),
-            milliseconds(this->totalFrameTiming.copy),
-            milliseconds(this->totalFrameTiming.releaseCurrent));
-
-        this->frameTimingWindowStarted = now;
-        this->timedFrameCount = 0;
-        this->totalFrameTiming = {};
-    }
-#endif
 
     AngleRenderSurface::AngleRenderSurface(
         int width,
