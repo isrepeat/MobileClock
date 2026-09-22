@@ -1,9 +1,9 @@
 #pragma once
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 
 #include <cstdint>
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::api {
     //
     // Фасад сведений о плагине и жизненного цикла C ABI session handle.
     //

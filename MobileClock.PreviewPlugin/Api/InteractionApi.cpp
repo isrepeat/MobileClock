@@ -18,7 +18,9 @@
 #include "../Session/PreviewNavigationController.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
+#include "../Bridge/ElementTree.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -38,7 +40,8 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     int InteractionApi::xp_add_storyboard_animation(
         xp_element* element,
         int trigger,
@@ -48,7 +51,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int count
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || trigger < 0 || trigger > 6 || count < 0
                 || (count > 0 && (keys == nullptr || values == nullptr))) {
                 throw std::invalid_argument("invalid storyboard animation");
@@ -72,7 +75,7 @@ namespace AndroidAppPreviewerPluginSDK {
             reinterpret_cast<xaml::Element*>(element)->AddStoryboard(std::move(storyboard));
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -82,7 +85,7 @@ namespace AndroidAppPreviewerPluginSDK {
         xp_animation_controller* animations
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr) {
                 throw std::invalid_argument("root is required");
             }
@@ -92,7 +95,7 @@ namespace AndroidAppPreviewerPluginSDK {
             animations->value.Attach(*reinterpret_cast<xaml::Element*>(root));
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -106,7 +109,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int visible
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || animations == nullptr || from == nullptr || to == nullptr) {
                 throw std::invalid_argument("root, animations, from and to are required");
             }
@@ -118,7 +121,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 visible != 0);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -133,7 +136,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int easing
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || trigger < 0 || trigger > 6 || property < 0 || property > 5
                 || durationMilliseconds < 0 || easing < 0 || easing > 1) {
                 throw std::invalid_argument("invalid storyboard track");
@@ -152,7 +155,7 @@ namespace AndroidAppPreviewerPluginSDK {
             reinterpret_cast<xaml::Element*>(element)->AddStoryboard(std::move(storyboard));
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -169,7 +172,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int easing
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (scope == nullptr || groupName == nullptr || stateName == nullptr || targetName == nullptr
                 || *groupName == '\0' || *stateName == '\0' || *targetName == '\0'
                 || property < 0 || property > 5 || durationMilliseconds < 0 || easing < 0 || easing > 1) {
@@ -195,7 +198,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 std::chrono::milliseconds(durationMilliseconds), static_cast<xaml::Easing>(easing)}});
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -207,14 +210,14 @@ namespace AndroidAppPreviewerPluginSDK {
         int useTransitions
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (scope == nullptr || groupName == nullptr || stateName == nullptr) {
                 throw std::invalid_argument("scope, groupName and stateName are required");
             }
             return xaml::VisualStateManager::GoToState(*reinterpret_cast<xaml::Element*>(scope),
                 groupName, stateName, useTransitions != 0) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -226,11 +229,11 @@ namespace AndroidAppPreviewerPluginSDK {
         float y
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || animations == nullptr || !std::isfinite(x) || !std::isfinite(y)) {
                 throw std::invalid_argument("root, animations and finite coordinates are required");
             }
-            xaml::Element* const scrollViewer = xaml::bridge::_details::FindScrollViewer(
+            xaml::Element* const scrollViewer = mobileclock::preview::bridge::ElementTree::FindScrollViewer(
                 *reinterpret_cast<xaml::Element*>(root), x, y);
             if (scrollViewer == nullptr) {
                 return 0;
@@ -238,7 +241,7 @@ namespace AndroidAppPreviewerPluginSDK {
             animations->scrollController.Begin(*scrollViewer);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -248,13 +251,13 @@ namespace AndroidAppPreviewerPluginSDK {
         float verticalDelta
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (animations == nullptr || !std::isfinite(verticalDelta)) {
                 throw std::invalid_argument("animations and finite vertical delta are required");
             }
             return animations->scrollController.Drag(verticalDelta) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -270,14 +273,14 @@ namespace AndroidAppPreviewerPluginSDK {
         float value
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || !std::isfinite(value)) {
                 throw std::invalid_argument("element and finite value are required");
             }
             reinterpret_cast<xaml::Element*>(element)->SetRenderOffsetX(value);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -289,7 +292,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int durationMilliseconds
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || animations == nullptr || !std::isfinite(value)
                 || durationMilliseconds < 0) {
                 throw std::invalid_argument("element, animations, value and duration are required");
@@ -303,7 +306,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 std::chrono::milliseconds(durationMilliseconds));
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -313,7 +316,7 @@ namespace AndroidAppPreviewerPluginSDK {
         xp_animation_controller* animations
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || animations == nullptr) {
                 throw std::invalid_argument("element and animations are required");
             }
@@ -326,7 +329,7 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -336,7 +339,7 @@ namespace AndroidAppPreviewerPluginSDK {
         xp_animation_controller* animations
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || animations == nullptr) {
                 throw std::invalid_argument("element and animations are required");
             }
@@ -344,7 +347,7 @@ namespace AndroidAppPreviewerPluginSDK {
             animations->value.Animations().Start(target, xaml::AnimationTrigger::pointerDown);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -354,7 +357,7 @@ namespace AndroidAppPreviewerPluginSDK {
         xp_animation_controller* animations
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || animations == nullptr) {
                 throw std::invalid_argument("element and animations are required");
             }
@@ -365,17 +368,17 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return InteractionApi::xp_handle_tap(element, animations);
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
 
     xp_animation_controller* InteractionApi::xp_create_animation_controller(void) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             return new xp_animation_controller();
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -459,29 +462,29 @@ namespace AndroidAppPreviewerPluginSDK {
         float playbackRate
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (animations == nullptr || !std::isfinite(playbackRate)) {
                 throw std::invalid_argument("animations and finite playbackRate are required");
             }
             animations->value.SetPlaybackRate(playbackRate);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
 
     int InteractionApi::xp_update_animations(xp_animation_controller* animations) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (animations == nullptr) {
                 throw std::invalid_argument("animations are required");
             }
             const bool wasScrolling = animations->scrollController.Update();
             return animations->value.Update() || wasScrolling ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return -1;
         }
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

@@ -10,6 +10,7 @@
 
 namespace _details {
     using namespace AndroidAppPreviewerPluginSDK;
+    using namespace mobileclock::preview::api;
 
     const xp_metadata_api metadataApi{
         android_app_previewer_plugin_api_version,

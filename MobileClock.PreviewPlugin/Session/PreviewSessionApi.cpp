@@ -2,10 +2,14 @@
 
 #include <XamlRuntime/XamlLayout.h>
 
+#include "../Bridge/Diagnostic.h"
+#include "../Bridge/ElementTree.h"
+#include "PreviewSessionInspection.h"
+
 #include <stdexcept>
 #include <cstring>
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::session {
     PreviewSessionApi::PreviewSessionApi(AndroidAppPreviewerPluginSDK::xp_session& session)
         : session(session) {
     }
@@ -14,8 +18,8 @@ namespace mobileclock::preview {
         if (page == nullptr) {
             throw std::invalid_argument("Page is required");
         }
-        _details::ClearInspectionWireframe(this->session);
-        _details::ClearSelectedWireframe(this->session);
+        PreviewSessionInspection::ClearInspectionWireframe(this->session);
+        PreviewSessionInspection::ClearSelectedWireframe(this->session);
         if (!this->session.value.Session().LoadPage(page)) {
             throw std::invalid_argument("Unknown MobileClock page");
         }
@@ -26,11 +30,11 @@ namespace mobileclock::preview {
         if (page == nullptr || json == nullptr) {
             throw std::invalid_argument("Page and scenario are required");
         }
-        _details::ClearInspectionWireframe(this->session);
-        _details::ClearSelectedWireframe(this->session);
-        if (!this->session.value.Session().ApplyPreviewScenario(page, json, xaml::bridge::lastError)) {
-            if (xaml::bridge::lastError.empty()) {
-                xaml::bridge::lastError = "Preview scenario was not applied";
+        PreviewSessionInspection::ClearInspectionWireframe(this->session);
+        PreviewSessionInspection::ClearSelectedWireframe(this->session);
+        if (!this->session.value.Session().ApplyPreviewScenario(page, json, mobileclock::preview::bridge::LastError())) {
+            if (mobileclock::preview::bridge::LastError().empty()) {
+                mobileclock::preview::bridge::LastError() = "Preview scenario was not applied";
             }
             return false;
         }
@@ -41,25 +45,25 @@ namespace mobileclock::preview {
         if (page == nullptr || markup == nullptr || sourcePath == nullptr) {
             throw std::invalid_argument("Page, markup and source path are required");
         }
-        _details::ClearInspectionWireframe(this->session);
-        _details::ClearSelectedWireframe(this->session);
-        return this->session.value.Session().ReloadMarkup(page, markup, sourcePath, xaml::bridge::lastError);
+        PreviewSessionInspection::ClearInspectionWireframe(this->session);
+        PreviewSessionInspection::ClearSelectedWireframe(this->session);
+        return this->session.value.Session().ReloadMarkup(page, markup, sourcePath, mobileclock::preview::bridge::LastError());
     }
 
     bool PreviewSessionApi::Inspect(
         float x,
         float y,
         AndroidAppPreviewerPluginSDK::xp_session_inspection_result& result) {
-        xaml::Element* element = xaml::bridge::_details::HitTestVisual(
+        xaml::Element* element = mobileclock::preview::bridge::ElementTree::HitTestVisual(
             this->session.value.Session().Root(), x, y);
         while (element != nullptr && element->SourceLine() <= 0) {
             element = element->Parent();
         }
         if (element == nullptr) {
-            _details::ClearInspectionWireframe(this->session);
+            PreviewSessionInspection::ClearInspectionWireframe(this->session);
             return false;
         }
-        _details::SetInspectionWireframe(this->session, *element);
+        PreviewSessionInspection::SetInspectionWireframe(this->session, *element);
         const xaml::Rect bounds = element->Bounds();
         result = {element->SourceLine(), element->SourceColumn()};
         std::strncpy(result.sourcePath, element->SourcePath().c_str(), sizeof(result.sourcePath) - 1);
@@ -86,7 +90,7 @@ namespace mobileclock::preview {
         };
         if (this->session.inspectionElement != nullptr) {
             if (this->session.inspectionElementLifetime.expired()) {
-                _details::ClearInspectionWireframe(this->session);
+                PreviewSessionInspection::ClearInspectionWireframe(this->session);
             } else {
                 this->session.inspectionElement->SetInspectionWireframe(this->session.inspectionWireframe);
             }

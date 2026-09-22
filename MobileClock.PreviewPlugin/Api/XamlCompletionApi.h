@@ -1,7 +1,8 @@
 #pragma once
 #include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     class XamlCompletionApi final {
     public:
         static int xp_supported_attribute_count(const char* elementType);

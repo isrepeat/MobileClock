@@ -1,7 +1,8 @@
 #pragma once
 #include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     class ElementApi final {
     public:
         static xp_element* xp_create_element(const char* type);

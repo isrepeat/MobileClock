@@ -1,7 +1,8 @@
 #pragma once
 #include <AndroidAppPreviewer.PluginSDK/AndroidAppPreviewerPlugin.h>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     class InteractionApi final {
     public:
         static int xp_add_storyboard_animation(

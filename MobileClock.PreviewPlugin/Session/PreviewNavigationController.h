@@ -7,7 +7,7 @@ namespace mobileclock::application::core {
     class ApplicationSession;
 }
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::session {
     //
     // Адаптирует модель маршрутов приложения к JSON-протоколу AndroidAppPreviewer.
     //

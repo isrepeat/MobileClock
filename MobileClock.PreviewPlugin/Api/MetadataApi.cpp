@@ -20,7 +20,8 @@
 #include "../Session/PreviewNavigationController.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -40,13 +41,14 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     const char* MetadataApi::xp_last_error(void) {
-        return mobileclock::preview::PreviewPluginApi::LastError();
+        return mobileclock::preview::api::PreviewPluginApi::LastError();
     }
 
     uint32_t MetadataApi::xp_get_abi_version(void) {
-        return mobileclock::preview::PreviewPluginApi::AbiVersion();
+        return mobileclock::preview::api::PreviewPluginApi::AbiVersion();
     }
 
     int MetadataApi::xp_get_plugin_info(
@@ -54,10 +56,10 @@ namespace AndroidAppPreviewerPluginSDK {
         int capacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
-            return mobileclock::preview::PreviewPluginApi::WritePluginInfo(pluginInfoJson, capacity) ? 1 : 0;
+            mobileclock::preview::bridge::LastError().clear();
+            return mobileclock::preview::api::PreviewPluginApi::WritePluginInfo(pluginInfoJson, capacity) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -67,7 +69,7 @@ namespace AndroidAppPreviewerPluginSDK {
         char* pageId,
         int capacity
     ) {
-        return AndroidAppPreviewerPluginSDK::SessionApi::xp_session_current_page(static_cast<xp_session*>(session), pageId, capacity);
+        return mobileclock::preview::api::SessionApi::xp_session_current_page(static_cast<xp_session*>(session), pageId, capacity);
     }
 
     int MetadataApi::xp_get_navigation_graph(
@@ -76,7 +78,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int capacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || graphJson == nullptr || capacity <= 0) {
                 throw std::invalid_argument("Session, graph buffer and positive capacity are required");
             }
@@ -88,7 +90,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 "Navigation graph buffer is too small");
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -98,11 +100,11 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* navigationRequestJson
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || navigationRequestJson == nullptr) {
                 throw std::invalid_argument("Session and navigation request are required");
             }
-            const std::vector<std::string> ids = mobileclock::preview::PreviewSession::ParseNavigationTransitionIds(navigationRequestJson);
+            const std::vector<std::string> ids = mobileclock::preview::session::PreviewSession::ParseNavigationTransitionIds(navigationRequestJson);
             std::vector<std::string_view> transitionIds;
             transitionIds.reserve(ids.size());
             for (const std::string& id : ids) {
@@ -110,13 +112,13 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             if (!static_cast<xp_session*>(session)->value.Navigation().Navigate(
                 transitionIds,
-                xaml::bridge::lastError)) {
+                mobileclock::preview::bridge::LastError())) {
                 return 0;
             }
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

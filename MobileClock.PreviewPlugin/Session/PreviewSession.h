@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::session {
     class PreviewNavigationController;
 
     //

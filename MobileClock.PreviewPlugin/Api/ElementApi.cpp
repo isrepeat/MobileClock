@@ -18,7 +18,9 @@
 #include "../Session/PreviewNavigationController.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
+#include "../Bridge/ElementTree.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -38,13 +40,14 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     xp_element* ElementApi::xp_create_element(const char* type) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             return reinterpret_cast<xp_element*>(new xaml::Element(xaml::ParseElementType(type)));
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -55,13 +58,13 @@ namespace AndroidAppPreviewerPluginSDK {
 
     int ElementApi::xp_items_remove_item(xp_element* target) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (target == nullptr) {
                 throw std::invalid_argument("target is required");
             }
-            return xaml::bridge::_details::RemoveItem(*reinterpret_cast<xaml::Element*>(target)) ? 1 : 0;
+            return mobileclock::preview::bridge::ElementTree::RemoveItem(*reinterpret_cast<xaml::Element*>(target)) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return -1;
         }
     }
@@ -71,7 +74,7 @@ namespace AndroidAppPreviewerPluginSDK {
         xp_element* child
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (parent == nullptr || child == nullptr) {
                 throw std::invalid_argument("parent and child are required");
             }
@@ -82,7 +85,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 std::unique_ptr<xaml::Element>(reinterpret_cast<xaml::Element*>(child)));
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -93,14 +96,14 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* value
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr) {
                 throw std::invalid_argument("element is required");
             }
             xaml::SetAttribute(*reinterpret_cast<xaml::Element*>(element), name, value);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -110,14 +113,14 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* id
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || id == nullptr || *id == '\0') {
                 throw std::invalid_argument("root and id are required");
             }
-            return reinterpret_cast<xp_element*>(xaml::bridge::_details::FindElement(
+            return reinterpret_cast<xp_element*>(mobileclock::preview::bridge::ElementTree::FindElement(
                 *reinterpret_cast<xaml::Element*>(root), id));
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -127,13 +130,13 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* id
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || id == nullptr || *id == '\0') {
                 throw std::invalid_argument("root and id are required");
             }
-            return xaml::bridge::_details::CountElements(*reinterpret_cast<xaml::Element*>(root), id);
+            return mobileclock::preview::bridge::ElementTree::CountElements(*reinterpret_cast<xaml::Element*>(root), id);
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return -1;
         }
     }
@@ -144,14 +147,14 @@ namespace AndroidAppPreviewerPluginSDK {
         int index
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || id == nullptr || *id == '\0' || index < 0) {
                 throw std::invalid_argument("root, id and non-negative index are required");
             }
-            return reinterpret_cast<xp_element*>(xaml::bridge::_details::FindElementAt(
+            return reinterpret_cast<xp_element*>(mobileclock::preview::bridge::ElementTree::FindElementAt(
                 *reinterpret_cast<xaml::Element*>(root), id, index));
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -162,14 +165,14 @@ namespace AndroidAppPreviewerPluginSDK {
         float height
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr) {
                 throw std::invalid_argument("root is required");
             }
             xaml::layout(*reinterpret_cast<xaml::Element*>(root), {width, height});
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -180,14 +183,14 @@ namespace AndroidAppPreviewerPluginSDK {
         float y
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr) {
                 throw std::invalid_argument("root is required");
             }
             return reinterpret_cast<xp_element*>(xaml::HitTest(
                 *reinterpret_cast<xaml::Element*>(root), x, y));
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -201,14 +204,14 @@ namespace AndroidAppPreviewerPluginSDK {
         float y
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr) {
                 throw std::invalid_argument("root is required");
             }
-            return reinterpret_cast<xp_element*>(xaml::bridge::_details::HitTestVisual(
+            return reinterpret_cast<xp_element*>(mobileclock::preview::bridge::ElementTree::HitTestVisual(
                 *reinterpret_cast<xaml::Element*>(root), x, y));
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -219,12 +222,12 @@ namespace AndroidAppPreviewerPluginSDK {
         float y
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr) {
                 throw std::invalid_argument("root is required");
             }
             auto& nativeRoot = *reinterpret_cast<xaml::Element*>(root);
-            xaml::Element* const visual = xaml::bridge::_details::HitTestVisual(nativeRoot, x, y);
+            xaml::Element* const visual = mobileclock::preview::bridge::ElementTree::HitTestVisual(nativeRoot, x, y);
             if (visual == nullptr) {
                 return 0;
             }
@@ -239,7 +242,7 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -251,7 +254,7 @@ namespace AndroidAppPreviewerPluginSDK {
         xp_rect* bounds
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (element == nullptr || bounds == nullptr) {
                 throw std::invalid_argument("element and bounds are required");
             }
@@ -259,7 +262,7 @@ namespace AndroidAppPreviewerPluginSDK {
             *bounds = {elementBounds.x, elementBounds.y, elementBounds.width, elementBounds.height};
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -271,12 +274,12 @@ namespace AndroidAppPreviewerPluginSDK {
         float* verticalOffset
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || scrollViewerId == nullptr || *scrollViewerId == '\0'
                 || horizontalOffset == nullptr || verticalOffset == nullptr) {
                 throw std::invalid_argument("root, scroll viewer id and offsets are required");
             }
-            xaml::Element* const scrollViewer = xaml::bridge::_details::FindElement(
+            xaml::Element* const scrollViewer = mobileclock::preview::bridge::ElementTree::FindElement(
                 *reinterpret_cast<xaml::Element*>(root), scrollViewerId);
             if (scrollViewer == nullptr || scrollViewer->Type() != xaml::ElementType::scrollViewer) {
                 return 0;
@@ -285,7 +288,7 @@ namespace AndroidAppPreviewerPluginSDK {
             *verticalOffset = scrollViewer->VerticalOffset();
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -297,12 +300,12 @@ namespace AndroidAppPreviewerPluginSDK {
         float verticalOffset
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || scrollViewerId == nullptr || *scrollViewerId == '\0'
                 || !std::isfinite(horizontalOffset) || !std::isfinite(verticalOffset)) {
                 throw std::invalid_argument("root, scroll viewer id and finite offsets are required");
             }
-            xaml::Element* const scrollViewer = xaml::bridge::_details::FindElement(
+            xaml::Element* const scrollViewer = mobileclock::preview::bridge::ElementTree::FindElement(
                 *reinterpret_cast<xaml::Element*>(root), scrollViewerId);
             if (scrollViewer == nullptr || scrollViewer->Type() != xaml::ElementType::scrollViewer) {
                 return 0;
@@ -311,7 +314,7 @@ namespace AndroidAppPreviewerPluginSDK {
             scrollViewer->SetVerticalOffset(verticalOffset);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -324,11 +327,11 @@ namespace AndroidAppPreviewerPluginSDK {
         float verticalDelta
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || !std::isfinite(horizontalDelta) || !std::isfinite(verticalDelta)) {
                 throw std::invalid_argument("root and finite deltas are required");
             }
-            xaml::Element* element = xaml::bridge::_details::FindScrollViewer(
+            xaml::Element* element = mobileclock::preview::bridge::ElementTree::FindScrollViewer(
                 *reinterpret_cast<xaml::Element*>(root), x, y);
             if (element == nullptr) {
                 return 0;
@@ -350,7 +353,7 @@ namespace AndroidAppPreviewerPluginSDK {
             element->SetVerticalOffset(verticalOffset);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -361,4 +364,4 @@ namespace AndroidAppPreviewerPluginSDK {
         }
         return reinterpret_cast<const xaml::Element*>(element)->Id().c_str();
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

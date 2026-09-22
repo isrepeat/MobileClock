@@ -18,7 +18,7 @@
 #include "../Session/PreviewNavigationController.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -38,7 +38,8 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     void LoggingApi::xp_configure_logging(const char* filePath) {
         utility_helpers::logging::Configure({
             filePath == nullptr ? std::filesystem::path{} : std::filesystem::path(filePath),
@@ -52,4 +53,4 @@ namespace AndroidAppPreviewerPluginSDK {
             LOG_INFO("AndroidAppPreviewer.Interaction", "{}", message);
         }
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

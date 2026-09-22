@@ -6,7 +6,7 @@
 #include <format>
 #include <vector>
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::session {
     PreviewNavigationController::PreviewNavigationController(application::core::ApplicationSession& session)
         : session(session) {
     }

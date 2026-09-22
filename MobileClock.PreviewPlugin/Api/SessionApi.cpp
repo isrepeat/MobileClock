@@ -16,9 +16,12 @@
 #include "../Rendering/AngleRenderSurface.h"
 #include "../Rendering/RecordingBackend.h"
 #include "../Session/PreviewNavigationController.h"
+#include "../Session/PreviewSessionInspection.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
+#include "../Bridge/ElementTree.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -38,22 +41,23 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     xp_session* SessionApi::xp_create_session(
         int width,
         int height
     ) {
         try {
-            xaml::bridge::lastError.clear();
-            return mobileclock::preview::PreviewPluginApi::CreateSession(width, height);
+            mobileclock::preview::bridge::LastError().clear();
+            return mobileclock::preview::api::PreviewPluginApi::CreateSession(width, height);
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
 
     void SessionApi::xp_destroy_session(xp_session* session) {
-        mobileclock::preview::PreviewPluginApi::DestroySession(session);
+        mobileclock::preview::api::PreviewPluginApi::DestroySession(session);
     }
 
     int SessionApi::xp_session_load_page(
@@ -61,13 +65,13 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* page
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
-            return mobileclock::preview::PreviewSessionApi(*session).LoadPage(page) ? 1 : 0;
+            return mobileclock::preview::session::PreviewSessionApi(*session).LoadPage(page) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -78,7 +82,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int capacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || page == nullptr || capacity <= 0) {
                 throw std::invalid_argument("Session, page buffer and positive capacity are required");
             }
@@ -90,7 +94,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 "Page buffer is too small");
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -107,7 +111,7 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* target
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || target == nullptr) {
                 throw std::invalid_argument("Session and target page are required");
             }
@@ -116,12 +120,12 @@ namespace AndroidAppPreviewerPluginSDK {
                 "Native route request: current='{}', target='{}'",
                 session->value.Session().CurrentPageName(),
                 target);
-            if (!session->value.Session().NavigatePreviewRoute(target, xaml::bridge::lastError)) {
-                LOG_WARNING("AndroidAppPreviewer.Route", "Native route rejected: {}", xaml::bridge::lastError);
+            if (!session->value.Session().NavigatePreviewRoute(target, mobileclock::preview::bridge::LastError())) {
+                LOG_WARNING("AndroidAppPreviewer.Route", "Native route rejected: {}", mobileclock::preview::bridge::LastError());
                 return 0;
             }
             if (session->value.Session().CurrentPageName() != target) {
-                xaml::bridge::lastError = std::format("Preview route did not reach {}", target);
+                mobileclock::preview::bridge::LastError() = std::format("Preview route did not reach {}", target);
                 LOG_ERROR(
                     "AndroidAppPreviewer.Route",
                     "Native route failed after pending actions: target='{}', actual='{}'",
@@ -132,8 +136,8 @@ namespace AndroidAppPreviewerPluginSDK {
             LOG_INFO("AndroidAppPreviewer.Route", "Native route completed: active='{}'", session->value.Session().CurrentPageName());
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
-            LOG_ERROR("AndroidAppPreviewer.Route", "Native route threw: {}", xaml::bridge::lastError);
+            mobileclock::preview::bridge::LastError() = error.what();
+            LOG_ERROR("AndroidAppPreviewer.Route", "Native route threw: {}", mobileclock::preview::bridge::LastError());
             return 0;
         }
     }
@@ -143,7 +147,7 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* path
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || path == nullptr) {
                 throw std::invalid_argument("Session and route path are required");
             }
@@ -167,12 +171,12 @@ namespace AndroidAppPreviewerPluginSDK {
                 }
                 start = separator + 1;
             }
-            if (!session->value.Session().NavigatePreviewRoute(pages, xaml::bridge::lastError)) {
-                LOG_WARNING("AndroidAppPreviewer.Route", "Native explicit route rejected: {}", xaml::bridge::lastError);
+            if (!session->value.Session().NavigatePreviewRoute(pages, mobileclock::preview::bridge::LastError())) {
+                LOG_WARNING("AndroidAppPreviewer.Route", "Native explicit route rejected: {}", mobileclock::preview::bridge::LastError());
                 return 0;
             }
             if (session->value.Session().CurrentPageName() != pages.back()) {
-                xaml::bridge::lastError = std::format("Preview route did not reach {}", pages.back());
+                mobileclock::preview::bridge::LastError() = std::format("Preview route did not reach {}", pages.back());
                 LOG_ERROR(
                     "AndroidAppPreviewer.Route",
                     "Native explicit route failed after pending actions: target='{}', actual='{}'",
@@ -186,8 +190,8 @@ namespace AndroidAppPreviewerPluginSDK {
                 session->value.Session().CurrentPageName());
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
-            LOG_ERROR("AndroidAppPreviewer.Route", "Native explicit route threw: {}", xaml::bridge::lastError);
+            mobileclock::preview::bridge::LastError() = error.what();
+            LOG_ERROR("AndroidAppPreviewer.Route", "Native explicit route threw: {}", mobileclock::preview::bridge::LastError());
             return 0;
         }
     }
@@ -198,7 +202,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int capacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || graph == nullptr || capacity <= 0) {
                 throw std::invalid_argument("Session, graph buffer and positive capacity are required");
             }
@@ -210,7 +214,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 "Preview route graph buffer is too small");
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -222,7 +226,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int capacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || page == nullptr || title == nullptr || capacity <= 0) {
                 throw std::invalid_argument("Session, page, title buffer and positive capacity are required");
             }
@@ -234,7 +238,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 "Preview page title buffer is too small");
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -245,30 +249,30 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* json
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
-            return mobileclock::preview::PreviewSessionApi(*session).ApplyScenario(page, json) ? 1 : 0;
+            return mobileclock::preview::session::PreviewSessionApi(*session).ApplyScenario(page, json) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
 
     int SessionApi::xp_session_export_preview_state(xp_session* session) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
             if (!session->value.ExportState()) {
-                xaml::bridge::lastError = "Cannot persist preview state";
+                mobileclock::preview::bridge::LastError() = "Cannot persist preview state";
                 return 0;
             }
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -280,7 +284,7 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return session->value.CanSaveState() ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -292,13 +296,13 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* sourcePath
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
-            return mobileclock::preview::PreviewSessionApi(*session).ReloadMarkup(page, markup, sourcePath) ? 1 : 0;
+            return mobileclock::preview::session::PreviewSessionApi(*session).ReloadMarkup(page, markup, sourcePath) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -309,15 +313,15 @@ namespace AndroidAppPreviewerPluginSDK {
         int height
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || width <= 0 || height <= 0) {
                 throw std::invalid_argument("Session and positive dimensions are required");
             }
-            mobileclock::preview::_details::ClearInspectionWireframe(*session);
+            mobileclock::preview::session::PreviewSessionInspection::ClearInspectionWireframe(*session);
             session->value.Resize(width, height);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -327,14 +331,14 @@ namespace AndroidAppPreviewerPluginSDK {
         float value
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr) {
                 throw std::invalid_argument("Session is required");
             }
             session->value.Session().SetAnimationPlaybackRate(value);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -344,14 +348,14 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* value
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || value == nullptr) {
                 throw std::invalid_argument("Session and status are required");
             }
             session->value.Controller().Dispatch(mobileclock::application::core::AppSessionSignal::setStatus, {value, {}});
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -434,7 +438,7 @@ namespace AndroidAppPreviewerPluginSDK {
         if (session == nullptr || result == nullptr) {
             return 0;
         }
-        return mobileclock::preview::PreviewSessionApi(*session).Inspect(x, y, *result) ? 1 : 0;
+        return mobileclock::preview::session::PreviewSessionApi(*session).Inspect(x, y, *result) ? 1 : 0;
     }
 
     int SessionApi::xp_session_set_inspection_wireframe(
@@ -448,7 +452,7 @@ namespace AndroidAppPreviewerPluginSDK {
         if (session == nullptr) {
             return 0;
         }
-        return mobileclock::preview::PreviewSessionApi(*session).SetInspectionWireframe(
+        return mobileclock::preview::session::PreviewSessionApi(*session).SetInspectionWireframe(
             thickness, lineStyle, color, marginColor, paddingColor) ? 1 : 0;
     }
 
@@ -472,7 +476,7 @@ namespace AndroidAppPreviewerPluginSDK {
         };
         if (session->selectedElement != nullptr) {
             if (session->selectedElementLifetime.expired()) {
-                mobileclock::preview::_details::ClearSelectedWireframe(*session);
+                mobileclock::preview::session::PreviewSessionInspection::ClearSelectedWireframe(*session);
             } else {
                 session->selectedElement->SetSelectedWireframe(session->selectedWireframe);
             }
@@ -484,7 +488,7 @@ namespace AndroidAppPreviewerPluginSDK {
         if (session == nullptr) {
             return 0;
         }
-        mobileclock::preview::_details::ClearInspectionWireframe(*session);
+        mobileclock::preview::session::PreviewSessionInspection::ClearInspectionWireframe(*session);
         return 1;
     }
 
@@ -492,7 +496,7 @@ namespace AndroidAppPreviewerPluginSDK {
         if (session == nullptr) {
             return 0;
         }
-        mobileclock::preview::_details::ClearSelectedWireframe(*session);
+        mobileclock::preview::session::PreviewSessionInspection::ClearSelectedWireframe(*session);
         return 1;
     }
 
@@ -511,7 +515,7 @@ namespace AndroidAppPreviewerPluginSDK {
             line,
             column,
             sourcePath);
-        xaml::Element* const element = xaml::bridge::_details::FindElementAtSource(
+        xaml::Element* const element = mobileclock::preview::bridge::ElementTree::FindElementAtSource(
             session->value.Session().Root(),
             sourcePath,
             line,
@@ -522,8 +526,8 @@ namespace AndroidAppPreviewerPluginSDK {
         }
         // Не стираем текущий выбор, пока новая позиция редактора не сопоставлена
         // с элементом preview: перевод фокуса после клика меняет caret.
-        mobileclock::preview::_details::ClearSelectedWireframe(*session);
-        mobileclock::preview::_details::SetSelectedWireframe(*session, *element);
+        mobileclock::preview::session::PreviewSessionInspection::ClearSelectedWireframe(*session);
+        mobileclock::preview::session::PreviewSessionInspection::SetSelectedWireframe(*session, *element);
         const xaml::Rect& bounds = element->Bounds();
         LOG_INFO(
             "AndroidAppPreviewer.Inspection",
@@ -543,10 +547,10 @@ namespace AndroidAppPreviewerPluginSDK {
             return 0;
         }
         if (session->inspectionElementLifetime.expired()) {
-            mobileclock::preview::_details::ClearInspectionWireframe(*session);
+            mobileclock::preview::session::PreviewSessionInspection::ClearInspectionWireframe(*session);
             return 0;
         }
-        mobileclock::preview::_details::SetSelectedWireframe(*session, *session->inspectionElement);
+        mobileclock::preview::session::PreviewSessionInspection::SetSelectedWireframe(*session, *session->inspectionElement);
         return 1;
     }
 
@@ -554,7 +558,7 @@ namespace AndroidAppPreviewerPluginSDK {
         if (session == nullptr) {
             return 0;
         }
-        return mobileclock::preview::PreviewSessionApi(*session).Update() ? 1 : 0;
+        return mobileclock::preview::session::PreviewSessionApi(*session).Update() ? 1 : 0;
     }
 
     int SessionApi::xp_session_render_angle_surface(
@@ -565,15 +569,15 @@ namespace AndroidAppPreviewerPluginSDK {
         int destinationCapacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (session == nullptr || surface == nullptr) {
                 throw std::invalid_argument("Session and surface are required");
             }
-            return mobileclock::preview::PreviewSessionApi(*session).Render(
+            return mobileclock::preview::session::PreviewSessionApi(*session).Render(
                 *surface, destination, destinationStride, destinationCapacity) ? 1 : 0;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

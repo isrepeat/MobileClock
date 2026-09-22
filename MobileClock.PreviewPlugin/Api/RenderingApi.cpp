@@ -18,7 +18,8 @@
 #include "../Session/PreviewNavigationController.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -38,7 +39,8 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     xp_angle_surface* RenderingApi::xp_create_angle_surface(
         int width,
         int height,
@@ -46,13 +48,13 @@ namespace AndroidAppPreviewerPluginSDK {
         const char* resourceRoot
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (fontPath == nullptr || resourceRoot == nullptr) {
                 throw std::invalid_argument("fontPath and resourceRoot are required");
             }
             return new xp_angle_surface(width, height, fontPath, resourceRoot);
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return nullptr;
         }
     }
@@ -69,7 +71,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int destinationCapacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (surface == nullptr || root == nullptr || destination == nullptr
                 || destinationStride < surface->width * 4
                 || destinationCapacity / destinationStride < surface->height) {
@@ -81,7 +83,7 @@ namespace AndroidAppPreviewerPluginSDK {
                 destinationStride);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -92,7 +94,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int capacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr) {
                 throw std::invalid_argument("root is required");
             }
@@ -105,7 +107,7 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return static_cast<int>(commands.size());
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return -1;
         }
     }
@@ -121,7 +123,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int destinationCapacity
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (root == nullptr || fontPath == nullptr || destination == nullptr
                 || width <= 0 || height <= 0 || destinationStride < width * 4
                 || destinationCapacity / destinationStride < height) {
@@ -135,8 +137,8 @@ namespace AndroidAppPreviewerPluginSDK {
                 destinationStride);
             return 1;
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

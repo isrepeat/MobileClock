@@ -18,7 +18,7 @@
 #include "../Session/PreviewNavigationController.h"
 #include "../Session/PreviewSessionApi.h"
 #include "../Session/PreviewSession.h"
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/Diagnostic.h"
 #include "../Bridge/TextBuffer.h"
 #include "PreviewPluginApi.h"
 
@@ -38,10 +38,11 @@
 #include <vector>
 #include <cmath>
 
-namespace AndroidAppPreviewerPluginSDK {
+namespace mobileclock::preview::api {
+    using namespace AndroidAppPreviewerPluginSDK;
     int XamlCompletionApi::xp_supported_attribute_count(const char* elementType) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (elementType == nullptr) {
                 throw std::invalid_argument("element type is required");
             }
@@ -50,7 +51,7 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return static_cast<int>(xaml::SupportedAttributeNames(xaml::ParseElementType(elementType)).size());
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return 0;
         }
     }
@@ -60,7 +61,7 @@ namespace AndroidAppPreviewerPluginSDK {
         int index
     ) {
         try {
-            xaml::bridge::lastError.clear();
+            mobileclock::preview::bridge::LastError().clear();
             if (elementType == nullptr || index < 0) {
                 throw std::invalid_argument("element type and non-negative index are required");
             }
@@ -77,7 +78,7 @@ namespace AndroidAppPreviewerPluginSDK {
             }
             return names[static_cast<size_t>(index)].data();
         } catch (const std::exception& error) {
-            xaml::bridge::lastError = error.what();
+            mobileclock::preview::bridge::LastError() = error.what();
             return "";
         }
     }
@@ -94,4 +95,4 @@ namespace AndroidAppPreviewerPluginSDK {
         };
         return index >= 0 && index < static_cast<int>(std::size(names)) ? names[index].data() : "";
     }
-} // namespace AndroidAppPreviewerPluginSDK
+} // namespace mobileclock::preview::api

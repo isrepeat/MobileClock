@@ -1,7 +1,7 @@
 #pragma once
-#include "../Bridge/PreviewPluginBridge.h"
+#include "../Bridge/PreviewPluginSdkTypes.h"
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::session {
     //
     // Объектный фасад операций одного preview-сеанса поверх C ABI handle.
     //

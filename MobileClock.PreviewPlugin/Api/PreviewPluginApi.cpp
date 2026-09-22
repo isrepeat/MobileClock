@@ -1,5 +1,6 @@
 #include "PreviewPluginApi.h"
 
+#include "../Bridge/Diagnostic.h"
 #include "../Bridge/TextBuffer.h"
 
 #include <stdexcept>
@@ -7,9 +8,9 @@
 #include <format>
 #include <string>
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::api {
     const char* PreviewPluginApi::LastError() {
-        return xaml::bridge::lastError.c_str();
+        return mobileclock::preview::bridge::LastError().c_str();
     }
 
     uint32_t PreviewPluginApi::AbiVersion() {

@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace mobileclock::preview::_details {
+namespace mobileclock::preview::session::_details {
     namespace model = mobileclock::application::model;
 
     std::filesystem::path PreviewerStatePath() {
@@ -80,7 +80,7 @@ namespace mobileclock::preview::_details {
     };
 }
 
-namespace mobileclock::preview {
+namespace mobileclock::preview::session {
     class PreviewSession::State final {
     public:
         explicit State(int width, int height)
