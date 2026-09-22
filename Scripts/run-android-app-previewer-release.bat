@@ -1,5 +1,6 @@
 @echo off
 setlocal
+chcp 65001 >nul
 
 set "parentProcessId=%~1"
 if "%parentProcessId%"=="" set "parentProcessId=0"
