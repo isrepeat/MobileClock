@@ -11,12 +11,16 @@ namespace mobileclock::application::core {
         createAlarm,
         editAlarm,
         navigateToSettings,
-        navigateToMain,
+        navigateBack,
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
         chooseAlarmMelody,
-        applySelectedMelody,
-        cancelMelodySelection,
 #endif
+    };
+
+    enum class NavigationTargetKind {
+        page,
+        // Цель определяется предпоследней записью фактической истории PageManager.
+        previousPage,
     };
 
     struct NavigationRequest final {

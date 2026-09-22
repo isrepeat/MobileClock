@@ -20,7 +20,6 @@ namespace xaml {
 }
 
 namespace mobileclock::application::ui::page {
-
     class XiaomiThemesPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "XiaomiThemesPage";
@@ -49,6 +48,7 @@ namespace mobileclock::application::ui::page {
         void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 
     private:
+        void ApplySelectedMelody();
         void ConnectControls();
         void RebuildMelodies();
         void Refresh();

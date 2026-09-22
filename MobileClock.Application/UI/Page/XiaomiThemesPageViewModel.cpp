@@ -72,12 +72,8 @@ namespace mobileclock::application::ui::page {
     //
     // INavigationPage
     //
-    std::unique_ptr<base::NavigationStateBase> XiaomiThemesPageViewModel::OnNavigatingFrom(const core::NavigationRequest& request) {
-        if (request.trigger != core::NavigationTrigger::applySelectedMelody || !this->selectedMelody) {
-            return {};
-        }
-        const view_model::AlarmMelodyViewModel& melody = this->melodies[*this->selectedMelody];
-        return std::make_unique<core::AlarmMelodyNavigationState>(melody.Value());
+    std::unique_ptr<base::NavigationStateBase> XiaomiThemesPageViewModel::OnNavigatingFrom(const core::NavigationRequest&) {
+        return {};
     }
 
     bool XiaomiThemesPageViewModel::OnNavigatingTo(const core::NavigationRequest&, std::unique_ptr<base::NavigationStateBase>) {
@@ -136,16 +132,26 @@ namespace mobileclock::application::ui::page {
     void XiaomiThemesPageViewModel::ConnectControls() {
         if (auto* back = this->Find("backNavigation")) {
             back->SetCommand([this]() {
-                this->context.navigator.Trigger(core::NavigationTrigger::cancelMelodySelection);
+                this->context.navigator.Trigger(core::NavigationTrigger::navigateBack);
             });
         }
         if (auto* apply = this->Find("applyButton")) {
             apply->SetCommand([this]() {
-                this->context.navigator.Trigger(core::NavigationTrigger::applySelectedMelody);
+                this->ApplySelectedMelody();
             });
         }
         this->RebuildMelodies();
         this->Refresh();
+    }
+
+    void XiaomiThemesPageViewModel::ApplySelectedMelody() {
+        if (!this->selectedMelody) {
+            return;
+        }
+        // Применение и обычный возврат используют один маршрут истории. Payload нужен только
+        // этому действию: стрелка «Назад» возвращается без изменения черновика будильника.
+        const view_model::AlarmMelodyViewModel& melody = this->melodies[*this->selectedMelody];
+        this->context.navigator.NavigateBack(std::make_unique<core::AlarmMelodyNavigationState>(melody.Value()));
     }
 
     void XiaomiThemesPageViewModel::RebuildMelodies() {

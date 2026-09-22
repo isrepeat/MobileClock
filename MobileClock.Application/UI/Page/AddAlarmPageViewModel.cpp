@@ -174,7 +174,10 @@ namespace mobileclock::application::ui::page {
             return true;
         }
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-        case core::NavigationTrigger::applySelectedMelody: {
+        case core::NavigationTrigger::navigateBack: {
+            if (state == nullptr) {
+                return true;
+            }
             const auto* const melody = dynamic_cast<const core::AlarmMelodyNavigationState*>(state.get());
             if (melody == nullptr) {
                 return false;
@@ -249,7 +252,7 @@ namespace mobileclock::application::ui::page {
     }
 
     void AddAlarmPageViewModel::NavigateToMain() {
-        this->context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
+        this->context.navigator.Trigger(core::NavigationTrigger::navigateBack);
     }
 
     void AddAlarmPageViewModel::Initialize(xaml::Size availableSize) {
@@ -354,7 +357,7 @@ namespace mobileclock::application::ui::page {
                 return;
             }
             this->saved = true;
-            this->context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
+            this->context.navigator.Trigger(core::NavigationTrigger::navigateBack);
         });
         for (int column = 0; column < 2; ++column) {
             connect(std::format("wheel{}", column), []() {});

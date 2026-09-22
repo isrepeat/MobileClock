@@ -23,6 +23,10 @@ namespace xaml {
 }
 
 namespace mobileclock::application::core {
+    //
+    // PageRegistry является единственным владельцем страниц. Менеджер хранит raw pointers
+    // только как наблюдающие ссылки: адреса страниц неизменны до уничтожения PageManager.
+    //
     class PageManager final : public interface::IPageNavigator {
     public:
         PageManager(AppSessionController& appSessionController, model::AlarmRepository& alarmRepository, model::AlarmMelodyRepository& alarmMelodyRepository);
@@ -36,6 +40,7 @@ namespace mobileclock::application::core {
         //
         bool Navigate(std::string_view pageName) override;
         bool Trigger(NavigationTrigger trigger) override;
+        bool NavigateBack(std::unique_ptr<base::NavigationStateBase> result = {}) override;
 
         std::string_view CurrentPageName() const;
         bool IsTransitioning() const;
@@ -52,6 +57,7 @@ namespace mobileclock::application::core {
             std::string_view target;
             std::string_view title;
             bool isDefault;
+            NavigationTargetKind targetKind;
         };
 
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
@@ -88,17 +94,33 @@ namespace mobileclock::application::core {
             std::string_view source;
             NavigationTrigger trigger;
             std::string_view target;
+            NavigationTargetKind targetKind;
             mobileclock::presentation::core::NavigationDirection direction;
             std::string_view title;
             bool isDefault;
         };
 
-        template <typename TSource, typename TTarget, NavigationTrigger TTrigger,
-            mobileclock::presentation::core::NavigationDirection TDirection>
+        template <
+            typename TSource,
+            typename TTarget,
+            NavigationTrigger TTrigger,
+            mobileclock::presentation::core::NavigationDirection TDirection
+        >
         static NavigationRoute MakeRoute(std::string_view id, std::string_view title, bool isDefault = true);
 
+        template <
+            typename TSource,
+            NavigationTrigger TTrigger,
+            mobileclock::presentation::core::NavigationDirection TDirection
+        >
+        static NavigationRoute MakeBackRoute(std::string_view id, std::string_view title, bool isDefault = true);
+
         static std::span<const NavigationRoute> Routes();
-        bool Navigate(std::string_view pageName, mobileclock::presentation::core::NavigationDirection direction);
+        // previousPage не задаётся в декларации маршрута: его цель зависит от фактической
+        // истории переходов, а не от статического графа приложения.
+        std::string_view ResolveTarget(const NavigationRoute& route) const;
+        bool Navigate(const NavigationRoute& route, std::unique_ptr<base::NavigationStateBase> state);
+        bool SwitchPage(interface::IPage& page, mobileclock::presentation::core::NavigationDirection direction);
         static void SetNavigationVisualStates(
             interface::IPage* outgoing,
             interface::IPage& current,
@@ -113,6 +135,9 @@ namespace mobileclock::application::core {
         ApplicationPages pages;
         interface::IPage* currentPage = nullptr;
         interface::IPage* outgoingPage = nullptr;
+        // Невладеющие ссылки на страницы из PageRegistry. Вектор хранит фактический стек
+        // переходов: последний элемент всегда совпадает с currentPage.
+        std::vector<interface::IPage*> navigationHistory;
         mobileclock::presentation::core::NavigationDirection navigationDirection = mobileclock::presentation::core::NavigationDirection::forward;
         bool isTransitioning = false;
         xaml::AnimationController animations;

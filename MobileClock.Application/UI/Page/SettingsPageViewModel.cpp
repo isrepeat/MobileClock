@@ -27,7 +27,7 @@ namespace mobileclock::application::ui::page {
 
     SettingsPageViewModel::SettingsPageViewModel(core::PageContext& context)
         : navigateToMainCommand([&context]() {
-            context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
+            context.navigator.Trigger(core::NavigationTrigger::navigateBack);
         })
         , resetAlarmMelodySelectionCommand([&context]() {
             context.appSessionController.Dispatch(core::AppSessionSignal::resetAlarmMelodySelection, {});

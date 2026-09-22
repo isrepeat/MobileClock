@@ -42,11 +42,17 @@ namespace mobileclock::preview::session {
             if (!first) {
                 json += ',';
             }
+            // Для previousPage target уже разрешён native-слоем по текущей истории, но тип
+            // сохраняем в JSON, чтобы previewer не считал это статическим вторым маршрутом.
+            const std::string_view targetKind = route.targetKind == application::core::NavigationTargetKind::previousPage
+                ? "previousPage"
+                : "page";
             json += std::format(
-                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"page\",\"title\":\"{}\",\"isDefault\":{}}}",
+                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"{}\",\"title\":\"{}\",\"isDefault\":{}}}",
                 route.id,
                 route.source,
                 route.target,
+                targetKind,
                 route.title,
                 route.isDefault ? "true" : "false");
             first = false;
