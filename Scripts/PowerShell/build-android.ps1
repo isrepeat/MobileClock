@@ -17,7 +17,7 @@ $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $androidHostRoot = Join-Path $projectRoot 'MobileClock.AndroidHost'
 $applicationRoot = Join-Path $projectRoot 'MobileClock.Application'
 $uiRoot = Join-Path $projectRoot 'MobileClock.UI'
-$gradleRoot = Join-Path $projectRoot 'Build\Gradle'
+$gradleRoot = Join-Path $projectRoot 'Tools\Gradle'
 $gradleWrapper = Join-Path $gradleRoot 'gradlew.bat'
 $apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
 $updaterApkPath = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\MobileClock.AndroidUpdater-debug.apk'
@@ -69,8 +69,8 @@ if ($NativeOnly) {
 # longer has externalNativeBuild, so it only packages the .so emitted above.
 $gradleTasks = @(':MobileClock.Android:assembleDebug', ':MobileClock.AndroidUpdater:assembleDebug')
 Write-Host "==> Running Gradle tasks: $($gradleTasks -join ', ')"
-# gradlew determines the Android project from the current directory. The .bat
-# launchers and settings live in Build/Gradle, therefore invoke Gradle there.
+# Gradle определяет Android-проект по текущему каталогу. Launcher и settings
+# находятся в Tools/Gradle, поэтому Gradle запускается оттуда.
 Push-Location $gradleRoot
 try {
     Invoke-Checked $gradleWrapper (@('--no-daemon') + $gradleTasks)
