@@ -1,6 +1,6 @@
 #include "ScrollableListBase.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -42,7 +42,7 @@ namespace mobileclock::ui::base {
     void ScrollableListBase::UpdateGestures(xaml::Element&, xaml::AnimationController&) {
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -68,7 +68,7 @@ namespace mobileclock::ui::base {
                 context.beforeCommit();
             }
             this->ReplaceContent(std::move(result.root), std::move(result.bindings));
-            this->OnTemplateReplaced();
+            this->preview_OnTemplateReplaced();
             diagnostics.clear();
             return true;
         } catch (const std::exception& error) {
@@ -77,7 +77,7 @@ namespace mobileclock::ui::base {
         }
     }
 
-    void ScrollableListBase::OnTemplateReplaced() {
+    void ScrollableListBase::preview_OnTemplateReplaced() {
     }
 #endif
 

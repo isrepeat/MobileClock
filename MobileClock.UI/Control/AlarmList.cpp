@@ -1,6 +1,6 @@
 #include "AlarmList.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -30,7 +30,7 @@ namespace mobileclock::ui::control::_details {
 }
 
 namespace mobileclock::ui::control {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -72,7 +72,7 @@ namespace mobileclock::ui::control {
     //
     // API
     //
-    void AlarmList::PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
+    void AlarmList::preview_PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
         std::vector<AlarmList*> oldControls;
         std::vector<AlarmList*> newControls;
         const auto collect = [](auto&& self, xaml::Element& node, std::vector<AlarmList*>& controls) -> void {

@@ -14,8 +14,8 @@ namespace mobileclock::application::core {
 
         AlarmEditNavigationState(std::string alarmId, model::Alarm settings);
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        static std::unique_ptr<base::NavigationStateBase> CreatePreviewDefault();
+#if defined(ANDROID_APP_PREVIEWER)
+        static std::unique_ptr<base::NavigationStateBase> preview_CreatePreviewDefault();
 #endif
 
         std::string Serialize() const override;
@@ -29,16 +29,16 @@ namespace mobileclock::application::core {
         model::Alarm settings;
     };
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    class AlarmMelodyNavigationState final : public NavigationState<AlarmMelodyNavigationState> {
+#if defined(ANDROID_APP_PREVIEWER)
+    class preview_AlarmMelodyNavigationState final : public NavigationState<preview_AlarmMelodyNavigationState> {
     public:
         inline static constexpr std::string_view DataTypeId = "mobileclock.alarm-melody";
         inline static constexpr bool IsRequired = false;
 
-        explicit AlarmMelodyNavigationState(model::AlarmMelody alarmMelody);
+        explicit preview_AlarmMelodyNavigationState(model::AlarmMelody alarmMelody);
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        static std::unique_ptr<base::NavigationStateBase> CreatePreviewDefault();
+#if defined(ANDROID_APP_PREVIEWER)
+        static std::unique_ptr<base::NavigationStateBase> preview_CreatePreviewDefault();
 #endif
 
         std::string Serialize() const override;

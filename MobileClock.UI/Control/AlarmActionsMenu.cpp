@@ -1,6 +1,6 @@
 #include "AlarmActionsMenu.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -118,7 +118,7 @@ namespace mobileclock::ui::control {
     }
 
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -189,8 +189,8 @@ namespace mobileclock::ui::control {
         };
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    void AlarmActionsMenu::PreserveState(const xaml::Element& previous, xaml::Element& replacement) {
+#if defined(ANDROID_APP_PREVIEWER)
+    void AlarmActionsMenu::preview_PreserveState(const xaml::Element& previous, xaml::Element& replacement) {
         if (auto* menu = dynamic_cast<AlarmActionsMenu*>(&replacement)) {
             const auto restore = [menu](auto&& self, const xaml::Element& node) -> bool {
                 const auto* oldMenu = dynamic_cast<const AlarmActionsMenu*>(&node);
@@ -209,7 +209,7 @@ namespace mobileclock::ui::control {
             restore(restore, previous);
         }
         for (const auto& child : replacement.Children()) {
-            PreserveState(previous, *child);
+            preview_PreserveState(previous, *child);
         }
     }
 #endif

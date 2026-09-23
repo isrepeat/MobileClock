@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
@@ -20,13 +20,13 @@ namespace xaml {
 }
 
 namespace mobileclock::application::ui::page {
-    class XiaomiThemesPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
+    class preview_XiaomiThemesPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "XiaomiThemesPage";
-        inline static constexpr std::string_view PreviewGraphTitle = "Xiaomi Themes";
+        inline static constexpr std::string_view preview_GraphTitle = "Xiaomi Themes";
 
-        explicit XiaomiThemesPageViewModel(core::PageContext& context);
-        ~XiaomiThemesPageViewModel() override = default;
+        explicit preview_XiaomiThemesPageViewModel(core::PageContext& context);
+        ~preview_XiaomiThemesPageViewModel() override = default;
 
         //
         // ISerializable
@@ -40,20 +40,20 @@ namespace mobileclock::application::ui::page {
         std::unique_ptr<base::NavigationStateBase> OnNavigatingFrom(const core::NavigationRequest& request) override;
         bool OnNavigatingTo(const core::NavigationRequest& request, std::unique_ptr<base::NavigationStateBase> state) override;
 
-        void Initialize(xaml::Size availableSize);
-        void HandleTap(xaml::Element& element);
-        void Update();
-        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
-        xaml::Element& Root();
-        xaml::runtime::RuntimeBindingContext RuntimeContext();
-        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+        void preview_Initialize(xaml::Size availableSize);
+        void preview_HandleTap(xaml::Element& element);
+        void preview_Update();
+        void preview_Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        xaml::Element& preview_Root();
+        xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 
     private:
-        void ApplySelectedMelody();
-        void ConnectControls();
-        void RebuildMelodies();
-        void Refresh();
-        xaml::Element* Find(std::string_view id) const;
+        void preview_ApplySelectedMelody();
+        void preview_ConnectControls();
+        void preview_RebuildMelodies();
+        void preview_Refresh();
+        xaml::Element* preview_Find(std::string_view id) const;
 
     private:
         core::PageContext& context;

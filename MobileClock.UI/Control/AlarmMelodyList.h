@@ -4,8 +4,8 @@
 #include "!Generated/MobileClock.UI/Xaml/Control/AlarmMelodyList.xaml.h"
 #include "../Base/InteractiveListBase.h"
 
-#include <type_traits>
 #include <string_view>
+#include <type_traits>
 #include <functional>
 #include <memory>
 
@@ -41,7 +41,7 @@ namespace mobileclock::ui::control {
             return control;
         }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
@@ -54,8 +54,8 @@ namespace mobileclock::ui::control {
     private:
         std::string_view ScrollViewerId() const override;
         std::string_view ListViewId() const override;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        void OnTemplateReplaced() override;
+#if defined(ANDROID_APP_PREVIEWER)
+        void preview_OnTemplateReplaced() override;
 #endif
 
         //

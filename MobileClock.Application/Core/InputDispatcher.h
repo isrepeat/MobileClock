@@ -14,8 +14,8 @@ namespace xaml {
 namespace mobileclock::application::core {
     class InputDispatcher final {
     public:
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        struct RuntimePanState {
+#if defined(ANDROID_APP_PREVIEWER)
+        struct preview_RuntimePanState {
             std::string id;
             const void* dataContext = nullptr;
             float downX = 0;
@@ -25,8 +25,8 @@ namespace mobileclock::application::core {
             mobileclock::ui::interface::GestureDirection direction = mobileclock::ui::interface::GestureDirection::none;
             bool active = false;
         };
-        RuntimePanState CaptureRuntimePan() const;
-        void RestoreRuntimePan(xaml::Element& root, const RuntimePanState& state);
+        preview_RuntimePanState preview_CaptureRuntimePan() const;
+        void preview_RestoreRuntimePan(xaml::Element& root, const preview_RuntimePanState& state);
 #endif
         void PointerDown(xaml::Element& root, float x, float y, xaml::AnimationController* animations = nullptr);
         bool PointerMove(float x, float y);

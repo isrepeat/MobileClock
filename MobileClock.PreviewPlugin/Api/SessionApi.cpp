@@ -122,7 +122,7 @@ namespace mobileclock::preview::api {
                 "Native route request: current='{}', target='{}'",
                 session->value.Session().CurrentPageName(),
                 target);
-            if (!session->value.Session().NavigatePreviewRoute(target, mobileclock::preview::bridge::LastError())) {
+            if (!session->value.Session().preview_NavigateRoute(target, mobileclock::preview::bridge::LastError())) {
                 LOG_WARNING("AndroidAppPreviewer.Route", "Native route rejected: {}", mobileclock::preview::bridge::LastError());
                 return 0;
             }
@@ -173,7 +173,7 @@ namespace mobileclock::preview::api {
                 }
                 start = separator + 1;
             }
-            if (!session->value.Session().NavigatePreviewRoute(pages, mobileclock::preview::bridge::LastError())) {
+            if (!session->value.Session().preview_NavigateRoute(pages, mobileclock::preview::bridge::LastError())) {
                 LOG_WARNING("AndroidAppPreviewer.Route", "Native explicit route rejected: {}", mobileclock::preview::bridge::LastError());
                 return 0;
             }
@@ -208,7 +208,7 @@ namespace mobileclock::preview::api {
             if (session == nullptr || graph == nullptr || capacity <= 0) {
                 throw std::invalid_argument("Session, graph buffer and positive capacity are required");
             }
-            const std::string value = session->value.Session().PreviewRouteGraph();
+            const std::string value = session->value.Session().preview_RouteGraph();
             mobileclock::preview::bridge::TextBuffer::Write(
                 value,
                 graph,
@@ -232,7 +232,7 @@ namespace mobileclock::preview::api {
             if (session == nullptr || page == nullptr || title == nullptr || capacity <= 0) {
                 throw std::invalid_argument("Session, page, title buffer and positive capacity are required");
             }
-            const std::string_view value = session->value.Session().PreviewPageTitle(page);
+            const std::string_view value = session->value.Session().preview_PageTitle(page);
             mobileclock::preview::bridge::TextBuffer::Write(
                 value,
                 title,
@@ -618,7 +618,7 @@ namespace mobileclock::preview::api {
         }
         ClearInspectionWireframe(session);
         ClearSelectedWireframe(session);
-        if (!session.value.Session().ApplyPreviewScenario(page, json, mobileclock::preview::bridge::LastError())) {
+        if (!session.value.Session().preview_ApplyScenario(page, json, mobileclock::preview::bridge::LastError())) {
             if (mobileclock::preview::bridge::LastError().empty()) {
                 mobileclock::preview::bridge::LastError() = "Preview scenario was not applied";
             }
@@ -637,7 +637,7 @@ namespace mobileclock::preview::api {
         }
         ClearInspectionWireframe(session);
         ClearSelectedWireframe(session);
-        return session.value.Session().ReloadMarkup(page, markup, sourcePath, mobileclock::preview::bridge::LastError());
+        return session.value.Session().preview_ReloadMarkup(page, markup, sourcePath, mobileclock::preview::bridge::LastError());
     }
 
     bool SessionApi::Inspect(

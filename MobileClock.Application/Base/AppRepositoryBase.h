@@ -12,11 +12,11 @@ namespace mobileclock::application::base {
     public:
         virtual ~AppRepositoryBase() = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        void LoadPreviewScenarioState(model::ApplicationStateDocument document);
-        bool SavePreviewStateToPersistentStorage();
-        virtual bool IsPreviewSessionDocumentEquivalentTo(const model::ApplicationStateDocument& document) const = 0;
-        virtual void ReloadFromStateStore() = 0;
+#if defined(ANDROID_APP_PREVIEWER)
+        void preview_LoadScenarioState(model::ApplicationStateDocument document);
+        bool preview_SaveStateToPersistentStorage();
+        virtual bool preview_IsSessionDocumentEquivalentTo(const model::ApplicationStateDocument& document) const = 0;
+        virtual void preview_ReloadFromStateStore() = 0;
 #endif
 
     protected:

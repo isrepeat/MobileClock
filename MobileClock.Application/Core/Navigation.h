@@ -11,8 +11,8 @@ namespace mobileclock::application::core {
     // создаёт сам native-тип, поэтому previewer не конструирует бизнес-объекты.
     struct NavigationDataContract final {
         std::string_view typeId;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<base::NavigationStateBase> (*createPreviewDefault)();
+#if defined(ANDROID_APP_PREVIEWER)
+        std::unique_ptr<base::NavigationStateBase> (*preview_CreatePreviewDefaultFn)();
 #endif
         bool isRequired;
     };
@@ -25,8 +25,8 @@ namespace mobileclock::application::core {
         static const NavigationDataContract& Contract() {
             static const NavigationDataContract contract{
                 TDerived::DataTypeId,
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-                &TDerived::CreatePreviewDefault,
+#if defined(ANDROID_APP_PREVIEWER)
+                &TDerived::preview_CreatePreviewDefault,
 #endif
                 TDerived::IsRequired,
             };
@@ -46,8 +46,8 @@ namespace mobileclock::application::core {
         editAlarm,
         navigateToSettings,
         navigateBack,
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        chooseAlarmMelody,
+#if defined(ANDROID_APP_PREVIEWER)
+        preview_ChooseAlarmMelody,
 #endif
     };
 

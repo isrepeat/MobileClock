@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include <XamlRuntime/UserControl.h>
@@ -16,7 +16,7 @@
 
 namespace mobileclock::ui::control {
     class AlarmActionsMenu final : public xaml::UserControl, public interface::IGestureTarget
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         , public xaml::runtime::IRuntimeReloadableControl
 #endif
     {
@@ -54,7 +54,7 @@ namespace mobileclock::ui::control {
         bool Owns(const xaml::Element& element) const override;
 
     public:
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
@@ -89,8 +89,8 @@ namespace mobileclock::ui::control {
         bool IsExpanded() const;
         void SetIsExpanded(bool value);
         Unsubscribe Subscribe(PropertyChangedHandler handler);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        static void PreserveState(const xaml::Element& previous, xaml::Element& replacement);
+#if defined(ANDROID_APP_PREVIEWER)
+        static void preview_PreserveState(const xaml::Element& previous, xaml::Element& replacement);
 #endif
 
     private:

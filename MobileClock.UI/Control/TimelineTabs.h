@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include "!Generated/MobileClock.UI/Xaml/Control/TimelineTabs.xaml.h"
@@ -8,7 +8,7 @@
 
 namespace mobileclock::ui::control {
     class TimelineTabs final : public xaml::UserControl
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         , public xaml::runtime::IRuntimeReloadableControl
 #endif
     {
@@ -16,7 +16,7 @@ namespace mobileclock::ui::control {
         TimelineTabs() = default;
         ~TimelineTabs() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
@@ -37,6 +37,5 @@ namespace mobileclock::ui::control {
 
     private:
         void OnInitialized() override;
-
     };
 }

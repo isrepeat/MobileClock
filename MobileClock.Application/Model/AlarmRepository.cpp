@@ -8,15 +8,15 @@ namespace mobileclock::application::model {
     }
 
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // AppRepositoryBase
     //
-    void AlarmRepository::ReloadFromStateStore() {
+    void AlarmRepository::preview_ReloadFromStateStore() {
         this->alarms = this->State().alarms;
     }
 
-    bool AlarmRepository::IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
+    bool AlarmRepository::preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
         const ApplicationStateDocument& current = this->State();
         if (current.alarms.size() != document.alarms.size() || current.alarmMelodies.size() != document.alarmMelodies.size()) {
             return false;
@@ -112,16 +112,16 @@ namespace mobileclock::application::model {
         return true;
     }
 
-    #if defined(MOBILECLOCK_XAML_PREVIEWER)
+    #if defined(ANDROID_APP_PREVIEWER)
     //
     // AppRepositoryBase
     //
-    void AlarmMelodyRepository::ReloadFromStateStore() {
+    void AlarmMelodyRepository::preview_ReloadFromStateStore() {
         this->melodies = this->State().alarmMelodies;
         this->Notify();
     }
 
-    bool AlarmMelodyRepository::IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
+    bool AlarmMelodyRepository::preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
         return this->melodies == document.alarmMelodies;
     }
 #endif
@@ -141,7 +141,7 @@ namespace mobileclock::application::model {
             value.id = this->CreateMelodyId();
         }
         auto item = std::find_if(candidate.begin(), candidate.end(), [&value](const AlarmMelody& melody) { return melody.id == value.id; });
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         // Каталог тем может передать известный URI с другим id. В preview-сеансе
         // сохраняем id записи из хранилища, чтобы не создать дубликат мелодии
         // и не разорвать уже существующие Alarm::melodyId.

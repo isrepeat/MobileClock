@@ -1,6 +1,6 @@
 #include "SettingsPageViewModel.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #endif
 #include <XamlRuntime/RenderEngine.h>
@@ -122,7 +122,7 @@ namespace mobileclock::application::ui::page {
 
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         this->runtimeBindings.reset();
 #endif
         this->page = xaml::generated::SettingsPage::Create(*this, this->bindings);
@@ -131,7 +131,7 @@ namespace mobileclock::application::ui::page {
 
     void SettingsPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         if (this->runtimeBindings) {
             this->runtimeBindings->UpdateSource(element);
         }
@@ -160,8 +160,8 @@ namespace mobileclock::application::ui::page {
         };
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    xaml::runtime::RuntimeBindingContext SettingsPageViewModel::RuntimeContext() {
+#if defined(ANDROID_APP_PREVIEWER)
+    xaml::runtime::RuntimeBindingContext SettingsPageViewModel::preview_RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
         xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
         publisher.Text("Theme", Property::theme, &SettingsPageViewModel::Theme);
@@ -177,7 +177,7 @@ namespace mobileclock::application::ui::page {
         return result;
     }
 
-    void SettingsPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+    void SettingsPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
         this->bindings.Clear();
         this->runtimeBindings.reset();
         this->page = std::move(result.root);

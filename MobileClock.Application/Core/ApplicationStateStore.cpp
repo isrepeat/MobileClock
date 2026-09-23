@@ -22,7 +22,7 @@ namespace mobileclock::application::core {
     bool ApplicationStateStore::TrySaveDocument(model::ApplicationStateDocument candidate) {
         // Обычный документ сначала записывается через handler; при ошибке текущее
         // состояние в памяти не меняется и UI не видит несохранённые данные.
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         // Документ сценария живёт только в памяти preview-сеанса. Изменения UI
         // применяются к нему, но не затрагивают постоянный storage до экспорта.
         if (!this->isUsingPreviewSessionDocument && this->documentSaveHandler && !this->documentSaveHandler(candidate)) {
@@ -35,14 +35,14 @@ namespace mobileclock::application::core {
         return true;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    void ApplicationStateStore::LoadPreviewSessionDocument(model::ApplicationStateDocument candidate) {
+#if defined(ANDROID_APP_PREVIEWER)
+    void ApplicationStateStore::preview_LoadSessionDocument(model::ApplicationStateDocument candidate) {
         // Замена полного документа переводит storage в memory-only режим preview.
         *this->document = std::move(candidate);
         this->isUsingPreviewSessionDocument = true;
     }
 
-    bool ApplicationStateStore::SavePreviewSessionDocumentToPersistentStorage() {
+    bool ApplicationStateStore::preview_SaveSessionDocumentToPersistentStorage() {
         // Повторный экспорт обычного документа не требуется.
         if (!this->isUsingPreviewSessionDocument) {
             return true;

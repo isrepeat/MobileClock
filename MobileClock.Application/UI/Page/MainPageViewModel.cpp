@@ -3,12 +3,12 @@
 #include <Helpers.Logging/Logging.h>
 #include <XamlRuntime/RenderEngine.h>
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #endif
 #include <JsonParser/json_struct/json_struct.h>
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include "MobileClock.UI/Control/AlarmActionsMenu.h"
 #include "MobileClock.UI/Control/TimelineTabs.h"
 #include "MobileClock.UI/Control/AlarmList.h"
@@ -118,11 +118,11 @@ namespace mobileclock::application::ui::page {
             }
             // Документ остаётся в памяти preview-сеанса и не перезаписывает
             // постоянный storage, пока его явно не экспортируют.
-            this->context.alarmRepository.LoadPreviewScenarioState(std::move(document));
+            this->context.alarmRepository.preview_LoadScenarioState(std::move(document));
             // Репозитории кэшируют свои коллекции, поэтому после замены полного
             // документа оба кэша синхронизируются, а MainPage пересобирает UI.
-            this->context.alarmRepository.ReloadFromStateStore();
-            this->context.alarmMelodyRepository.ReloadFromStateStore();
+            this->context.alarmRepository.preview_ReloadFromStateStore();
+            this->context.alarmMelodyRepository.preview_ReloadFromStateStore();
             this->OnNavigatingTo({}, {});
         }
         if (scenario.Status) {
@@ -244,7 +244,7 @@ namespace mobileclock::application::ui::page {
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
         LOG_FUNCTION_SCOPE("MobileClock", "MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
         this->bindings.Clear();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         this->runtimeBindings.reset();
 #endif
         this->page = xaml::generated::MainPage::Create(*this, this->bindings);
@@ -253,7 +253,7 @@ namespace mobileclock::application::ui::page {
 
     void MainPageViewModel::HandleTap(xaml::Element& element) {
         this->bindings.UpdateSource(element);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         if (this->runtimeBindings) {
             this->runtimeBindings->UpdateSource(element);
         }
@@ -313,11 +313,11 @@ namespace mobileclock::application::ui::page {
         };
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // API
     //
-    xaml::runtime::RuntimeBindingContext MainPageViewModel::RuntimeContext() {
+    xaml::runtime::RuntimeBindingContext MainPageViewModel::preview_RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
         xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
         publisher.Text("Status", Property::status, &MainPageViewModel::Status);
@@ -368,9 +368,9 @@ namespace mobileclock::application::ui::page {
         return result;
     }
 
-    void MainPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        mobileclock::ui::control::AlarmActionsMenu::PreserveState(*this->page, *result.root);
-        mobileclock::ui::control::AlarmList::PreserveInstances(*this->page, *result.root, *result.bindings);
+    void MainPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+        mobileclock::ui::control::AlarmActionsMenu::preview_PreserveState(*this->page, *result.root);
+        mobileclock::ui::control::AlarmList::preview_PreserveInstances(*this->page, *result.root, *result.bindings);
         this->bindings.Clear();
         this->runtimeBindings.reset();
         this->page = std::move(result.root);

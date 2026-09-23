@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/ObservableCollection.h>
@@ -26,7 +26,7 @@ namespace mobileclock::application::ui::page {
     class MainPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "MainPage";
-        inline static constexpr std::string_view PreviewGraphTitle = "⌂  Главная";
+        inline static constexpr std::string_view preview_GraphTitle = "⌂  Главная";
 
         enum class Property {
             clockText,
@@ -79,9 +79,9 @@ namespace mobileclock::application::ui::page {
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        xaml::runtime::RuntimeBindingContext RuntimeContext();
-        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+#if defined(ANDROID_APP_PREVIEWER)
+        xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
 #endif
 
     private:
@@ -103,7 +103,7 @@ namespace mobileclock::application::ui::page {
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindings;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         std::unique_ptr<xaml::BindingScope> runtimeBindings;
 #endif
         xaml::Element::Command createAlarmCommand;

@@ -1,7 +1,7 @@
 #include "PageManager.h"
 
 #include <Helpers.Logging/Logging.h>
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #include <XamlRuntime/RuntimeMarkup/RuntimeReloadTransaction.h>
 #include <XamlRuntime/RuntimeMarkup/XamlParser.h>
@@ -37,7 +37,7 @@ namespace mobileclock::application::core {
         }
         // Прямая навигация нужна previewer-у. Если запрошена предыдущая страница, она должна
         // сохранить ту же семантику, что и кнопка «Назад»: убрать текущую страницу из истории.
-        if (this->navigationHistory.size() > 1 && this->navigationHistory[this->navigationHistory.size() - 2] == page) {
+        if (this->navigationHistory.size() > 1 && this->navigationHistory[this->navigationHistory.size() - 2].page == page) {
             if (!this->SwitchPage(*page, mobileclock::presentation::core::NavigationDirection::backward)) {
                 return false;
             }
@@ -55,7 +55,7 @@ namespace mobileclock::application::core {
         if (!this->SwitchPage(*page, direction)) {
             return false;
         }
-        this->navigationHistory.push_back(page);
+        this->navigationHistory.push_back({page, route == Routes().end() ? nullptr : &*route});
         return true;
     }
 
@@ -125,7 +125,7 @@ namespace mobileclock::application::core {
         }
         // Последняя запись — текущая страница, предпоследняя — единственная актуальная цель
         // возврата, даже если в статическом графе к текущей странице ведёт несколько путей.
-        return this->navigationHistory[this->navigationHistory.size() - 2]->Name();
+        return this->navigationHistory[this->navigationHistory.size() - 2].page->Name();
     }
 
     bool PageManager::Navigate(const NavigationRoute& route, std::unique_ptr<base::NavigationStateBase> state) {
@@ -152,7 +152,7 @@ namespace mobileclock::application::core {
         if (route.targetKind == NavigationTargetKind::previousPage) {
             this->navigationHistory.pop_back();
         } else {
-            this->navigationHistory.push_back(target);
+            this->navigationHistory.push_back({target, &route});
         }
         return true;
     }
@@ -220,7 +220,7 @@ namespace mobileclock::application::core {
         // Новая сессия всегда начинает новый стек, иначе возврат мог бы попасть в страницу
         // предыдущей сессии previewer-а.
         this->navigationHistory.clear();
-        this->navigationHistory.push_back(this->currentPage);
+        this->navigationHistory.push_back({this->currentPage, nullptr});
         this->currentPage->Root().SetVisibility(xaml::attr::Visibility::visible);
         this->isTransitioning = false;
     }
@@ -249,8 +249,8 @@ namespace mobileclock::application::core {
         page.SetMelody(std::move(alarmMelody));
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool PageManager::NavigatePreviewRoute(std::string_view target, std::string& error) {
+#if defined(ANDROID_APP_PREVIEWER)
+    bool PageManager::preview_NavigateRoute(std::string_view target, std::string& error) {
         error.clear();
         if (this->currentPage == nullptr) {
             error = "Preview route requires an initialized application session";
@@ -266,12 +266,12 @@ namespace mobileclock::application::core {
             LOG_INFO("MobileClock.PreviewRoute", "Route request ignored because '{}' is already active", target);
             return true;
         }
-        struct RouteNode final {
+        struct preview_RouteNode final {
             std::string_view page;
             size_t previousNode;
             const NavigationRoute* incomingRoute;
         };
-        std::vector<RouteNode> nodes{{this->currentPage->Name(), 0, nullptr}};
+        std::vector<preview_RouteNode> nodes{{this->currentPage->Name(), 0, nullptr}};
         constexpr size_t noRoute = std::numeric_limits<size_t>::max();
         size_t targetNode = noRoute;
         for (size_t index = 0; index < nodes.size() && targetNode == noRoute; ++index) {
@@ -282,7 +282,7 @@ namespace mobileclock::application::core {
                 if (route.targetKind == NavigationTargetKind::previousPage) {
                     continue;
                 }
-                const bool wasVisited = std::any_of(nodes.begin(), nodes.end(), [&route](const RouteNode& node) {
+                const bool wasVisited = std::any_of(nodes.begin(), nodes.end(), [&route](const preview_RouteNode& node) {
                     return node.page == route.target;
                 });
                 if (wasVisited) {
@@ -305,10 +305,10 @@ namespace mobileclock::application::core {
             route.push_back(nodes[index].incomingRoute);
         }
         std::reverse(route.begin(), route.end());
-        return this->ExecutePreviewRoute(route, error);
+        return this->preview_ExecuteRoute(route, error);
     }
 
-    bool PageManager::NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
+    bool PageManager::preview_NavigateTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
         error.clear();
         if (this->currentPage == nullptr || transitionIds.empty()) {
             error = "Preview route requires an initialized application session and transition IDs";
@@ -329,12 +329,12 @@ namespace mobileclock::application::core {
             "Explicit route request: current='{}', transitionIds='{}'",
             this->currentPage->Name(),
             serializedTransitionIds);
-        // PreviewRoutes разворачивает весь текущий стек previousPage в конкретные рёбра.
+        // preview_Routes разворачивает весь текущий стек previousPage в конкретные рёбра.
         // Это позволяет проверить Xiaomi Themes → Новый будильник → Главная до начала переходов.
-        const std::vector<PreviewRoute> previewRoutes = this->PreviewRoutes();
+        const std::vector<preview_Route> previewRoutes = this->preview_Routes();
         std::string_view expectedSource = this->currentPage->Name();
         for (const std::string_view id : transitionIds) {
-            const auto previewEdge = std::find_if(previewRoutes.begin(), previewRoutes.end(), [id](const PreviewRoute& candidate) {
+            const auto previewEdge = std::find_if(previewRoutes.begin(), previewRoutes.end(), [id](const preview_Route& candidate) {
                 return candidate.id == id;
             });
             if (previewEdge == previewRoutes.end()) {
@@ -362,10 +362,10 @@ namespace mobileclock::application::core {
             route.push_back(&*edge);
             expectedSource = previewEdge->target;
         }
-        return this->ExecutePreviewRoute(route, error);
+        return this->preview_ExecuteRoute(route, error);
     }
 
-    bool PageManager::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
+    bool PageManager::preview_NavigateRoute(std::span<const std::string_view> path, std::string& error) {
         error.clear();
         if (this->currentPage == nullptr || path.empty()) {
             error = "Preview route requires an initialized application session and a path";
@@ -378,9 +378,9 @@ namespace mobileclock::application::core {
             return false;
         }
         std::vector<const NavigationRoute*> route;
-        const std::vector<PreviewRoute> previewRoutes = this->PreviewRoutes();
+        const std::vector<preview_Route> previewRoutes = this->preview_Routes();
         for (size_t index = 1; index < path.size(); ++index) {
-            const auto previewEdge = std::find_if(previewRoutes.begin(), previewRoutes.end(), [&](const PreviewRoute& candidate) {
+            const auto previewEdge = std::find_if(previewRoutes.begin(), previewRoutes.end(), [&](const preview_Route& candidate) {
                 return candidate.source == path[index - 1] && candidate.target == path[index];
             });
             if (previewEdge == previewRoutes.end()) {
@@ -393,10 +393,10 @@ namespace mobileclock::application::core {
             });
             route.push_back(&*edge);
         }
-        return this->ExecutePreviewRoute(route, error);
+        return this->preview_ExecuteRoute(route, error);
     }
 
-    std::string PageManager::PreviewRouteGraph() const {
+    std::string PageManager::preview_RouteGraph() const {
         std::string result;
         for (const NavigationRoute& route : Routes()) {
             std::string_view target;
@@ -404,8 +404,8 @@ namespace mobileclock::application::core {
                 // В preview-графе показываем весь стек возврата. При реальном переходе
                 // active page всё равно снимается только один верхний элемент истории.
                 for (size_t index = this->navigationHistory.size(); index > 1; --index) {
-                    if (this->navigationHistory[index - 1]->Name() == route.source) {
-                        target = this->navigationHistory[index - 2]->Name();
+                    if (this->navigationHistory[index - 1].page->Name() == route.source) {
+                        target = this->navigationHistory[index - 2].page->Name();
                         break;
                     }
                 }
@@ -425,17 +425,20 @@ namespace mobileclock::application::core {
         return result;
     }
 
-    std::vector<PageManager::PreviewRoute> PageManager::PreviewRoutes() const {
-        std::vector<PreviewRoute> result;
+    std::vector<PageManager::preview_Route> PageManager::preview_Routes() const {
+        std::vector<preview_Route> result;
         result.reserve(Routes().size());
         for (const NavigationRoute& route : Routes()) {
             std::string_view target;
+            std::string_view backwardOfRouteId;
             if (route.targetKind == NavigationTargetKind::previousPage) {
                 // Статическое ребро «назад» становится конкретным ребром для каждого
                 // узла текущей истории: Xiaomi Themes → Новый будильник → Главная.
                 for (size_t index = this->navigationHistory.size(); index > 1; --index) {
-                    if (this->navigationHistory[index - 1]->Name() == route.source) {
-                        target = this->navigationHistory[index - 2]->Name();
+                    if (this->navigationHistory[index - 1].page->Name() == route.source) {
+                        target = this->navigationHistory[index - 2].page->Name();
+                        const NavigationRoute* const incomingRoute = this->navigationHistory[index - 1].incomingRoute;
+                        backwardOfRouteId = incomingRoute == nullptr ? "" : incomingRoute->id;
                         break;
                     }
                 }
@@ -445,12 +448,13 @@ namespace mobileclock::application::core {
             if (!target.empty()) {
                 std::string previewDefault = "null";
                 if (route.dataContract != nullptr) {
-                    previewDefault = route.dataContract->createPreviewDefault()->Serialize();
+                    previewDefault = route.dataContract->preview_CreatePreviewDefaultFn()->Serialize();
                 }
                 result.push_back({
                     route.id,
                     route.source,
                     target,
+                    backwardOfRouteId,
                     route.title,
                     route.isDefault,
                     route.targetKind,
@@ -462,21 +466,21 @@ namespace mobileclock::application::core {
         return result;
     }
 
-    std::string_view PageManager::PreviewPageTitle(std::string_view pageName) const {
+    std::string_view PageManager::preview_PageTitle(std::string_view pageName) const {
         const interface::IPage* const page = this->pages.Find(pageName);
-        return page == nullptr ? pageName : page->PreviewGraphTitle();
+        return page == nullptr ? pageName : page->preview_GraphTitle();
     }
 
-    bool PageManager::ApplyPreviewScenario(std::string_view pageName, std::string_view json, std::string& error) {
+    bool PageManager::preview_ApplyScenario(std::string_view pageName, std::string_view json, std::string& error) {
         interface::IPage* const page = this->pages.Find(pageName);
         if (page == nullptr) {
             error = "Unknown MobileClock page";
             return false;
         }
-        return page->ApplyScenario(json, error);
+        return page->preview_ApplyScenario(json, error);
     }
 
-    bool PageManager::ReloadMarkup(std::string_view pageName, std::string_view markup,
+    bool PageManager::preview_ReloadMarkup(std::string_view pageName, std::string_view markup,
         std::string_view sourcePath, std::string& diagnostics) {
         diagnostics.clear();
         try {
@@ -516,10 +520,10 @@ namespace mobileclock::application::core {
                 if (control == nullptr) {
                     throw std::invalid_argument("No reloadable native control on this page");
                 }
-                auto context = page->RuntimeContext();
+                auto context = page->preview_RuntimeContext();
                 // Смещение прокрутки восстанавливается после замены шаблона: новый
                 // ScrollViewer не наследует состояние прежнего экземпляра.
-                const auto pan = this->inputDispatcher.CaptureRuntimePan();
+                const auto pan = this->inputDispatcher.preview_CaptureRuntimePan();
                 context.prepareTree = [](xaml::Element& root) {
                     xaml::AnimationRegistry registry;
                     mobileclock::presentation::core::RegisterAnimations(registry);
@@ -531,11 +535,11 @@ namespace mobileclock::application::core {
                 if (!control->ReplaceTemplate(ast, context, diagnostics)) {
                     return false;
                 }
-                this->inputDispatcher.RestoreRuntimePan(page->Root(), pan);
+                this->inputDispatcher.preview_RestoreRuntimePan(page->Root(), pan);
                 xaml::layout(page->Root(), this->availableSize);
                 return true;
             }
-            auto context = page->RuntimeContext();
+            auto context = page->preview_RuntimeContext();
             // Prepare строит и проверяет отдельное дерево. Если парсинг, биндинг или
             // валидация завершаются ошибкой, текущая страница остаётся без изменений.
             auto result = xaml::runtime::RuntimeReloadTransaction{}.Prepare(
@@ -556,11 +560,11 @@ namespace mobileclock::application::core {
             xaml::layout(*result.root, this->availableSize);
             // Отменяем активный жест до передачи владения новым деревом, поскольку
             // InputDispatcher мог хранить указатель на элемент старого дерева.
-            const auto pan = this->inputDispatcher.CaptureRuntimePan();
+            const auto pan = this->inputDispatcher.preview_CaptureRuntimePan();
             this->inputDispatcher.Cancel();
             // Это единственная точка, где полная перезагрузка страницы становится видимой.
-            page->ReplaceRuntimeTree(std::move(result));
-            this->inputDispatcher.RestoreRuntimePan(page->Root(), pan);
+            page->preview_ReplaceRuntimeTree(std::move(result));
+            this->inputDispatcher.preview_RestoreRuntimePan(page->Root(), pan);
             this->isTransitioning = false;
             return true;
         } catch (const std::exception& error) {
@@ -741,20 +745,20 @@ namespace mobileclock::application::core {
                 "add-alarm-back",
                 "Вернуться назад"
             ),
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
             MakeRoute<
                 ui::page::AddAlarmPageViewModel,
-                ui::page::XiaomiThemesPageViewModel,
+                ui::page::preview_XiaomiThemesPageViewModel,
                 NoNavigationData,
-                NavigationTrigger::chooseAlarmMelody,
+                NavigationTrigger::preview_ChooseAlarmMelody,
                 mobileclock::presentation::core::NavigationDirection::forward
             >(
                 "add-alarm-choose-melody",
                 "Выбрать мелодию"
             ),
             MakeBackRoute<
-                ui::page::XiaomiThemesPageViewModel,
-                AlarmMelodyNavigationState,
+                ui::page::preview_XiaomiThemesPageViewModel,
+                preview_AlarmMelodyNavigationState,
                 NavigationTrigger::navigateBack,
                 mobileclock::presentation::core::NavigationDirection::backward
             >(
@@ -775,8 +779,8 @@ namespace mobileclock::application::core {
         return routes;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool PageManager::ExecutePreviewRoute(std::span<const NavigationRoute*> route, std::string& error) {
+#if defined(ANDROID_APP_PREVIEWER)
+    bool PageManager::preview_ExecuteRoute(std::span<const NavigationRoute*> route, std::string& error) {
         for (const NavigationRoute* edge : route) {
             if (edge == nullptr) {
                 error = "Preview route contains an invalid transition";
@@ -801,7 +805,7 @@ namespace mobileclock::application::core {
             // конструировать бизнес-данные и не создаёт специальных dummy-объектов.
             std::unique_ptr<base::NavigationStateBase> state = edge->dataContract == nullptr || !edge->dataContract->isRequired
                 ? nullptr
-                : edge->dataContract->createPreviewDefault();
+                : edge->dataContract->preview_CreatePreviewDefaultFn();
             const bool navigated = this->Trigger(edge->trigger, std::move(state));
             if (!navigated) {
                 error = std::format("Preview transition {} -> {} was rejected", edge->source, expectedTarget);

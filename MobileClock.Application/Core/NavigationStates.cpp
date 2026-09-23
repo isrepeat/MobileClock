@@ -37,8 +37,8 @@ namespace mobileclock::application::core {
         , settings(std::move(settings)) {
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    std::unique_ptr<base::NavigationStateBase> AlarmEditNavigationState::CreatePreviewDefault() {
+#if defined(ANDROID_APP_PREVIEWER)
+    std::unique_ptr<base::NavigationStateBase> AlarmEditNavigationState::preview_CreatePreviewDefault() {
         model::Alarm alarm;
         alarm.id = "preview-alarm";
         return std::make_unique<AlarmEditNavigationState>(alarm.id, alarm);
@@ -81,14 +81,14 @@ namespace mobileclock::application::core {
         return this->settings;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    AlarmMelodyNavigationState::AlarmMelodyNavigationState(model::AlarmMelody alarmMelody)
+#if defined(ANDROID_APP_PREVIEWER)
+    preview_AlarmMelodyNavigationState::preview_AlarmMelodyNavigationState(model::AlarmMelody alarmMelody)
         : alarmMelody(std::move(alarmMelody)) {
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    std::unique_ptr<base::NavigationStateBase> AlarmMelodyNavigationState::CreatePreviewDefault() {
-        return std::make_unique<AlarmMelodyNavigationState>(model::AlarmMelody{
+#if defined(ANDROID_APP_PREVIEWER)
+    std::unique_ptr<base::NavigationStateBase> preview_AlarmMelodyNavigationState::preview_CreatePreviewDefault() {
+        return std::make_unique<preview_AlarmMelodyNavigationState>(model::AlarmMelody{
             "preview-melody",
             "Preview melody",
             "preview://navigation/default-melody",
@@ -96,7 +96,7 @@ namespace mobileclock::application::core {
     }
 #endif
 
-    std::string AlarmMelodyNavigationState::Serialize() const {
+    std::string preview_AlarmMelodyNavigationState::Serialize() const {
         _details::AlarmMelodyNavigationStateDocument document;
         document.Id = this->alarmMelody.id;
         document.Name = this->alarmMelody.name;
@@ -104,7 +104,7 @@ namespace mobileclock::application::core {
         return JS::serializeStruct(document);
     }
 
-    bool AlarmMelodyNavigationState::Deserialize(std::string_view json, std::string& error) {
+    bool preview_AlarmMelodyNavigationState::Deserialize(std::string_view json, std::string& error) {
         _details::AlarmMelodyNavigationStateDocument document;
         JS::ParseContext context(json.data(), json.size());
         if (context.parseTo(document) != JS::Error::NoError || document.Id.empty()) {
@@ -120,7 +120,7 @@ namespace mobileclock::application::core {
     //
     // API
     //
-    const model::AlarmMelody& AlarmMelodyNavigationState::Melody() const {
+    const model::AlarmMelody& preview_AlarmMelodyNavigationState::Melody() const {
         return this->alarmMelody;
     }
 #endif

@@ -294,8 +294,8 @@ if (NOT ANDROID)
     target_sources(mobileclock_application PRIVATE
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared/JsonParser/JsonParser.cpp"
     )
-    target_compile_definitions(mobileclock_application PUBLIC MOBILECLOCK_XAML_PREVIEWER=1)
-    target_compile_definitions(mobileclock_ui PRIVATE MOBILECLOCK_XAML_PREVIEWER=1)
+    target_compile_definitions(mobileclock_application PUBLIC ANDROID_APP_PREVIEWER=1)
+    target_compile_definitions(mobileclock_ui PRIVATE ANDROID_APP_PREVIEWER=1)
     target_include_directories(mobileclock_application PRIVATE
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared"
         "${mobileclock_project_root}/UtilityHelpersLib/Helpers/Helpers.Shared"

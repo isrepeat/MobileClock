@@ -3,7 +3,7 @@
 #include <XamlRuntime/Animation.h>
 
 #include "MobileClock.Presentation/Core/PageTransition.h"
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include "../UI/Page/XiaomiThemesPageViewModel.h"
 #endif
 #include "../UI/Page/SettingsPageViewModel.h"
@@ -52,11 +52,12 @@ namespace mobileclock::application::core {
         void SetStatus(std::string value);
         void AddAlarmMelody(model::AlarmMelody alarmMelody);
         void SetAlarmMelody(model::AlarmMelody alarmMelody);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        struct PreviewRoute final {
+#if defined(ANDROID_APP_PREVIEWER)
+        struct preview_Route final {
             std::string_view id;
             std::string_view source;
             std::string_view target;
+            std::string_view backwardOfRouteId;
             std::string_view title;
             bool isDefault;
             NavigationTargetKind targetKind;
@@ -64,14 +65,14 @@ namespace mobileclock::application::core {
             std::string previewDefault;
         };
 
-        bool NavigatePreviewRoute(std::string_view target, std::string& error);
-        bool NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error);
-        bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
-        std::string PreviewRouteGraph() const;
-        std::vector<PreviewRoute> PreviewRoutes() const;
-        std::string_view PreviewPageTitle(std::string_view pageName) const;
-        bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
-        bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
+        bool preview_NavigateRoute(std::string_view target, std::string& error);
+        bool preview_NavigateTransitions(std::span<const std::string_view> transitionIds, std::string& error);
+        bool preview_NavigateRoute(std::span<const std::string_view> path, std::string& error);
+        std::string preview_RouteGraph() const;
+        std::vector<preview_Route> preview_Routes() const;
+        std::string_view preview_PageTitle(std::string_view pageName) const;
+        bool preview_ApplyScenario(std::string_view page, std::string_view json, std::string& error);
+        bool preview_ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
 #endif
         void HandleTouchDown(float x, float y);
         bool HandleTouchMove(float x, float y);
@@ -86,9 +87,9 @@ namespace mobileclock::application::core {
             ui::page::MainPageViewModel,
             ui::page::SettingsPageViewModel,
             ui::page::AddAlarmPageViewModel
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
             ,
-            ui::page::XiaomiThemesPageViewModel>;
+            ui::page::preview_XiaomiThemesPageViewModel>;
 #else
             >;
 #endif
@@ -103,6 +104,13 @@ namespace mobileclock::application::core {
             mobileclock::presentation::core::NavigationDirection direction;
             std::string_view title;
             bool isDefault;
+        };
+
+        struct NavigationHistoryEntry final {
+            interface::IPage* page;
+            // Невладеющая ссылка на ребро Routes(), по которому открыта page.
+            // У корневой страницы входящего ребра нет.
+            const NavigationRoute* incomingRoute;
         };
 
         template <
@@ -133,8 +141,8 @@ namespace mobileclock::application::core {
             interface::IPage* outgoing,
             interface::IPage& current,
             mobileclock::presentation::core::NavigationDirection direction);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        bool ExecutePreviewRoute(std::span<const NavigationRoute*> route, std::string& error);
+#if defined(ANDROID_APP_PREVIEWER)
+        bool preview_ExecuteRoute(std::span<const NavigationRoute*> route, std::string& error);
 #endif
 
     private:
@@ -143,9 +151,10 @@ namespace mobileclock::application::core {
         ApplicationPages pages;
         interface::IPage* currentPage = nullptr;
         interface::IPage* outgoingPage = nullptr;
-        // Невладеющие ссылки на страницы из PageRegistry. Вектор хранит фактический стек
-        // переходов: последний элемент всегда совпадает с currentPage.
-        std::vector<interface::IPage*> navigationHistory;
+        // Вектор хранит фактический стек переходов: последний элемент всегда совпадает
+        // с currentPage. Входящее ребро нужно для точной визуализации обратного пути,
+        // когда между одной и той же парой страниц есть несколько маршрутов.
+        std::vector<NavigationHistoryEntry> navigationHistory;
         mobileclock::presentation::core::NavigationDirection navigationDirection = mobileclock::presentation::core::NavigationDirection::forward;
         bool isTransitioning = false;
         xaml::AnimationController animations;

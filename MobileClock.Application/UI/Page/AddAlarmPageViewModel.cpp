@@ -1,7 +1,7 @@
 #include "AddAlarmPageViewModel.h"
 
 #include <XamlRuntime/RenderEngine.h>
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #endif
 
@@ -179,12 +179,12 @@ namespace mobileclock::application::ui::page {
             this->Refresh();
             return true;
         }
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         case core::NavigationTrigger::navigateBack: {
             if (state == nullptr) {
                 return true;
             }
-            const auto* const melody = dynamic_cast<const core::AlarmMelodyNavigationState*>(state.get());
+            const auto* const melody = dynamic_cast<const core::preview_AlarmMelodyNavigationState*>(state.get());
             if (melody == nullptr) {
                 return false;
             }
@@ -263,7 +263,7 @@ namespace mobileclock::application::ui::page {
 
     void AddAlarmPageViewModel::Initialize(xaml::Size availableSize) {
         this->bindings.Clear();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         this->runtimeBindings.reset();
 #endif
         this->page = xaml::generated::AddAlarmPage::Create(*this, this->bindings);
@@ -288,8 +288,8 @@ namespace mobileclock::application::ui::page {
         return *this->page;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    xaml::runtime::RuntimeBindingContext AddAlarmPageViewModel::RuntimeContext() {
+#if defined(ANDROID_APP_PREVIEWER)
+    xaml::runtime::RuntimeBindingContext AddAlarmPageViewModel::preview_RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
         xaml::runtime::RuntimeBindingContext result{registry, "AddAlarmPageViewModel", {}};
         result.xamlNamespace = "urn:mobileclock:xaml";
@@ -314,7 +314,7 @@ namespace mobileclock::application::ui::page {
         return result;
     }
 
-    void AddAlarmPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
+    void AddAlarmPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
         this->bindings.Clear();
         this->runtimeBindings.reset();
         this->page = std::move(result.root);

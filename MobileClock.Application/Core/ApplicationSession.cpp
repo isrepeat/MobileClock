@@ -50,38 +50,38 @@ namespace mobileclock::application::core {
         this->pageManager.SetAlarmMelody(std::move(alarmMelody));
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool ApplicationSession::NavigatePreviewRoute(std::string_view target, std::string& error) {
-        return this->pageManager.NavigatePreviewRoute(target, error);
+#if defined(ANDROID_APP_PREVIEWER)
+    bool ApplicationSession::preview_NavigateRoute(std::string_view target, std::string& error) {
+        return this->pageManager.preview_NavigateRoute(target, error);
     }
 
-    bool ApplicationSession::NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
-        return this->pageManager.NavigatePreviewTransitions(transitionIds, error);
+    bool ApplicationSession::preview_NavigateTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
+        return this->pageManager.preview_NavigateTransitions(transitionIds, error);
     }
 
-    bool ApplicationSession::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
-        return this->pageManager.NavigatePreviewRoute(path, error);
+    bool ApplicationSession::preview_NavigateRoute(std::span<const std::string_view> path, std::string& error) {
+        return this->pageManager.preview_NavigateRoute(path, error);
     }
 
-    std::string ApplicationSession::PreviewRouteGraph() const {
-        return this->pageManager.PreviewRouteGraph();
+    std::string ApplicationSession::preview_RouteGraph() const {
+        return this->pageManager.preview_RouteGraph();
     }
 
-    std::vector<PageManager::PreviewRoute> ApplicationSession::PreviewRoutes() const {
-        return this->pageManager.PreviewRoutes();
+    std::vector<PageManager::preview_Route> ApplicationSession::preview_Routes() const {
+        return this->pageManager.preview_Routes();
     }
 
-    std::string_view ApplicationSession::PreviewPageTitle(std::string_view pageName) const {
-        return this->pageManager.PreviewPageTitle(pageName);
+    std::string_view ApplicationSession::preview_PageTitle(std::string_view pageName) const {
+        return this->pageManager.preview_PageTitle(pageName);
     }
 
-    bool ApplicationSession::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
-        return this->pageManager.ApplyPreviewScenario(page, json, error);
+    bool ApplicationSession::preview_ApplyScenario(std::string_view page, std::string_view json, std::string& error) {
+        return this->pageManager.preview_ApplyScenario(page, json, error);
     }
 
-    bool ApplicationSession::ReloadMarkup(std::string_view page, std::string_view markup,
+    bool ApplicationSession::preview_ReloadMarkup(std::string_view page, std::string_view markup,
         std::string_view sourcePath, std::string& diagnostics) {
-        return this->pageManager.ReloadMarkup(page, markup, sourcePath, diagnostics);
+        return this->pageManager.preview_ReloadMarkup(page, markup, sourcePath, diagnostics);
     }
 #endif
 

@@ -1,6 +1,6 @@
 #include "InputDispatcher.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <Helpers.Logging/Logging.h>
 #endif
 #include <XamlRuntime/XamlLayout.h>
@@ -48,11 +48,11 @@ namespace mobileclock::application::core::_details {
 
 namespace mobileclock::application::core {
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // API
     //
-    InputDispatcher::RuntimePanState InputDispatcher::CaptureRuntimePan() const {
+    InputDispatcher::preview_RuntimePanState InputDispatcher::preview_CaptureRuntimePan() const {
         // Состояние прокрутки восстанавливает сам ScrollViewer. Сохраняем только
         // уже захваченный контролом жест, чтобы hot reload не обрывал swipe.
         if (this->activeGesture != ActiveGesture::target || this->panElement == nullptr) {
@@ -62,7 +62,7 @@ namespace mobileclock::application::core {
             this->touchDownY, this->lastTouchX, this->lastTouchY, this->gestureDirection, true};
     }
 
-    void InputDispatcher::RestoreRuntimePan(xaml::Element& root, const RuntimePanState& state) {
+    void InputDispatcher::preview_RestoreRuntimePan(xaml::Element& root, const preview_RuntimePanState& state) {
         if (!state.active) {
             return;
         }
@@ -158,7 +158,7 @@ namespace mobileclock::application::core {
         this->interactionController.SetPanTargetPredicate([](const xaml::Element&) {
             return false;
         });
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         LOG_DEBUG(
             "MobileClock.Input",
             "Pointer down: target='{}'",
@@ -259,7 +259,7 @@ namespace mobileclock::application::core {
                 x,
                 y,
             }, animations);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
             LOG_DEBUG(
                 "MobileClock.Input",
                 "Pan completed: target='{}', handled={}",

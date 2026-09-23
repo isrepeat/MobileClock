@@ -40,7 +40,7 @@ namespace mobileclock::ui::control {
         }
 	} // namespace _details
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -127,8 +127,8 @@ namespace mobileclock::ui::control {
         return "melodyChoices";
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    void AlarmMelodyList::OnTemplateReplaced() {
+#if defined(ANDROID_APP_PREVIEWER)
+    void AlarmMelodyList::preview_OnTemplateReplaced() {
         _details::RefreshSelection(*this, nullptr, this->selectionPredicate);
     }
 #endif

@@ -102,8 +102,8 @@ namespace mobileclock::preview::session {
                     return;
                 }
                 std::string error;
-                if (!this->appSessionController.Session().NavigatePreviewRoute(
-                    application::ui::page::XiaomiThemesPageViewModel::PageName,
+                if (!this->appSessionController.Session().preview_NavigateRoute(
+                    application::ui::page::preview_XiaomiThemesPageViewModel::PageName,
                     error)) {
                     LOG_WARNING("AndroidAppPreviewer.Session", "Cannot open Xiaomi Themes: {}", error);
                 }
@@ -138,15 +138,15 @@ namespace mobileclock::preview::session {
     }
 
     bool PreviewSession::ExportState() {
-        if (!this->state->alarmRepository.SavePreviewStateToPersistentStorage()) {
+        if (!this->state->alarmRepository.preview_SaveStateToPersistentStorage()) {
             return false;
         }
-        this->state->alarmMelodyRepository.ReloadFromStateStore();
+        this->state->alarmMelodyRepository.preview_ReloadFromStateStore();
         return true;
     }
 
     bool PreviewSession::CanSaveState() const {
-        return !this->state->alarmRepository.IsPreviewSessionDocumentEquivalentTo(this->state->stateStorage.Load());
+        return !this->state->alarmRepository.preview_IsSessionDocumentEquivalentTo(this->state->stateStorage.Load());
     }
 
     void PreviewSession::Resize(int width, int height) {

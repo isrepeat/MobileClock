@@ -30,15 +30,15 @@ namespace mobileclock::application::core {
         void SetStatus(std::string value);
         void AddAlarmMelody(model::AlarmMelody alarmMelody);
         void SetAlarmMelody(model::AlarmMelody alarmMelody);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        bool NavigatePreviewRoute(std::string_view target, std::string& error);
-        bool NavigatePreviewTransitions(std::span<const std::string_view> transitionIds, std::string& error);
-        bool NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error);
-        std::string PreviewRouteGraph() const;
-        std::vector<PageManager::PreviewRoute> PreviewRoutes() const;
-        std::string_view PreviewPageTitle(std::string_view pageName) const;
-        bool ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error);
-        bool ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
+#if defined(ANDROID_APP_PREVIEWER)
+        bool preview_NavigateRoute(std::string_view target, std::string& error);
+        bool preview_NavigateTransitions(std::span<const std::string_view> transitionIds, std::string& error);
+        bool preview_NavigateRoute(std::span<const std::string_view> path, std::string& error);
+        std::string preview_RouteGraph() const;
+        std::vector<PageManager::preview_Route> preview_Routes() const;
+        std::string_view preview_PageTitle(std::string_view pageName) const;
+        bool preview_ApplyScenario(std::string_view page, std::string_view json, std::string& error);
+        bool preview_ReloadMarkup(std::string_view page, std::string_view markup, std::string_view sourcePath, std::string& diagnostics);
 #endif
         void PointerDown(float x, float y);
         void PointerMove(float x, float y);

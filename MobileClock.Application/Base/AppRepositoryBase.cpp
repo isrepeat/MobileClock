@@ -30,12 +30,12 @@ namespace mobileclock::application::base {
         return std::format("melody-{}-{}", std::chrono::steady_clock::now().time_since_epoch().count(), ++sequence);
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    void AppRepositoryBase::LoadPreviewScenarioState(model::ApplicationStateDocument document) {
-        this->store.LoadPreviewSessionDocument(std::move(document));
+#if defined(ANDROID_APP_PREVIEWER)
+    void AppRepositoryBase::preview_LoadScenarioState(model::ApplicationStateDocument document) {
+        this->store.preview_LoadSessionDocument(std::move(document));
     }
 
-    bool AppRepositoryBase::SavePreviewStateToPersistentStorage() {
+    bool AppRepositoryBase::preview_SaveStateToPersistentStorage() {
         model::ApplicationStateDocument document = this->store.CurrentDocument();
         std::vector<std::pair<std::string, std::string>> melodyIds;
         for (model::AlarmMelody& melody : document.alarmMelodies) {
@@ -55,8 +55,8 @@ namespace mobileclock::application::base {
                 alarm.melodyId = melody->second;
             }
         }
-        this->store.LoadPreviewSessionDocument(std::move(document));
-        return this->store.SavePreviewSessionDocumentToPersistentStorage();
+        this->store.preview_LoadSessionDocument(std::move(document));
+        return this->store.preview_SaveSessionDocumentToPersistentStorage();
     }
 #endif
 }

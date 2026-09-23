@@ -12,7 +12,7 @@ namespace mobileclock::preview::session {
     }
 
     std::string PreviewNavigationController::BuildGraphJson() const {
-        const std::vector routes = this->session.PreviewRoutes();
+        const std::vector routes = this->session.preview_Routes();
         std::vector<std::string_view> pages;
         for (const auto& route : routes) {
             if (std::find(pages.begin(), pages.end(), route.source) == pages.end()) {
@@ -33,7 +33,7 @@ namespace mobileclock::preview::session {
             json += std::format(
                 "{{\"id\":\"{}\",\"title\":\"{}\"}}",
                 page,
-                this->session.PreviewPageTitle(page));
+                this->session.preview_PageTitle(page));
             first = false;
         }
         json += "],\"transitions\":[";
@@ -48,11 +48,12 @@ namespace mobileclock::preview::session {
                 ? "previousPage"
                 : "page";
             json += std::format(
-                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"{}\",\"title\":\"{}\",\"isDefault\":{},\"dataType\":\"{}\",\"previewDefault\":{}}}",
+                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"{}\",\"backwardOfTransitionId\":\"{}\",\"title\":\"{}\",\"isDefault\":{},\"dataType\":\"{}\",\"previewDefault\":{}}}",
                 route.id,
                 route.source,
                 route.target,
                 targetKind,
+                route.backwardOfRouteId,
                 route.title,
                 route.isDefault ? "true" : "false",
                 route.dataType,
@@ -66,6 +67,6 @@ namespace mobileclock::preview::session {
     bool PreviewNavigationController::Navigate(
         std::span<const std::string_view> transitionIds,
         std::string& error) const {
-        return this->session.NavigatePreviewTransitions(transitionIds, error);
+        return this->session.preview_NavigateTransitions(transitionIds, error);
     }
 }

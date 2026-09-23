@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include <XamlRuntime/DependentProperty.h>
@@ -19,14 +19,14 @@ namespace mobileclock::ui::control {
         AlarmList() = default;
         ~AlarmList() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
             const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
-        static void PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings);
+        static void preview_PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings);
 #endif
 
         template <typename TViewModel, typename TItemsSource>
