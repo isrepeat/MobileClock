@@ -5,7 +5,11 @@ param(
     [string]$Destination,
 
     # Пересобирает APK с текущим versionCode для быстрой тестовой переустановки.
-    [switch]$KeepVersion
+    [switch]$KeepVersion,
+
+    # Конфигурация нативной и Android-сборки.
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Debug'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,17 +22,23 @@ $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $bumpVersion = Join-Path $PSScriptRoot 'bump-version.ps1'
 $buildAndroid = Join-Path $PSScriptRoot 'build-android.ps1'
 $uploadToDrive = Join-Path $PSScriptRoot 'upload-apk-to-drive.ps1'
-$sourceApk = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
-$sourceUpdaterApk = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\MobileClock.AndroidUpdater-debug.apk'
+$configurationDirectory = $Configuration.ToLowerInvariant()
+$apkSuffix = if ($Configuration -eq 'Release') { 'release-unsigned' } else { 'debug' }
+$sourceApk = Join-Path $projectRoot "Build\MobileClock.Android\outputs\apk\$configurationDirectory\MobileClock.Android-$apkSuffix.apk"
+$sourceUpdaterApk = Join-Path $projectRoot "Build\MobileClock.AndroidUpdater\outputs\apk\$configurationDirectory\MobileClock.AndroidUpdater-$apkSuffix.apk"
 $versionProperties = Join-Path $projectRoot 'version.properties'
 $distributionOutput = Join-Path $projectRoot 'Build\distribution'
+
+if ($Configuration -eq 'Release') {
+    throw 'Release APK is unsigned. Configure a release signing key before uploading it to Google Drive.'
+}
 
 if ($KeepVersion) {
     Write-Host '==> Keeping the current Android version for a test reinstall'
 } else {
     & $bumpVersion
 }
-& $buildAndroid
+& $buildAndroid -Configuration $Configuration
 
 $properties = ConvertFrom-StringData ([System.IO.File]::ReadAllText($versionProperties))
 $destinationApk = Join-Path $distributionOutput "MobileClock-$($properties.VERSION_CODE)-$($properties.VERSION_NAME).apk"

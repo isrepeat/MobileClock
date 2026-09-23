@@ -6,6 +6,10 @@ param(
     # Builds only the C++ library. Useful while editing renderer code.
     [switch]$NativeOnly,
 
+    # Конфигурация нативной и Android-сборки.
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Debug',
+
     # Проект поддерживает только физические устройства ARM64.
     [ValidateSet('arm64-v8a')]
     [string]$Architecture = 'arm64-v8a'
@@ -23,8 +27,10 @@ $applicationRoot = Join-Path $projectRoot 'MobileClock.Application'
 $uiRoot = Join-Path $projectRoot 'MobileClock.UI'
 $gradleRoot = Join-Path $projectRoot 'Tools\Gradle'
 $gradleWrapper = Join-Path $gradleRoot 'gradlew.bat'
-$apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
-$updaterApkPath = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\MobileClock.AndroidUpdater-debug.apk'
+$configurationDirectory = $Configuration.ToLowerInvariant()
+$apkSuffix = if ($Configuration -eq 'Release') { 'release-unsigned' } else { 'debug' }
+$apkPath = Join-Path $projectRoot "Build\MobileClock.Android\outputs\apk\$configurationDirectory\MobileClock.Android-$apkSuffix.apk"
+$updaterApkPath = Join-Path $projectRoot "Build\MobileClock.AndroidUpdater\outputs\apk\$configurationDirectory\MobileClock.AndroidUpdater-$apkSuffix.apk"
 
 function Invoke-Checked {
     param(
@@ -53,8 +59,8 @@ $env:Path = "$(Join-Path $javaHome 'bin');$env:Path"
 
 Push-Location $projectRoot
 try {
-    $cmakePreset = 'android-arm64-debug'
-    Write-Host "==> Building native $Architecture library with CMake"
+    $cmakePreset = "android-arm64-$configurationDirectory"
+    Write-Host "==> Building native $Architecture $Configuration library with CMake"
     if ($Clean) {
         Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset, "-DCMAKE_MAKE_PROGRAM=$($tools.Ninja)")
     } else {
@@ -77,7 +83,10 @@ if ($NativeOnly) {
 
 # Gradle deliberately does not invoke CMake here. MobileClock.Android/build.gradle.kts no
 # longer has externalNativeBuild, so it only packages the .so emitted above.
-$gradleTasks = @(':MobileClock.Android:assembleDebug', ':MobileClock.AndroidUpdater:assembleDebug')
+$gradleTasks = @(
+    ":MobileClock.Android:assemble$Configuration",
+    ":MobileClock.AndroidUpdater:assemble$Configuration"
+)
 Write-Host "==> Running Gradle tasks: $($gradleTasks -join ', ')"
 Write-Host "==> Using Java: $javaHome"
 Write-Host "==> Using Android SDK: $androidSdk"
