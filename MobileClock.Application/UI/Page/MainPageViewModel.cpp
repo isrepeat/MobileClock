@@ -142,12 +142,14 @@ namespace mobileclock::application::ui::page {
     }
 
     bool MainPageViewModel::OnNavigatingTo(const core::NavigationRequest&, std::unique_ptr<base::NavigationStateBase>) {
-        if (!this->pageContext.alarmRepository.Alarms().empty()) {
-            this->alarms.Clear();
-            for (const model::Alarm& alarm : this->pageContext.alarmRepository.Alarms()) {
-                view_model::AlarmViewModel& value = this->alarms.EmplaceBack(alarm.id, alarm, alarm.isEnabled);
-                this->ConfigureAlarm(value);
-            }
+        this->alarms.Clear();
+        for (const model::Alarm& alarm : this->pageContext.alarmRepository.Alarms()) {
+            view_model::AlarmViewModel value{alarm.id, alarm, alarm.isEnabled};
+            // ObservableCollection публикует строку сразу. Команда должна
+            // быть задана до публикации, иначе runtime-binding запомнит
+            // стартовый пустой обработчик.
+            this->ConfigureAlarm(value);
+            this->alarms.EmplaceBack(std::move(value));
         }
         return true;
     }
@@ -197,9 +199,9 @@ namespace mobileclock::application::ui::page {
         this->pageContext.navigator.Trigger(core::NavigationTrigger::createAlarm);
     }
 
-    void MainPageViewModel::EditAlarm(const void* dataContext) {
-        const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [dataContext](const view_model::AlarmViewModel& value) {
-            return &value == dataContext;
+    void MainPageViewModel::EditAlarm(const std::string& id) {
+        const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [&id](const view_model::AlarmViewModel& value) {
+            return value.Id() == id;
         });
         if (alarm == this->alarms.end()) {
             return;
@@ -392,8 +394,8 @@ namespace mobileclock::application::ui::page {
     }
 
     void MainPageViewModel::ConfigureAlarm(view_model::AlarmViewModel& alarm) {
-        alarm.SetAlarmBlockCommand([this, &alarm]() {
-            this->EditAlarm(&alarm);
+        alarm.SetAlarmBlockCommand([this, id = alarm.Id()]() {
+            this->EditAlarm(id);
         });
         alarm.SetToggleAlarmCommand(this->toggleAlarmCommand);
     }

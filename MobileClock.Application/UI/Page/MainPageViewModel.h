@@ -71,7 +71,7 @@ namespace mobileclock::application::ui::page {
         void AddAlarm(const model::Alarm& alarmSettings);
         bool UpdateAlarm(const void* dataContext, const model::Alarm& alarmSettings);
         void CreateAlarm();
-        void EditAlarm(const void* dataContext);
+        void EditAlarm(const std::string& id);
         void NavigateToSettings();
         xaml::Element::Command CreateAlarmCommand() const;
         xaml::Element::Command NavigateToSettingsCommand() const;
@@ -103,11 +103,7 @@ namespace mobileclock::application::ui::page {
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
-        xaml::ObservableCollection<view_model::AlarmViewModel> alarms{
-            {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
-            {"06:18", "Сб, Вс", false},
-            {"06:30", "Ежедневно", true},
-        };
+        xaml::ObservableCollection<view_model::AlarmViewModel> alarms;
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
         xaml::BindingScope bindingScope;

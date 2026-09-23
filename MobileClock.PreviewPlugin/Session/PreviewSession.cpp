@@ -16,9 +16,27 @@
 #include <cctype>
 #include <string>
 #include <vector>
+#include <array>
 
 namespace mobileclock::preview::session::_details {
     namespace model = mobileclock::application::model;
+
+    model::ApplicationStateDocument CreateInitialPreviewState() {
+        model::ApplicationStateDocument document;
+        const auto addAlarm = [&document](std::string id, int hour, int minute, std::array<bool, 7> days, bool isEnabled) {
+            model::Alarm alarm;
+            alarm.id = std::move(id);
+            alarm.hour = hour;
+            alarm.minute = minute;
+            alarm.days = days;
+            alarm.isEnabled = isEnabled;
+            document.alarms.push_back(std::move(alarm));
+        };
+        addAlarm("preview-alarm-1", 5, 55, {true, true, true, true, true, false, false}, true);
+        addAlarm("preview-alarm-2", 6, 18, {false, false, false, false, false, true, true}, false);
+        addAlarm("preview-alarm-3", 6, 30, {true, true, true, true, true, true, true}, true);
+        return document;
+    }
 
     std::filesystem::path PreviewerStatePath() {
         std::vector<wchar_t> executablePath(MAX_PATH);
@@ -54,6 +72,18 @@ namespace mobileclock::preview::session::_details {
                 ? document : model::ApplicationStateDocument{};
         }
 
+        model::ApplicationStateDocument LoadInitialDocument() const {
+            // Стартовая шкала нужна только новому preview-сеансу. Если файл
+            // существует, в том числе с пустым списком, состояние пользователя
+            // не подменяется демонстрационными будильниками.
+            if (std::filesystem::exists(this->path)) {
+                return this->Load();
+            }
+            model::ApplicationStateDocument document = CreateInitialPreviewState();
+            this->Save(document);
+            return document;
+        }
+
         bool Save(const model::ApplicationStateDocument& data) const {
             const std::filesystem::path temporaryPath = this->path.string() + ".tmp";
             std::ofstream stream(temporaryPath, std::ios::binary | std::ios::trunc);
@@ -85,7 +115,7 @@ namespace mobileclock::preview::session {
     public:
         explicit State(int width, int height)
             : previewerStateStorage(_details::PreviewerStatePath())
-            , applicationStateStore(previewerStateStorage.Load(), [this](const application::model::ApplicationStateDocument& data) {
+            , applicationStateStore(previewerStateStorage.LoadInitialDocument(), [this](const application::model::ApplicationStateDocument& data) {
                 return this->previewerStateStorage.Save(data);
             })
             , alarmRepository(applicationStateStore)
