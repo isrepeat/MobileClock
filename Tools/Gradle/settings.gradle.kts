@@ -32,5 +32,5 @@ project(":MobileClock.Android").projectDir = repositoryRoot.resolve("MobileClock
 project(":MobileClock.AndroidUpdater").projectDir = repositoryRoot.resolve("MobileClock.AndroidUpdater")
 
 gradle.beforeProject {
-    layout.buildDirectory.set(rootProject.layout.projectDirectory.dir("../$name"))
+    layout.buildDirectory.set(repositoryRoot.resolve("Build/$name"))
 }

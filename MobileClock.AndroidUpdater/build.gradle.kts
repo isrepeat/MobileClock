@@ -5,13 +5,13 @@ plugins {
 android {
     namespace = "com.example.mobileclock.updater"
     compileSdk {
-        version = release(37)
+        version = release(36)
     }
 
     defaultConfig {
         applicationId = "com.example.mobileclock.updater"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }

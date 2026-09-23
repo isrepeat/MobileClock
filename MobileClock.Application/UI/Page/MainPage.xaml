@@ -104,6 +104,13 @@
                                       source="Icons/menu.svg"
                                       tint="#8A8567"/>
                         </Button>
+                        <TextBlock id="timelinePackageVersion"
+                                   gridColumn="2"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="64"
+                                   foreground="#8A8567"
+                                   text="{Binding PackageVersion}"/>
                         <Button id="timelineMoreIcon"
                                 gridColumn="3"
                                 width="60"

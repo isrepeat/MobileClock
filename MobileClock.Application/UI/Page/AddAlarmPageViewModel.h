@@ -8,7 +8,9 @@
 
 #include "MobileClock.UI/Interface/IGestureTarget.h"
 #include "../../Interface/INavigationPage.h"
+#if defined(ANDROID_APP_PREVIEWER)
 #include "../../Interface/ISerializable.h"
+#endif
 #include "../../Core/PageRegistry.h"
 #include "../ViewModel/AlarmMelodyViewModel.h"
 
@@ -22,7 +24,11 @@ namespace xaml {
 }
 
 namespace mobileclock::application::ui::page {
-    class AddAlarmPageViewModel final : public interface::ISerializable, public mobileclock::ui::interface::IGestureTarget, public interface::INavigationPage {
+    class AddAlarmPageViewModel final :
+#if defined(ANDROID_APP_PREVIEWER)
+        public interface::ISerializable,
+#endif
+        public mobileclock::ui::interface::IGestureTarget, public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "AddAlarmPage";
         inline static constexpr std::string_view preview_GraphTitle = "Новый будильник";
@@ -30,11 +36,13 @@ namespace mobileclock::application::ui::page {
         explicit AddAlarmPageViewModel(core::PageContext& pageContext);
         ~AddAlarmPageViewModel() override = default;
 
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // ISerializable
         //
         std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
+#endif
 
         //
         // IGestureTarget

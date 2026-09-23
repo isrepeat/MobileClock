@@ -41,6 +41,7 @@ namespace mobileclock::application::ui::page {
         }) {
     }
 
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // ISerializable
     //
@@ -76,6 +77,7 @@ namespace mobileclock::application::ui::page {
         }
         return true;
     }
+#endif
 
 
     //

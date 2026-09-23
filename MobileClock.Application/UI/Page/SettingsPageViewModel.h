@@ -6,7 +6,9 @@
 #include <XamlRuntime/Binding.h>
 
 #include "../../Interface/INavigationPage.h"
+#if defined(ANDROID_APP_PREVIEWER)
 #include "../../Interface/ISerializable.h"
+#endif
 #include "../../Core/PageRegistry.h"
 #include "../../Core/Navigation.h"
 
@@ -22,7 +24,11 @@ namespace xaml {
 
 namespace mobileclock::application::ui::page {
 
-    class SettingsPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
+    class SettingsPageViewModel final :
+#if defined(ANDROID_APP_PREVIEWER)
+        public interface::ISerializable,
+#endif
+        public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "SettingsPage";
         inline static constexpr std::string_view preview_GraphTitle = "⚙  Настройки";
@@ -41,11 +47,13 @@ namespace mobileclock::application::ui::page {
         SettingsPageViewModel(const SettingsPageViewModel&) = delete;
         SettingsPageViewModel& operator=(const SettingsPageViewModel&) = delete;
 
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // ISerializable
         //
         std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
+#endif
 
         //
         // INavigationPage

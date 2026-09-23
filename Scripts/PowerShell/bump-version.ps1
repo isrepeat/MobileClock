@@ -1,7 +1,11 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 $ErrorActionPreference = 'Stop'
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 $versionFile = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'version.properties'
 
 if (-not (Test-Path $versionFile)) {

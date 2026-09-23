@@ -1,7 +1,11 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([string]$CMakeExecutable)
 
 $ErrorActionPreference = 'Stop'
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $applicationRoot = Join-Path $projectRoot 'MobileClock.Application'

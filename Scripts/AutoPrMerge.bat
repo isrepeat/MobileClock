@@ -2,6 +2,7 @@
 SETLOCAL
 
 REM The PowerShell implementation and its MessagingModule are kept inside
+chcp 65001 >nul
 REM this repository, so AutoPrMerge does not depend on UtilityHelpersLib.
 SET "_REPO_ROOT=%~dp0.."
 SET "_SCRIPT=%~dp0PowerShell\AutoPrMerge.ps1"

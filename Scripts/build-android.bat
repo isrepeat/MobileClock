@@ -2,6 +2,7 @@
 setlocal
 
 rem Double-click launcher for the PowerShell build pipeline.
+chcp 65001 >nul
 rem All optional arguments are forwarded, for example:
 rem   build-android.bat -NativeOnly
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0PowerShell\build-android.ps1" %*

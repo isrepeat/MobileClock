@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     # Recreates CMake's build directory before compiling the native library.
     [switch]$Clean,
@@ -12,6 +12,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $androidHostRoot = Join-Path $projectRoot 'MobileClock.AndroidHost'
@@ -38,6 +42,12 @@ function Invoke-Checked {
 . (Join-Path $PSScriptRoot 'Resolve-BuildTools.ps1')
 $tools = Resolve-MobileClockBuildTools
 $cmake = $tools.CMake
+$javaHome = Resolve-MobileClockJavaHome
+$androidSdk = Resolve-MobileClockAndroidSdk
+$env:JAVA_HOME = $javaHome
+$env:ANDROID_HOME = $androidSdk
+$env:ANDROID_SDK_ROOT = $androidSdk
+$env:Path = "$(Join-Path $javaHome 'bin');$env:Path"
 
 & (Join-Path $PSScriptRoot 'generate-xaml.ps1')
 
@@ -69,6 +79,8 @@ if ($NativeOnly) {
 # longer has externalNativeBuild, so it only packages the .so emitted above.
 $gradleTasks = @(':MobileClock.Android:assembleDebug', ':MobileClock.AndroidUpdater:assembleDebug')
 Write-Host "==> Running Gradle tasks: $($gradleTasks -join ', ')"
+Write-Host "==> Using Java: $javaHome"
+Write-Host "==> Using Android SDK: $androidSdk"
 # Gradle определяет Android-проект по текущему каталогу. Launcher и settings
 # находятся в Tools/Gradle, поэтому Gradle запускается оттуда.
 Push-Location $gradleRoot

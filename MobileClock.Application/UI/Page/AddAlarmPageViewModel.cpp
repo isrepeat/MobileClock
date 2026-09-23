@@ -75,6 +75,7 @@ namespace mobileclock::application::ui::page {
         this->RegisterGestureTarget();
     }
 
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // ISerializable
     //
@@ -82,14 +83,12 @@ namespace mobileclock::application::ui::page {
         return "{}";
     }
 
-    //
-    // ISerializable
-    //
     bool AddAlarmPageViewModel::Deserialize(std::string_view json, std::string& error) {
         // У формы есть собственный редактируемый черновик; внешнее состояние ей не требуется.
         error.clear();
         return true;
     }
+#endif
 
 
     //

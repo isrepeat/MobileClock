@@ -8,6 +8,7 @@ Build/*
 !Build/Gradle/**
 Build/Gradle/.gradle/
 Build/Gradle/local.properties
+Tools/MobileClock*/
 MobileClock.Native/!VS_TMP/
 \!VS_TMP/
 XamlPreviewer/

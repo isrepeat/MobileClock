@@ -18,8 +18,10 @@ namespace mobileclock::application::core {
         static std::unique_ptr<base::NavigationStateBase> preview_CreatePreviewDefault();
 #endif
 
+#if defined(ANDROID_APP_PREVIEWER)
         std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
+#endif
 
         const std::string& AlarmId() const;
         const model::Alarm& Settings() const;

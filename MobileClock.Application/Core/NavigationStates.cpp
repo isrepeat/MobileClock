@@ -45,6 +45,7 @@ namespace mobileclock::application::core {
     }
 #endif
 
+#if defined(ANDROID_APP_PREVIEWER)
     std::string AlarmEditNavigationState::Serialize() const {
         _details::AlarmEditNavigationStateDocument alarmEditNavigationStateDocument;
         alarmEditNavigationStateDocument.AlarmId = this->alarmId;
@@ -69,6 +70,7 @@ namespace mobileclock::application::core {
         this->settings.minute = alarmEditNavigationStateDocument.Minute;
         return true;
     }
+#endif
 
     //
     // API
