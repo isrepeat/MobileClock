@@ -13,9 +13,9 @@ namespace mobileclock::presentation::core {
     // API
     //
     void PreviewSession::Attach(xaml::Element& root) {
-        xaml::AnimationRegistry registry;
-        RegisterAnimations(registry);
-        this->animations.Attach(root, registry, false);
+        xaml::AnimationRegistry animationRegistry;
+        RegisterAnimations(animationRegistry);
+        this->animationController.Attach(root, animationRegistry, false);
     }
 
     void PreviewSession::SetPageTransition(
@@ -24,36 +24,36 @@ namespace mobileclock::presentation::core {
         std::string_view to,
         bool backward,
         bool visible) {
-        const PageTransitionData data{
+        const PageTransitionData pageTransitionData{
             std::string(from),
             std::string(to),
             backward ? NavigationDirection::backward
                      : NavigationDirection::forward,
         };
-        root.SetAnimationParametersProvider([data]() {
-            return xaml::AnimationParameters::Create(data);
+        root.SetAnimationParametersProvider([pageTransitionData]() {
+            return xaml::AnimationParameters::Create(pageTransitionData);
         });
         root.SetVisibility(visible ? xaml::attr::Visibility::visible : xaml::attr::Visibility::collapsed);
     }
 
     void PreviewSession::SetPlaybackRate(float value) {
-        this->animations.SetPlaybackRate(value);
+        this->animationController.SetPlaybackRate(value);
     }
 
     bool PreviewSession::Update() {
-        const bool wasAnimating = this->animations.IsAnimating();
-        this->animations.Update();
-        return wasAnimating || this->animations.IsAnimating();
+        const bool wasAnimating = this->animationController.IsAnimating();
+        this->animationController.Update();
+        return wasAnimating || this->animationController.IsAnimating();
     }
 
     xaml::AnimationController& PreviewSession::Animations() {
-        return this->animations;
+        return this->animationController;
     }
 
     xaml::RendererRegistry PreviewSession::CreateRenderers() {
-        xaml::RendererRegistry renderers;
-        RegisterRenderers(renderers);
-        return renderers;
+        xaml::RendererRegistry rendererRegistry;
+        RegisterRenderers(rendererRegistry);
+        return rendererRegistry;
     }
 
     es_renderer::OpenGlRenderer::ShaderProgramSources PreviewSession::CreateShaderPrograms() {

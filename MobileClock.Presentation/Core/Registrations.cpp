@@ -10,15 +10,15 @@ namespace mobileclock::presentation::core {
     //
     // API
     //
-    void RegisterAnimations(xaml::AnimationRegistry& registry) {
-        xaml::AnimationRegistry effects = mobileclock::presentation::effects::CreateAnimations();
-        mobileclock::presentation::renderer::RegisterAnimations(effects);
-        registry = std::move(effects);
+    void RegisterAnimations(xaml::AnimationRegistry& animationRegistry) {
+        xaml::AnimationRegistry effectsAnimationRegistry = mobileclock::presentation::effects::CreateAnimations();
+        mobileclock::presentation::renderer::RegisterAnimations(effectsAnimationRegistry);
+        animationRegistry = std::move(effectsAnimationRegistry);
     }
 
-    void RegisterRenderers(xaml::RendererRegistry& registry) {
-        registry = mobileclock::presentation::effects::CreateRenderers();
-        mobileclock::presentation::renderer::RegisterAnimationRenderers(registry);
+    void RegisterRenderers(xaml::RendererRegistry& rendererRegistry) {
+        rendererRegistry = mobileclock::presentation::effects::CreateRenderers();
+        mobileclock::presentation::renderer::RegisterAnimationRenderers(rendererRegistry);
     }
 
     es_renderer::OpenGlRenderer::ShaderProgramSources CreateShaderPrograms() {

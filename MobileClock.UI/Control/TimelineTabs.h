@@ -22,7 +22,7 @@ namespace mobileclock::ui::control {
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
 #endif
 
         template <typename TViewModel>
@@ -30,8 +30,7 @@ namespace mobileclock::ui::control {
             auto control = std::make_unique<TimelineTabs>();
             auto bindings = std::make_unique<xaml::BindingScope>();
             auto content = xaml::generated::TimelineTabsXaml::BuildContent(viewModel, *bindings);
-            control->InitializeComponent(
-                std::move(content), std::move(bindings));
+            control->InitializeComponent(std::move(content), std::move(bindings));
             return control;
         }
 

@@ -39,6 +39,6 @@ namespace mobileclock::presentation::effects {
     xaml::StateRegistry CreateStates();
     xaml::AnimationRegistry CreateAnimations();
     xaml::RendererRegistry CreateRenderers();
-    void RegisterAnimations(xaml::AnimationRegistry& animations);
-    void RegisterRenderers(xaml::RendererRegistry& renderers);
+    void RegisterAnimations(xaml::AnimationRegistry& animationRegistry);
+    void RegisterRenderers(xaml::RendererRegistry& rendererRegistry);
 }

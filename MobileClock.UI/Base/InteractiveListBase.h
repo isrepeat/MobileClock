@@ -24,7 +24,7 @@ namespace mobileclock::ui::base {
             interface::GestureDirection direction) const = 0;
         virtual void BeginInteractiveGesture(const interface::IGestureTarget::PanState& state) = 0;
         virtual void UpdateInteractiveGesture(const interface::IGestureTarget::PanState& state) = 0;
-        virtual bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) = 0;
+        virtual bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) = 0;
         virtual void CancelInteractiveGesture(xaml::Element& element) = 0;
         virtual std::string_view ListViewId() const = 0;
 
@@ -45,22 +45,22 @@ namespace mobileclock::ui::base {
         interface::GestureHandling ResolveGesture(const interface::IGestureTarget::PanState& state, interface::GestureDirection direction) const override;
         void BeginGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelGesture(xaml::Element& element) override;
-        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
+        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) override;
 
         const void* FindItemDataContext(xaml::Element& element) const;
         RemovalState CaptureRemovalState(const void* dataContext) const;
-        void UpdateRemoval(xaml::Element& pageRoot, xaml::AnimationController& animations);
+        void UpdateRemoval(xaml::Element& pageRoot, xaml::AnimationController& animationController);
         void RestoreViewportAndAnimate(
             const RemovalState& state,
             xaml::Element& pageRoot,
-            xaml::AnimationController& animations,
+            xaml::AnimationController& animationController,
             std::chrono::milliseconds duration);
         void RestoreViewport(const RemovalState& state, xaml::Element& pageRoot);
         void AnimateRemainingItems(
             const RemovalState& state,
-            xaml::AnimationController& animations,
+            xaml::AnimationController& animationController,
             std::chrono::milliseconds duration);
 
     private:

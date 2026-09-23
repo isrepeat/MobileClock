@@ -6,7 +6,7 @@
 namespace mobileclock::presentation::core {
     // Registers visual capabilities shared by every MobileClock host.
     // Session state deliberately does not live in this library.
-    void RegisterAnimations(xaml::AnimationRegistry& registry);
-    void RegisterRenderers(xaml::RendererRegistry& registry);
+    void RegisterAnimations(xaml::AnimationRegistry& animationRegistry);
+    void RegisterRenderers(xaml::RendererRegistry& rendererRegistry);
     es_renderer::OpenGlRenderer::ShaderProgramSources CreateShaderPrograms();
 }

@@ -24,14 +24,14 @@ namespace mobileclock::ui::base {
         // IGestureTarget
         //
         xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
-        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
+        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) override;
 
 #if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
 #endif
 
     protected:

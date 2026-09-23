@@ -25,7 +25,7 @@ namespace mobileclock::ui::control {
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
         static void preview_PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings);
 #endif
 
@@ -39,8 +39,7 @@ namespace mobileclock::ui::control {
             control->SetRemoveHandler([&viewModel](const void* dataContext) { return viewModel.RemoveItem(dataContext); });
             auto bindings = std::make_unique<xaml::BindingScope>();
             auto content = xaml::generated::AlarmListXaml::BuildContent(viewModel, itemsSource, *bindings);
-            control->InitializeComponent(
-                std::move(content), std::move(bindings));
+            control->InitializeComponent(std::move(content), std::move(bindings));
             return control;
         }
 
@@ -58,7 +57,7 @@ namespace mobileclock::ui::control {
             interface::GestureDirection direction) const override;
         void BeginInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelInteractiveGesture(xaml::Element& element) override;
         template <typename TItemsSource>
         void SetItemsSource(const TItemsSource& value) {

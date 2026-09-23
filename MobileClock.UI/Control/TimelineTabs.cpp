@@ -14,15 +14,15 @@ namespace mobileclock::ui::control {
     }
 
     bool TimelineTabs::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) {
         try {
-            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), context,
+            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), runtimeBindingContext,
                 {this->Bounds().width, this->Bounds().height});
-            if (context.prepareTree) {
-                context.prepareTree(*result.root);
+            if (runtimeBindingContext.prepareTree) {
+                runtimeBindingContext.prepareTree(*result.root);
             }
-              if (context.beforeCommit) {
-                  context.beforeCommit();
+              if (runtimeBindingContext.beforeCommit) {
+                  runtimeBindingContext.beforeCommit();
               }
             this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             diagnostics.clear();

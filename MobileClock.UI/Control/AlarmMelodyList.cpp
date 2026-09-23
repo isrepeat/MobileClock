@@ -94,12 +94,12 @@ namespace mobileclock::ui::control {
         state.target.SetRenderOffsetX(offset);
     }
 
-    bool AlarmMelodyList::EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) {
+    bool AlarmMelodyList::EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) {
         const float revealWidth = _details::RevealWidth(state.target);
         const bool shouldReveal = this->openedItem != &state.target
             && state.currentX - state.downX < -revealWidth * _details::RevealThreshold;
         const float targetOffset = shouldReveal ? -revealWidth : 0.0f;
-        animations.Animate(
+        animationController.Animate(
             state.target,
             xaml::AnimatedProperty::renderOffsetX,
             state.target.RenderOffsetX(),

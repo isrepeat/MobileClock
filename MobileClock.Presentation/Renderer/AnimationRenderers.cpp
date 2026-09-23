@@ -62,11 +62,11 @@ namespace mobileclock::presentation::renderer::_details {
             && context.Trigger() != xaml::AnimationTrigger::hide) {
             return false;
         }
-        const auto* data = context.Parameters().TryGet<mobileclock::presentation::core::PageTransitionData>();
+        const auto* pageTransitionData = context.Parameters().TryGet<mobileclock::presentation::core::PageTransitionData>();
         const bool forward = visualState
             ? context.State().direction == "forward"
-            : data == nullptr
-            || data->direction == mobileclock::presentation::core::NavigationDirection::forward;
+            : pageTransitionData == nullptr
+            || pageTransitionData->direction == mobileclock::presentation::core::NavigationDirection::forward;
         const bool show = visualState
             ? context.State().phase == "enter"
             : context.Trigger() == xaml::AnimationTrigger::show;
@@ -87,8 +87,8 @@ namespace mobileclock::presentation::renderer::_details {
         if (context.Trigger() != xaml::AnimationTrigger::show && context.Trigger() != xaml::AnimationTrigger::hide) {
             return false;
         }
-        const auto* data = context.Parameters().TryGet<mobileclock::presentation::core::PageTransitionData>();
-        if (data == nullptr || data->to != "settings") {
+        const auto* pageTransitionData = context.Parameters().TryGet<mobileclock::presentation::core::PageTransitionData>();
+        if (pageTransitionData == nullptr || pageTransitionData->to != "settings") {
             return false;
         }
         const bool show = context.Trigger() == xaml::AnimationTrigger::show;
@@ -104,20 +104,20 @@ namespace mobileclock::presentation::renderer::_details {
 } // namespace _details
 
 namespace mobileclock::presentation::renderer {
-    void RegisterAnimationRenderers(xaml::RendererRegistry& renderers) {
+    void RegisterAnimationRenderers(xaml::RendererRegistry& rendererRegistry) {
         // Сохраняет стандартный Wave и добавляет поверх него пульсирующую обводку.
-        renderers.Register<mobileclock::presentation::effects::WaveAnimation>("rendererWaveOutline", _details::RenderWaveOutline);
+        rendererRegistry.Register<mobileclock::presentation::effects::WaveAnimation>("rendererWaveOutline", _details::RenderWaveOutline);
     }
 
-    void RegisterAnimations(xaml::AnimationRegistry& animations) {
-        animations.Register<mobileclock::presentation::effects::PageTransitionAnimation>("animationPageTransition", {
+    void RegisterAnimations(xaml::AnimationRegistry& animationRegistry) {
+        animationRegistry.Register<mobileclock::presentation::effects::PageTransitionAnimation>("animationPageTransition", {
             xaml::Option("duration", &mobileclock::presentation::effects::PageTransitionAnimation::duration, _details::ValidDuration),
             xaml::Option("distance", &mobileclock::presentation::effects::PageTransitionAnimation::distance),
             xaml::Option("easing", &mobileclock::presentation::effects::PageTransitionAnimation::easing, _details::ValidEasing),
             xaml::Option("direction", &mobileclock::presentation::effects::PageTransitionAnimation::direction, _details::ValidDirection),
             xaml::Option("phase", &mobileclock::presentation::effects::PageTransitionAnimation::phase, _details::ValidPhase),
         }, _details::ConfigurePageTransition);
-        animations.Register<mobileclock::presentation::effects::ContainerAnimation>("animationSettingsReveal", {
+        animationRegistry.Register<mobileclock::presentation::effects::ContainerAnimation>("animationSettingsReveal", {
             xaml::Option("duration", &mobileclock::presentation::effects::ContainerAnimation::duration, _details::ValidDuration),
         }, _details::ConfigureSettingsReveal);
     }

@@ -127,11 +127,11 @@ namespace mobileclock::ui::control {
     }
 
     bool AlarmActionsMenu::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) {
         try {
-            auto bindings = std::make_shared<xaml::runtime::RuntimeBindingRegistry>(context.bindings);
+            auto bindings = std::make_shared<xaml::runtime::RuntimeBindingRegistry>(runtimeBindingContext.bindings);
             bindings->AddCommand("ToggleMenuCommand", this->ToggleMenuCommand());
-            auto controlContext = context;
+            auto controlContext = runtimeBindingContext;
             controlContext.bindings = std::move(bindings);
             auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), controlContext,
                 {this->Bounds().width, this->Bounds().height});
@@ -139,8 +139,8 @@ namespace mobileclock::ui::control {
                 this->isExpanded ? "Expanded" : "Collapsed", false)) {
                 throw std::invalid_argument("Alarm actions menu visual state was not found");
             }
-            if (context.beforeCommit) {
-                context.beforeCommit();
+            if (runtimeBindingContext.beforeCommit) {
+                runtimeBindingContext.beforeCommit();
             }
             this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             this->ApplyState(false);
@@ -244,8 +244,8 @@ namespace mobileclock::ui::control {
             // The collapsed panel is positioned above the bottom by its margin.
             // While expanding, the same distance becomes a render offset so the
             // lower edge reaches the screen bottom while the explicit height grows up.
-            xaml::AnimationController animations;
-            animations.Animate(
+            xaml::AnimationController animationController;
+            animationController.Animate(
                 *panel,
                 xaml::AnimatedProperty::renderOffsetY,
                 panel->RenderOffsetY(),
@@ -282,7 +282,7 @@ namespace mobileclock::ui::control {
     }
 
     void AlarmActionsMenu::SetDragProgress(float progress) {
-        xaml::AnimationController animations;
+        xaml::AnimationController animationController;
         for (const char* id : {"alarmActionsPanel", "alarmActionsMenu", "alarmActionsContent"}) {
             auto* element = this->FindElement(id);
             if (element == nullptr) {
@@ -294,10 +294,10 @@ namespace mobileclock::ui::control {
             const float expanded = this->StateValue("Expanded", id, property);
             const float value = collapsed + (expanded - collapsed) * progress;
             // Replacing the property track also stops a previous settling animation.
-            animations.Animate(*element, property, value, value, std::chrono::milliseconds(0));
+            animationController.Animate(*element, property, value, value, std::chrono::milliseconds(0));
         }
         if (auto* panel = this->FindElement("alarmActionsPanel")) {
-            animations.Animate(
+            animationController.Animate(
                 *panel,
                 xaml::AnimatedProperty::renderOffsetY,
                 panel->Margin().bottom * progress,

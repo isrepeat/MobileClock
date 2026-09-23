@@ -31,8 +31,7 @@ namespace mobileclock::ui::control {
             control->itemsSource.Set(static_cast<const void*>(&itemsSource));
             auto bindings = std::make_unique<xaml::BindingScope>();
             auto content = xaml::generated::AlarmMelodyListXaml::BuildContent(viewModel, itemsSource, *bindings);
-            control->InitializeComponent(
-                std::move(content), std::move(bindings));
+            control->InitializeComponent(std::move(content), std::move(bindings));
             using Item = std::remove_cvref_t<decltype(*itemsSource.begin())>;
             control->SetSelectionPredicate([&viewModel](const void* dataContext) {
                 const auto* item = static_cast<const Item*>(dataContext);
@@ -66,7 +65,7 @@ namespace mobileclock::ui::control {
             interface::GestureDirection direction) const override;
         void BeginInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelInteractiveGesture(xaml::Element& element) override;
 
     private:

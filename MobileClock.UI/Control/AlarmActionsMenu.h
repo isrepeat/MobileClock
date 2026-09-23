@@ -45,9 +45,9 @@ namespace mobileclock::ui::control {
         interface::GestureHandling ResolveGesture(const interface::IGestureTarget::PanState& state, interface::GestureDirection direction) const override;
         void BeginGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelGesture(xaml::Element& element) override;
-        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
+        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) override;
 
     private:
         bool IsIn(const xaml::Element& pageRoot) const override;
@@ -60,7 +60,7 @@ namespace mobileclock::ui::control {
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
 #endif
 
         template<typename TViewModel>
@@ -77,8 +77,7 @@ namespace mobileclock::ui::control {
             });
             auto bindings = std::make_unique<xaml::BindingScope>();
             auto content = xaml::generated::AlarmActionsMenuXaml::BuildContent(*control, *bindings);
-            control->InitializeComponent(
-                std::move(content), std::move(bindings));
+            control->InitializeComponent(std::move(content), std::move(bindings));
             return control;
         }
 
