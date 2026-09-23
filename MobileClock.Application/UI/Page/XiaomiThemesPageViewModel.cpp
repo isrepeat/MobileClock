@@ -28,13 +28,18 @@ namespace mobileclock::application::ui::page::_details {
         std::string Name;
         std::string Uri;
 
-        JS_OBJECT(JS_MEMBER(Name), JS_MEMBER(Uri));
+        JS_OBJECT(
+            JS_MEMBER(Name),
+            JS_MEMBER(Uri)
+        );
     };
 
-    struct XiaomiThemesPreviewScenario final {
+    struct XiaomiThemesSerializationDocument final {
         std::optional<std::vector<XiaomiThemesPreviewMelody>> Melodies;
 
-        JS_OBJECT(JS_MEMBER(Melodies));
+        JS_OBJECT(
+            JS_MEMBER(Melodies)
+        );
     };
 } // namespace _details
 
@@ -50,11 +55,20 @@ namespace mobileclock::application::ui::page {
     //
     // ISerializable
     //
+    std::string XiaomiThemesPageViewModel::Serialize() const {
+        _details::XiaomiThemesSerializationDocument scenario;
+        scenario.Melodies.emplace();
+        for (const view_model::AlarmMelodyViewModel& melody : this->melodies) {
+            scenario.Melodies->push_back({melody.Name(), melody.Uri()});
+        }
+        return JS::serializeStruct(scenario);
+    }
+
     bool XiaomiThemesPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::XiaomiThemesPreviewScenario scenario;
+        _details::XiaomiThemesSerializationDocument scenario;
         JS::ParseContext context(json.data(), json.size());
         if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
+            error = std::format("Invalid serialized JSON: {}", context.makeErrorString());
             return false;
         }
         if (scenario.Melodies) {

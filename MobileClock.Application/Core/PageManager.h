@@ -13,9 +13,10 @@
 #include "PageRegistry.h"
 
 #include <string_view>
+#include <memory>
 #include <string>
-#include <span>
 #include <vector>
+#include <span>
 
 namespace xaml {
     class IRenderBackend;
@@ -40,6 +41,7 @@ namespace mobileclock::application::core {
         //
         bool Navigate(std::string_view pageName) override;
         bool Trigger(NavigationTrigger trigger) override;
+        bool Trigger(NavigationTrigger trigger, std::unique_ptr<base::NavigationStateBase> state) override;
         bool NavigateBack(std::unique_ptr<base::NavigationStateBase> result = {}) override;
 
         std::string_view CurrentPageName() const;
@@ -58,6 +60,8 @@ namespace mobileclock::application::core {
             std::string_view title;
             bool isDefault;
             NavigationTargetKind targetKind;
+            std::string_view dataType;
+            std::string previewDefault;
         };
 
         bool NavigatePreviewRoute(std::string_view target, std::string& error);
@@ -95,6 +99,7 @@ namespace mobileclock::application::core {
             NavigationTrigger trigger;
             std::string_view target;
             NavigationTargetKind targetKind;
+            const NavigationDataContract* dataContract;
             mobileclock::presentation::core::NavigationDirection direction;
             std::string_view title;
             bool isDefault;
@@ -103,6 +108,7 @@ namespace mobileclock::application::core {
         template <
             typename TSource,
             typename TTarget,
+            typename TData,
             NavigationTrigger TTrigger,
             mobileclock::presentation::core::NavigationDirection TDirection
         >
@@ -110,6 +116,7 @@ namespace mobileclock::application::core {
 
         template <
             typename TSource,
+            typename TData,
             NavigationTrigger TTrigger,
             mobileclock::presentation::core::NavigationDirection TDirection
         >
@@ -120,6 +127,7 @@ namespace mobileclock::application::core {
         // истории переходов, а не от статического графа приложения.
         std::string_view ResolveTarget(const NavigationRoute& route) const;
         bool Navigate(const NavigationRoute& route, std::unique_ptr<base::NavigationStateBase> state);
+        bool IsNavigationDataValid(const NavigationRoute& route, const base::NavigationStateBase* state) const;
         bool SwitchPage(interface::IPage& page, mobileclock::presentation::core::NavigationDirection direction);
         static void SetNavigationVisualStates(
             interface::IPage* outgoing,

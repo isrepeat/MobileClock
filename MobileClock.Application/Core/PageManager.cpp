@@ -14,15 +14,12 @@
 
 #include "NavigationStates.h"
 
+#include <type_traits>
 #include <algorithm>
 #include <format>
 #include <limits>
 #include <vector>
 #include <array>
-
-#ifndef MOBILECLOCK_ENABLE_PREVIEW_EDIT_ALARM_FALLBACK
-#define MOBILECLOCK_ENABLE_PREVIEW_EDIT_ALARM_FALLBACK 0
-#endif
 
 namespace mobileclock::application::core {
     PageManager::PageManager(AppSessionController& appSessionController, model::AlarmRepository& alarmRepository, model::AlarmMelodyRepository& alarmMelodyRepository)
@@ -84,8 +81,12 @@ namespace mobileclock::application::core {
     }
 
     bool PageManager::Trigger(NavigationTrigger trigger) {
+        return this->Trigger(trigger, {});
+    }
+
+    bool PageManager::Trigger(NavigationTrigger trigger, std::unique_ptr<base::NavigationStateBase> state) {
         if (trigger == NavigationTrigger::navigateBack) {
-            return this->NavigateBack();
+            return this->NavigateBack(std::move(state));
         }
         if (this->currentPage == nullptr || this->isTransitioning) {
             return false;
@@ -107,7 +108,12 @@ namespace mobileclock::application::core {
             return false;
         }
         const NavigationRequest request{route->source, targetName, route->trigger};
-        return this->Navigate(*route, this->currentPage->OnNavigatingFrom(request));
+        // Явный payload создаётся действием пользователя и имеет приоритет над устаревшим
+        // OnNavigatingFrom. Это убирает скрытую зависимость маршрута от состояния страницы.
+        if (state == nullptr) {
+            state = this->currentPage->OnNavigatingFrom(request);
+        }
+        return this->Navigate(*route, std::move(state));
     }
 
     std::string_view PageManager::ResolveTarget(const NavigationRoute& route) const {
@@ -129,6 +135,10 @@ namespace mobileclock::application::core {
             LOG_WARNING("MobileClock.Navigation", "Route target '{}' is not registered", targetName);
             return false;
         }
+        if (!this->IsNavigationDataValid(route, state.get())) {
+            LOG_WARNING("MobileClock.Navigation", "Route '{}' received invalid navigation data", route.id);
+            return false;
+        }
         const NavigationRequest request{route.source, targetName, route.trigger};
         if (!target->OnNavigatingTo(request, std::move(state))) {
             LOG_WARNING("MobileClock.Navigation", "Route preparation failed for {} -> {}", route.source, targetName);
@@ -145,6 +155,16 @@ namespace mobileclock::application::core {
             this->navigationHistory.push_back(target);
         }
         return true;
+    }
+
+    bool PageManager::IsNavigationDataValid(const NavigationRoute& route, const base::NavigationStateBase* state) const {
+        if (route.dataContract == nullptr) {
+            return state == nullptr;
+        }
+        if (state == nullptr) {
+            return !route.dataContract->isRequired;
+        }
+        return state->TypeId() == route.dataContract->typeId;
     }
 
     bool PageManager::SwitchPage(interface::IPage& page, mobileclock::presentation::core::NavigationDirection direction) {
@@ -423,7 +443,20 @@ namespace mobileclock::application::core {
                 target = route.target;
             }
             if (!target.empty()) {
-                result.push_back({route.id, route.source, target, route.title, route.isDefault, route.targetKind});
+                std::string previewDefault = "null";
+                if (route.dataContract != nullptr) {
+                    previewDefault = route.dataContract->createPreviewDefault()->Serialize();
+                }
+                result.push_back({
+                    route.id,
+                    route.source,
+                    target,
+                    route.title,
+                    route.isDefault,
+                    route.targetKind,
+                    route.dataContract == nullptr ? "" : route.dataContract->typeId,
+                    std::move(previewDefault),
+                });
             }
         }
         return result;
@@ -604,16 +637,22 @@ namespace mobileclock::application::core {
     template <
         typename TSource,
         typename TTarget,
+        typename TData,
         NavigationTrigger TTrigger,
         mobileclock::presentation::core::NavigationDirection TDirection
     >
     PageManager::NavigationRoute PageManager::MakeRoute(std::string_view id, std::string_view title, bool isDefault) {
+        const NavigationDataContract* dataContract = nullptr;
+        if constexpr (!std::is_same_v<TData, NoNavigationData>) {
+            dataContract = &TData::Contract();
+        }
         return {
             id,
             TSource::PageName,
             TTrigger,
             TTarget::PageName,
             NavigationTargetKind::page,
+            dataContract,
             TDirection,
             title,
             isDefault,
@@ -622,16 +661,22 @@ namespace mobileclock::application::core {
 
     template <
         typename TSource,
+        typename TData,
         NavigationTrigger TTrigger,
         mobileclock::presentation::core::NavigationDirection TDirection
     >
     PageManager::NavigationRoute PageManager::MakeBackRoute(std::string_view id, std::string_view title, bool isDefault) {
+        const NavigationDataContract* dataContract = nullptr;
+        if constexpr (!std::is_same_v<TData, NoNavigationData>) {
+            dataContract = &TData::Contract();
+        }
         return {
             id,
             TSource::PageName,
             TTrigger,
             {},
             NavigationTargetKind::previousPage,
+            dataContract,
             TDirection,
             title,
             isDefault,
@@ -656,15 +701,76 @@ namespace mobileclock::application::core {
 
     std::span<const PageManager::NavigationRoute> PageManager::Routes() {
         static const std::array routes{
-            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::createAlarm, mobileclock::presentation::core::NavigationDirection::forward>("main-create-alarm", "Новый будильник"),
-            MakeRoute<ui::page::MainPageViewModel, ui::page::AddAlarmPageViewModel, NavigationTrigger::editAlarm, mobileclock::presentation::core::NavigationDirection::forward>("main-edit-alarm", "Изменить будильник", false),
-            MakeRoute<ui::page::MainPageViewModel, ui::page::SettingsPageViewModel, NavigationTrigger::navigateToSettings, mobileclock::presentation::core::NavigationDirection::forward>("main-open-settings", "Открыть настройки"),
-            MakeBackRoute<ui::page::AddAlarmPageViewModel, NavigationTrigger::navigateBack, mobileclock::presentation::core::NavigationDirection::backward>("add-alarm-back", "Вернуться назад"),
+            MakeRoute<
+                ui::page::MainPageViewModel,
+                ui::page::AddAlarmPageViewModel,
+                NoNavigationData,
+                NavigationTrigger::createAlarm,
+                mobileclock::presentation::core::NavigationDirection::forward
+            >(
+                "main-create-alarm",
+                "Новый будильник"
+            ),
+            MakeRoute<
+                ui::page::MainPageViewModel,
+                ui::page::AddAlarmPageViewModel,
+                AlarmEditNavigationState,
+                NavigationTrigger::editAlarm,
+                mobileclock::presentation::core::NavigationDirection::forward
+            >(
+                "main-edit-alarm",
+                "Изменить будильник",
+                false
+            ),
+            MakeRoute<
+                ui::page::MainPageViewModel,
+                ui::page::SettingsPageViewModel,
+                NoNavigationData,
+                NavigationTrigger::navigateToSettings,
+                mobileclock::presentation::core::NavigationDirection::forward
+            >(
+                "main-open-settings",
+                "Открыть настройки"
+            ),
+            MakeBackRoute<
+                ui::page::AddAlarmPageViewModel,
+                NoNavigationData,
+                NavigationTrigger::navigateBack,
+                mobileclock::presentation::core::NavigationDirection::backward
+            >(
+                "add-alarm-back",
+                "Вернуться назад"
+            ),
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
-            MakeRoute<ui::page::AddAlarmPageViewModel, ui::page::XiaomiThemesPageViewModel, NavigationTrigger::chooseAlarmMelody, mobileclock::presentation::core::NavigationDirection::forward>("add-alarm-choose-melody", "Выбрать мелодию"),
-            MakeBackRoute<ui::page::XiaomiThemesPageViewModel, NavigationTrigger::navigateBack, mobileclock::presentation::core::NavigationDirection::backward>("xiaomi-themes-back", "Вернуться назад"),
+            MakeRoute<
+                ui::page::AddAlarmPageViewModel,
+                ui::page::XiaomiThemesPageViewModel,
+                NoNavigationData,
+                NavigationTrigger::chooseAlarmMelody,
+                mobileclock::presentation::core::NavigationDirection::forward
+            >(
+                "add-alarm-choose-melody",
+                "Выбрать мелодию"
+            ),
+            MakeBackRoute<
+                ui::page::XiaomiThemesPageViewModel,
+                AlarmMelodyNavigationState,
+                NavigationTrigger::navigateBack,
+                mobileclock::presentation::core::NavigationDirection::backward
+            >(
+                "xiaomi-themes-back",
+                "Вернуться назад"
+            ),
 #endif
-            MakeBackRoute<ui::page::SettingsPageViewModel, NavigationTrigger::navigateBack, mobileclock::presentation::core::NavigationDirection::backward>("settings-back", "Вернуться назад"),
+            MakeBackRoute<
+                ui::page::SettingsPageViewModel,
+                NoNavigationData,
+                NavigationTrigger::navigateBack,
+                mobileclock::presentation::core::NavigationDirection::backward
+            >(
+                "settings-back",
+                "Вернуться назад"
+            ),
         };
         return routes;
     }
@@ -691,27 +797,12 @@ namespace mobileclock::application::core {
                 edge->source,
                 expectedTarget);
             this->isTransitioning = false;
-            bool navigated = false;
-#if MOBILECLOCK_ENABLE_PREVIEW_EDIT_ALARM_FALLBACK
-            if (edge->trigger == NavigationTrigger::editAlarm) {
-                const NavigationRequest request{edge->source, expectedTarget, edge->trigger};
-                std::unique_ptr<base::NavigationStateBase> state = this->currentPage->OnNavigatingFrom(request);
-                if (state == nullptr) {
-                    // Граф не выбирает строку конкретного будильника, но должен позволять
-                    // проверить переход редактирования. Берём первый сценарный будильник,
-                    // а при пустом сценарии создаём временное корректное состояние.
-                    const std::vector<model::Alarm>& alarms = this->pageContext.alarmRepository.Alarms();
-                    const model::Alarm previewAlarm = alarms.empty() ? model::Alarm{} : alarms.front();
-                    const std::string alarmId = previewAlarm.id.empty() ? "preview-alarm" : previewAlarm.id;
-                    state = std::make_unique<AlarmEditNavigationState>(alarmId, previewAlarm);
-                }
-                navigated = this->Navigate(*edge, std::move(state));
-            } else {
-#endif
-                navigated = this->Trigger(edge->trigger);
-#if MOBILECLOCK_ENABLE_PREVIEW_EDIT_ALARM_FALLBACK
-            }
-#endif
+            // Тип маршрута владеет preview-default, поэтому previewer не знает, как
+            // конструировать бизнес-данные и не создаёт специальных dummy-объектов.
+            std::unique_ptr<base::NavigationStateBase> state = edge->dataContract == nullptr || !edge->dataContract->isRequired
+                ? nullptr
+                : edge->dataContract->createPreviewDefault();
+            const bool navigated = this->Trigger(edge->trigger, std::move(state));
             if (!navigated) {
                 error = std::format("Preview transition {} -> {} was rejected", edge->source, expectedTarget);
                 LOG_ERROR("MobileClock.PreviewRoute", "Route execution failed: {}", error);

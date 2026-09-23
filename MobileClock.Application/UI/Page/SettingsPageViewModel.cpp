@@ -2,9 +2,9 @@
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
-#include <JsonParser/json_struct/json_struct.h>
 #endif
 #include <XamlRuntime/RenderEngine.h>
+#include <JsonParser/json_struct/json_struct.h>
 
 #include "!Generated/MobileClock.Application/Xaml/Page/SettingsPage.xaml.h"
 #include "../../Core/AppSessionController.h"
@@ -14,16 +14,17 @@
 #include <format>
 
 namespace mobileclock::application::ui::page {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     namespace _details {
-        struct SettingsPagePreviewScenario final {
+        struct SettingsPageSerializationDocument final {
             std::optional<std::string> Theme = "Тёмная";
             std::optional<std::string> Sound = "Мелодия по умолчанию";
 
-            JS_OBJECT(JS_MEMBER(Theme), JS_MEMBER(Sound));
+            JS_OBJECT(
+                JS_MEMBER(Theme),
+                JS_MEMBER(Sound)
+            );
         };
     } // namespace _details
-#endif
 
     SettingsPageViewModel::SettingsPageViewModel(core::PageContext& context)
         : navigateToMainCommand([&context]() {
@@ -40,15 +41,21 @@ namespace mobileclock::application::ui::page {
         }) {
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     //
     // ISerializable
     //
+    std::string SettingsPageViewModel::Serialize() const {
+        _details::SettingsPageSerializationDocument scenario;
+        scenario.Theme = this->theme;
+        scenario.Sound = this->sound;
+        return JS::serializeStruct(scenario);
+    }
+
     bool SettingsPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::SettingsPagePreviewScenario scenario;
+        _details::SettingsPageSerializationDocument scenario;
         JS::ParseContext context(json.data(), json.size());
         if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
+            error = std::format("Invalid serialized JSON: {}", context.makeErrorString());
             return false;
         }
         if (scenario.Theme) {
@@ -69,7 +76,7 @@ namespace mobileclock::application::ui::page {
         }
         return true;
     }
-#endif
+
 
     //
     // INavigationPage

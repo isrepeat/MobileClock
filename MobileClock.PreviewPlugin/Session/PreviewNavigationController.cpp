@@ -48,13 +48,15 @@ namespace mobileclock::preview::session {
                 ? "previousPage"
                 : "page";
             json += std::format(
-                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"{}\",\"title\":\"{}\",\"isDefault\":{}}}",
+                "{{\"id\":\"{}\",\"sourcePageId\":\"{}\",\"targetPageId\":\"{}\",\"targetKind\":\"{}\",\"title\":\"{}\",\"isDefault\":{},\"dataType\":\"{}\",\"previewDefault\":{}}}",
                 route.id,
                 route.source,
                 route.target,
                 targetKind,
                 route.title,
-                route.isDefault ? "true" : "false");
+                route.isDefault ? "true" : "false",
+                route.dataType,
+                route.previewDefault);
             first = false;
         }
         json += "]}";

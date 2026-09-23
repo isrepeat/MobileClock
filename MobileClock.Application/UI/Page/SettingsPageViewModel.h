@@ -41,12 +41,11 @@ namespace mobileclock::application::ui::page {
         SettingsPageViewModel(const SettingsPageViewModel&) = delete;
         SettingsPageViewModel& operator=(const SettingsPageViewModel&) = delete;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
-#endif
 
         //
         // INavigationPage

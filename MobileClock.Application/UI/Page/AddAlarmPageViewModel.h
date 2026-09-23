@@ -30,12 +30,11 @@ namespace mobileclock::application::ui::page {
         explicit AddAlarmPageViewModel(core::PageContext& context);
         ~AddAlarmPageViewModel() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
-#endif
 
         //
         // IGestureTarget

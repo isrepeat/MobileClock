@@ -5,8 +5,8 @@
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
-#include <JsonParser/json_struct/json_struct.h>
 #endif
+#include <JsonParser/json_struct/json_struct.h>
 
 #if defined(MOBILECLOCK_XAML_PREVIEWER)
 #include "MobileClock.UI/Control/AlarmActionsMenu.h"
@@ -29,15 +29,18 @@
 #include <ctime>
 
 namespace mobileclock::application::ui::page::_details {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    struct MainPagePreviewScenario final {
+    struct MainPageSerializationDocument final {
         std::optional<std::string> Status = "Готово к проверке обновлений";
         std::optional<std::vector<model::Alarm>> Alarms = std::vector<model::Alarm>{};
         std::optional<std::vector<model::AlarmMelody>> AlarmMelodies = std::vector<model::AlarmMelody>{};
 
-        JS_OBJECT(JS_MEMBER(Status), JS_MEMBER(Alarms), JS_MEMBER(AlarmMelodies));
+        JS_OBJECT(
+            JS_MEMBER(Status),
+            JS_MEMBER(Alarms),
+            JS_MEMBER(AlarmMelodies)
+        );
     };
-#endif
+
 
     bool TryGetLocalTime(std::time_t value, std::tm& result) {
 #if defined(_WIN32)
@@ -79,15 +82,22 @@ namespace mobileclock::application::ui::page {
         }
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     //
     // ISerializable
     //
+    std::string MainPageViewModel::Serialize() const {
+        _details::MainPageSerializationDocument scenario;
+        scenario.Status = this->status;
+        scenario.Alarms = this->context.alarmRepository.Alarms();
+        scenario.AlarmMelodies = this->context.alarmMelodyRepository.Melodies();
+        return JS::serializeStruct(scenario);
+    }
+
     bool MainPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::MainPagePreviewScenario scenario;
+        _details::MainPageSerializationDocument scenario;
         JS::ParseContext context(json.data(), json.size());
         if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
+            error = std::format("Invalid serialized JSON: {}", context.makeErrorString());
             return false;
         }
         if (scenario.Alarms) {
@@ -120,17 +130,12 @@ namespace mobileclock::application::ui::page {
         }
         return true;
     }
-#endif
+
 
     //
     // INavigationPage
     //
-    std::unique_ptr<base::NavigationStateBase> MainPageViewModel::OnNavigatingFrom(const core::NavigationRequest& request) {
-        if (request.trigger == core::NavigationTrigger::editAlarm && this->alarmBeingEdited != nullptr) {
-            const view_model::AlarmViewModel* const alarm = this->alarmBeingEdited;
-            this->alarmBeingEdited = nullptr;
-            return std::make_unique<core::AlarmEditNavigationState>(alarm->Id(), alarm->Settings());
-        }
+    std::unique_ptr<base::NavigationStateBase> MainPageViewModel::OnNavigatingFrom(const core::NavigationRequest&) {
         return {};
     }
 
@@ -197,10 +202,11 @@ namespace mobileclock::application::ui::page {
         if (alarm == this->alarms.end()) {
             return;
         }
-        this->alarmBeingEdited = &*alarm;
-        if (!this->context.navigator.Trigger(core::NavigationTrigger::editAlarm)) {
-            this->alarmBeingEdited = nullptr;
-        }
+        // Данные принадлежат конкретному действию, а не временному полю страницы.
+        // Тот же контракт используется previewer-ом для построения валидного перехода.
+        this->context.navigator.Trigger(
+            core::NavigationTrigger::editAlarm,
+            std::make_unique<core::AlarmEditNavigationState>(alarm->Id(), alarm->Settings()));
     }
 
     void MainPageViewModel::NavigateToSettings() {

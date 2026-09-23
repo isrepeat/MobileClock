@@ -13,9 +13,9 @@
 #include "../ViewModel/AlarmViewModel.h"
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace xaml {
     class IRenderBackend;
@@ -43,12 +43,11 @@ namespace mobileclock::application::ui::page {
         MainPageViewModel(const MainPageViewModel&) = delete;
         MainPageViewModel& operator=(const MainPageViewModel&) = delete;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
-#endif
         //
         // INavigationPage
         //
@@ -112,6 +111,5 @@ namespace mobileclock::application::ui::page {
         xaml::Element::Command toggleAlarmCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
-        const view_model::AlarmViewModel* alarmBeingEdited = nullptr;
     };
 }

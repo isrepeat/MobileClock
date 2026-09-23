@@ -17,6 +17,7 @@ namespace mobileclock::application::interface {
 
         virtual bool Navigate(std::string_view pageName) = 0;
         virtual bool Trigger(core::NavigationTrigger trigger) = 0;
+        virtual bool Trigger(core::NavigationTrigger trigger, std::unique_ptr<base::NavigationStateBase> state) = 0;
         // result отделяет результат действия от самого возврата. Например, выбор мелодии
         // передаёт выбранное значение предыдущей странице, а кнопка «Назад» не передаёт ничего.
         virtual bool NavigateBack(std::unique_ptr<base::NavigationStateBase> result = {}) = 0;

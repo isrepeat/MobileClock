@@ -75,16 +75,22 @@ namespace mobileclock::application::ui::page {
         this->RegisterGestureTarget();
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+    //
+    // ISerializable
+    //
+    std::string AddAlarmPageViewModel::Serialize() const {
+        return "{}";
+    }
+
     //
     // ISerializable
     //
     bool AddAlarmPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        // The form has its own editable draft; no external preview scenario is required.
+        // У формы есть собственный редактируемый черновик; внешнее состояние ей не требуется.
         error.clear();
         return true;
     }
-#endif
+
 
     //
     // mobileclock::ui::interface::IGestureTarget

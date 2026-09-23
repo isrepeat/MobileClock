@@ -31,6 +31,7 @@ namespace mobileclock::application::ui::page {
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
 
         //
