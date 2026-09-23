@@ -7,8 +7,8 @@
 namespace mobileclock::application::core {
     ApplicationSession::ApplicationSession(AppSessionController& appSessionController, model::AlarmRepository& alarmRepository, model::AlarmMelodyRepository& alarmMelodyRepository)
         : pageManager(appSessionController, alarmRepository, alarmMelodyRepository)
-        , renderers() {
-        mobileclock::presentation::core::RegisterRenderers(this->renderers);
+        , rendererRegistry() {
+        mobileclock::presentation::core::RegisterRenderers(this->rendererRegistry);
     }
 
     //
@@ -110,6 +110,6 @@ namespace mobileclock::application::core {
     }
 
     void ApplicationSession::Render(xaml::IRenderBackend& renderer) const {
-        this->pageManager.Render(renderer, this->renderers);
+        this->pageManager.Render(renderer, this->rendererRegistry);
     }
 }

@@ -37,7 +37,7 @@ namespace mobileclock::application::ui::page {
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        explicit MainPageViewModel(core::PageContext& context);
+        explicit MainPageViewModel(core::PageContext& pageContext);
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
@@ -75,13 +75,13 @@ namespace mobileclock::application::ui::page {
         void HandleTap(xaml::Element& element);
         bool RemoveItem(const void* dataContext);
         void Update();
-        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& rendererRegistry) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
 #if defined(ANDROID_APP_PREVIEWER)
         xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
-        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult);
 #endif
 
     private:
@@ -91,7 +91,7 @@ namespace mobileclock::application::ui::page {
         bool PersistAlarms();
 
     private:
-        core::PageContext& context;
+        core::PageContext& pageContext;
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
@@ -102,9 +102,9 @@ namespace mobileclock::application::ui::page {
         };
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
-        xaml::BindingScope bindings;
+        xaml::BindingScope bindingScope;
 #if defined(ANDROID_APP_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+        std::unique_ptr<xaml::BindingScope> runtimeBindingScope;
 #endif
         xaml::Element::Command createAlarmCommand;
         xaml::Element::Command navigateToSettingsCommand;

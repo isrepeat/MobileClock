@@ -16,9 +16,9 @@ namespace mobileclock::application::model {
         this->alarms = this->State().alarms;
     }
 
-    bool AlarmRepository::preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
+    bool AlarmRepository::preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& applicationStateDocument) const {
         const ApplicationStateDocument& current = this->State();
-        if (current.alarms.size() != document.alarms.size() || current.alarmMelodies.size() != document.alarmMelodies.size()) {
+        if (current.alarms.size() != applicationStateDocument.alarms.size() || current.alarmMelodies.size() != applicationStateDocument.alarmMelodies.size()) {
             return false;
         }
         const auto melodyKey = [](const ApplicationStateDocument& value, std::string_view id) {
@@ -28,17 +28,17 @@ namespace mobileclock::application::model {
             return item == value.alarmMelodies.end() ? std::pair<std::string, std::string>{} : std::pair{item->name, item->uri};
         };
         for (size_t index = 0; index < current.alarmMelodies.size(); ++index) {
-            if (current.alarmMelodies[index].name != document.alarmMelodies[index].name
-                || current.alarmMelodies[index].uri != document.alarmMelodies[index].uri) {
+            if (current.alarmMelodies[index].name != applicationStateDocument.alarmMelodies[index].name
+                || current.alarmMelodies[index].uri != applicationStateDocument.alarmMelodies[index].uri) {
                 return false;
             }
         }
         for (size_t index = 0; index < current.alarms.size(); ++index) {
             const Alarm& left = current.alarms[index];
-            const Alarm& right = document.alarms[index];
+            const Alarm& right = applicationStateDocument.alarms[index];
             if (left.hour != right.hour || left.minute != right.minute || left.days != right.days
                 || left.vibration != right.vibration || left.isEnabled != right.isEnabled
-                || melodyKey(current, left.melodyId) != melodyKey(document, right.melodyId)) {
+                || melodyKey(current, left.melodyId) != melodyKey(applicationStateDocument, right.melodyId)) {
                 return false;
             }
         }
@@ -103,9 +103,9 @@ namespace mobileclock::application::model {
     // Internal
     //
     bool AlarmRepository::Commit(std::vector<Alarm> candidate) {
-        ApplicationStateDocument document = this->State();
-        document.alarms = candidate;
-        if (!base::AppRepositoryBase::Commit(std::move(document))) {
+        ApplicationStateDocument applicationStateDocument = this->State();
+        applicationStateDocument.alarms = candidate;
+        if (!base::AppRepositoryBase::Commit(std::move(applicationStateDocument))) {
             return false;
         }
         this->alarms = std::move(candidate);
@@ -121,8 +121,8 @@ namespace mobileclock::application::model {
         this->Notify();
     }
 
-    bool AlarmMelodyRepository::preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const {
-        return this->melodies == document.alarmMelodies;
+    bool AlarmMelodyRepository::preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& applicationStateDocument) const {
+        return this->melodies == applicationStateDocument.alarmMelodies;
     }
 #endif
 
@@ -184,9 +184,9 @@ namespace mobileclock::application::model {
     }
 
     bool AlarmMelodyRepository::Commit(std::vector<AlarmMelody> candidate) {
-        ApplicationStateDocument document = this->State();
-        document.alarmMelodies = candidate;
-        if (!base::AppRepositoryBase::Commit(std::move(document))) {
+        ApplicationStateDocument applicationStateDocument = this->State();
+        applicationStateDocument.alarmMelodies = candidate;
+        if (!base::AppRepositoryBase::Commit(std::move(applicationStateDocument))) {
             return false;
         }
         this->melodies = std::move(candidate);

@@ -25,7 +25,7 @@ namespace mobileclock::application::ui::page {
         inline static constexpr std::string_view PageName = "XiaomiThemesPage";
         inline static constexpr std::string_view preview_GraphTitle = "Xiaomi Themes";
 
-        explicit preview_XiaomiThemesPageViewModel(core::PageContext& context);
+        explicit preview_XiaomiThemesPageViewModel(core::PageContext& pageContext);
         ~preview_XiaomiThemesPageViewModel() override = default;
 
         //
@@ -43,10 +43,10 @@ namespace mobileclock::application::ui::page {
         void preview_Initialize(xaml::Size availableSize);
         void preview_HandleTap(xaml::Element& element);
         void preview_Update();
-        void preview_Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        void preview_Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& rendererRegistry) const;
         xaml::Element& preview_Root();
         xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
-        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult);
 
     private:
         void preview_ApplySelectedMelody();
@@ -56,12 +56,12 @@ namespace mobileclock::application::ui::page {
         xaml::Element* preview_Find(std::string_view id) const;
 
     private:
-        core::PageContext& context;
+        core::PageContext& pageContext;
         std::vector<view_model::AlarmMelodyViewModel> melodies;
         std::optional<size_t> selectedMelody;
         std::unique_ptr<xaml::Element> page;
-        xaml::BindingScope bindings;
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+        xaml::BindingScope bindingScope;
+        std::unique_ptr<xaml::BindingScope> runtimeBindingScope;
     };
 }
 #endif

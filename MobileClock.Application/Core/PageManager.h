@@ -4,7 +4,7 @@
 
 #include "MobileClock.Presentation/Core/PageTransition.h"
 #if defined(ANDROID_APP_PREVIEWER)
-#include "../UI/Page/XiaomiThemesPageViewModel.h"
+#include "../UI/Page/preview_XiaomiThemesPageViewModel.h"
 #endif
 #include "../UI/Page/SettingsPageViewModel.h"
 #include "../UI/Page/AddAlarmPageViewModel.h"
@@ -133,16 +133,16 @@ namespace mobileclock::application::core {
         static std::span<const NavigationRoute> Routes();
         // previousPage не задаётся в декларации маршрута: его цель зависит от фактической
         // истории переходов, а не от статического графа приложения.
-        std::string_view ResolveTarget(const NavigationRoute& route) const;
-        bool Navigate(const NavigationRoute& route, std::unique_ptr<base::NavigationStateBase> state);
-        bool IsNavigationDataValid(const NavigationRoute& route, const base::NavigationStateBase* state) const;
+        std::string_view ResolveTarget(const NavigationRoute& navigationRoute) const;
+        bool Navigate(const NavigationRoute& navigationRoute, std::unique_ptr<base::NavigationStateBase> state);
+        bool IsNavigationDataValid(const NavigationRoute& navigationRoute, const base::NavigationStateBase* state) const;
         bool SwitchPage(interface::IPage& page, mobileclock::presentation::core::NavigationDirection direction);
         static void SetNavigationVisualStates(
-            interface::IPage* outgoing,
-            interface::IPage& current,
+            interface::IPage* outgoingPage,
+            interface::IPage& currentPage,
             mobileclock::presentation::core::NavigationDirection direction);
 #if defined(ANDROID_APP_PREVIEWER)
-        bool preview_ExecuteRoute(std::span<const NavigationRoute*> route, std::string& error);
+        bool preview_ExecuteRoute(std::span<const NavigationRoute*> navigationRoutes, std::string& error);
 #endif
 
     private:
@@ -157,7 +157,7 @@ namespace mobileclock::application::core {
         std::vector<NavigationHistoryEntry> navigationHistory;
         mobileclock::presentation::core::NavigationDirection navigationDirection = mobileclock::presentation::core::NavigationDirection::forward;
         bool isTransitioning = false;
-        xaml::AnimationController animations;
+        xaml::AnimationController animationController;
         InputDispatcher inputDispatcher;
     };
 }

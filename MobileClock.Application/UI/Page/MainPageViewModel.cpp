@@ -42,19 +42,19 @@ namespace mobileclock::application::ui::page::_details {
     };
 
 
-    bool TryGetLocalTime(std::time_t value, std::tm& result) {
+    bool TryGetLocalTime(std::time_t value, std::tm& runtimeBindingContext) {
 #if defined(_WIN32)
-        return localtime_s(&result, &value) == 0;
+        return localtime_s(&runtimeBindingContext, &value) == 0;
 #else
-        return localtime_r(&value, &result) != nullptr;
+        return localtime_r(&value, &runtimeBindingContext) != nullptr;
 #endif
     }
 
 } // namespace _details
 
 namespace mobileclock::application::ui::page {
-    MainPageViewModel::MainPageViewModel(core::PageContext& context)
-        : context(context)
+    MainPageViewModel::MainPageViewModel(core::PageContext& pageContext)
+        : pageContext(pageContext)
         , packageVersion("v" MOBILECLOCK_PACKAGE_VERSION)
         , createAlarmCommand([this]() {
             this->CreateAlarm();
@@ -62,18 +62,18 @@ namespace mobileclock::application::ui::page {
         , navigateToSettingsCommand([this]() {
             this->NavigateToSettings();
         })
-        , toggleAlarmCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::toggleAlarm, {});
+        , toggleAlarmCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::toggleAlarm, {});
         })
-        , updateApplicationCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::updateApplication, {});
+        , updateApplicationCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::updateApplication, {});
         })
-        , uploadScreenshotCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::uploadScreenshot, {});
+        , uploadScreenshotCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::uploadScreenshot, {});
         }) {
-        if (!this->context.alarmRepository.Alarms().empty()) {
+        if (!this->pageContext.alarmRepository.Alarms().empty()) {
             this->alarms.Clear();
-            for (const model::Alarm& alarm : this->context.alarmRepository.Alarms()) {
+            for (const model::Alarm& alarm : this->pageContext.alarmRepository.Alarms()) {
                 this->alarms.EmplaceBack(alarm.id, alarm, alarm.isEnabled);
             }
         }
@@ -88,16 +88,16 @@ namespace mobileclock::application::ui::page {
     std::string MainPageViewModel::Serialize() const {
         _details::MainPageSerializationDocument scenario;
         scenario.Status = this->status;
-        scenario.Alarms = this->context.alarmRepository.Alarms();
-        scenario.AlarmMelodies = this->context.alarmMelodyRepository.Melodies();
+        scenario.Alarms = this->pageContext.alarmRepository.Alarms();
+        scenario.AlarmMelodies = this->pageContext.alarmMelodyRepository.Melodies();
         return JS::serializeStruct(scenario);
     }
 
     bool MainPageViewModel::Deserialize(std::string_view json, std::string& error) {
         _details::MainPageSerializationDocument scenario;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid serialized JSON: {}", context.makeErrorString());
+        JS::ParseContext pageContext(json.data(), json.size());
+        if (pageContext.parseTo(scenario) != JS::Error::NoError) {
+            error = std::format("Invalid serialized JSON: {}", pageContext.makeErrorString());
             return false;
         }
         if (scenario.Alarms) {
@@ -118,11 +118,11 @@ namespace mobileclock::application::ui::page {
             }
             // Документ остаётся в памяти preview-сеанса и не перезаписывает
             // постоянный storage, пока его явно не экспортируют.
-            this->context.alarmRepository.preview_LoadScenarioState(std::move(document));
+            this->pageContext.alarmRepository.preview_LoadScenarioState(std::move(document));
             // Репозитории кэшируют свои коллекции, поэтому после замены полного
             // документа оба кэша синхронизируются, а MainPage пересобирает UI.
-            this->context.alarmRepository.preview_ReloadFromStateStore();
-            this->context.alarmMelodyRepository.preview_ReloadFromStateStore();
+            this->pageContext.alarmRepository.preview_ReloadFromStateStore();
+            this->pageContext.alarmMelodyRepository.preview_ReloadFromStateStore();
             this->OnNavigatingTo({}, {});
         }
         if (scenario.Status) {
@@ -140,9 +140,9 @@ namespace mobileclock::application::ui::page {
     }
 
     bool MainPageViewModel::OnNavigatingTo(const core::NavigationRequest&, std::unique_ptr<base::NavigationStateBase>) {
-        if (!this->context.alarmRepository.Alarms().empty()) {
+        if (!this->pageContext.alarmRepository.Alarms().empty()) {
             this->alarms.Clear();
-            for (const model::Alarm& alarm : this->context.alarmRepository.Alarms()) {
+            for (const model::Alarm& alarm : this->pageContext.alarmRepository.Alarms()) {
                 view_model::AlarmViewModel& value = this->alarms.EmplaceBack(alarm.id, alarm, alarm.isEnabled);
                 this->ConfigureAlarm(value);
             }
@@ -178,21 +178,21 @@ namespace mobileclock::application::ui::page {
     }
 
     void MainPageViewModel::AddAlarm(const model::Alarm& alarmSettings) {
-        if (this->context.alarmRepository.CreateAlarm(alarmSettings)) {
+        if (this->pageContext.alarmRepository.CreateAlarm(alarmSettings)) {
             this->OnNavigatingTo({}, {});
         }
     }
 
     bool MainPageViewModel::UpdateAlarm(const void* dataContext, const model::Alarm& alarmSettings) {
         const auto alarm = std::find_if(this->alarms.begin(), this->alarms.end(), [dataContext](const view_model::AlarmViewModel& value) { return &value == dataContext; });
-        if (alarm == this->alarms.end() || !this->context.alarmRepository.UpdateAlarm(alarm->Id(), alarmSettings)) {
+        if (alarm == this->alarms.end() || !this->pageContext.alarmRepository.UpdateAlarm(alarm->Id(), alarmSettings)) {
             return false;
         }
         this->OnNavigatingTo({}, {}); return true;
     }
 
     void MainPageViewModel::CreateAlarm() {
-        this->context.navigator.Trigger(core::NavigationTrigger::createAlarm);
+        this->pageContext.navigator.Trigger(core::NavigationTrigger::createAlarm);
     }
 
     void MainPageViewModel::EditAlarm(const void* dataContext) {
@@ -204,13 +204,13 @@ namespace mobileclock::application::ui::page {
         }
         // Данные принадлежат конкретному действию, а не временному полю страницы.
         // Тот же контракт используется previewer-ом для построения валидного перехода.
-        this->context.navigator.Trigger(
+        this->pageContext.navigator.Trigger(
             core::NavigationTrigger::editAlarm,
             std::make_unique<core::AlarmEditNavigationState>(alarm->Id(), alarm->Settings()));
     }
 
     void MainPageViewModel::NavigateToSettings() {
-        this->context.navigator.Trigger(core::NavigationTrigger::navigateToSettings);
+        this->pageContext.navigator.Trigger(core::NavigationTrigger::navigateToSettings);
     }
 
     xaml::Element::Command MainPageViewModel::CreateAlarmCommand() const {
@@ -243,19 +243,19 @@ namespace mobileclock::application::ui::page {
 
     void MainPageViewModel::Initialize(xaml::Size availableSize) {
         LOG_FUNCTION_SCOPE("MobileClock", "MainPageViewModel::Initialize: {}x{}", availableSize.width, availableSize.height);
-        this->bindings.Clear();
+        this->bindingScope.Clear();
 #if defined(ANDROID_APP_PREVIEWER)
-        this->runtimeBindings.reset();
+        this->runtimeBindingScope.reset();
 #endif
-        this->page = xaml::generated::MainPage::Create(*this, this->bindings);
+        this->page = xaml::generated::MainPage::Create(*this, this->bindingScope);
         xaml::layout(*this->page, availableSize);
     }
 
     void MainPageViewModel::HandleTap(xaml::Element& element) {
-        this->bindings.UpdateSource(element);
+        this->bindingScope.UpdateSource(element);
 #if defined(ANDROID_APP_PREVIEWER)
-        if (this->runtimeBindings) {
-            this->runtimeBindings->UpdateSource(element);
+        if (this->runtimeBindingScope) {
+            this->runtimeBindingScope->UpdateSource(element);
         }
 #endif
         element.ExecuteCommand();
@@ -271,7 +271,7 @@ namespace mobileclock::application::ui::page {
         if (iterator == this->alarms.end()) {
             return false;
         }
-        if (!this->context.alarmRepository.RemoveAlarm(iterator->Id())) { return false; }
+        if (!this->pageContext.alarmRepository.RemoveAlarm(iterator->Id())) { return false; }
         this->alarms.Erase(iterator); return true;
     }
 
@@ -297,8 +297,8 @@ namespace mobileclock::application::ui::page {
 
     void MainPageViewModel::Render(
         xaml::IRenderBackend& renderer,
-        const xaml::RendererRegistry& renderers) const {
-        xaml::Render(*this->page, renderer, renderers);
+        const xaml::RendererRegistry& rendererRegistry) const {
+        xaml::Render(*this->page, renderer, rendererRegistry);
     }
 
     xaml::Element& MainPageViewModel::Root() {
@@ -328,9 +328,9 @@ namespace mobileclock::application::ui::page {
         publisher.Command("ToggleAlarmCommand", &MainPageViewModel::ToggleAlarmCommand);
         publisher.Command("UpdateApplicationCommand", &MainPageViewModel::UpdateApplicationCommand);
         publisher.Command("UploadScreenshotCommand", &MainPageViewModel::UploadScreenshotCommand);
-        xaml::runtime::RuntimeBindingContext result{registry, "MainPageViewModel", {}};
-        result.xamlNamespace = "urn:mobileclock:xaml";
-        result.controlXmlNamespace = "using:mobileclock.ui.control";
+        xaml::runtime::RuntimeBindingContext runtimeBindingContext{registry, "MainPageViewModel", {}};
+        runtimeBindingContext.xamlNamespace = "urn:mobileclock:xaml";
+        runtimeBindingContext.controlXmlNamespace = "using:mobileclock.ui.control";
         xaml::runtime::RuntimeCollectionDescriptor collection;
         // collection.count и collection.at пока не подключены RuntimeTreeBuilder.
         // Текущий путь через collection.bind вызывает SetItemsSource, который сам
@@ -356,25 +356,25 @@ namespace mobileclock::application::ui::page {
         // Если в runtime-XAML встретится {Binding Alarms} в itemsSource, используй этот RuntimeCollectionDescriptor.
         registry->AddCollection("Alarms", collection);
         registry->AddCollection("ItemsSource", collection);
-        result.controls["AlarmList"] = [this](xaml::BindingScope& scope) {
+        runtimeBindingContext.controls["AlarmList"] = [this](xaml::BindingScope& scope) {
             return mobileclock::ui::control::AlarmList::Create(*this, this->alarms, scope);
         };
-        result.controls["TimelineTabs"] = [this](xaml::BindingScope& scope) {
+        runtimeBindingContext.controls["TimelineTabs"] = [this](xaml::BindingScope& scope) {
             return mobileclock::ui::control::TimelineTabs::Create(*this, scope);
         };
-        result.controls["AlarmActionsMenu"] = [this](xaml::BindingScope& scope) {
+        runtimeBindingContext.controls["AlarmActionsMenu"] = [this](xaml::BindingScope& scope) {
             return mobileclock::ui::control::AlarmActionsMenu::Create(*this, scope);
         };
-        return result;
+        return runtimeBindingContext;
     }
 
-    void MainPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        mobileclock::ui::control::AlarmActionsMenu::preview_PreserveState(*this->page, *result.root);
-        mobileclock::ui::control::AlarmList::preview_PreserveInstances(*this->page, *result.root, *result.bindings);
-        this->bindings.Clear();
-        this->runtimeBindings.reset();
-        this->page = std::move(result.root);
-        this->runtimeBindings = std::move(result.bindings);
+    void MainPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult) {
+        mobileclock::ui::control::AlarmActionsMenu::preview_PreserveState(*this->page, *runtimeBuildResult.root);
+        mobileclock::ui::control::AlarmList::preview_PreserveInstances(*this->page, *runtimeBuildResult.root, *runtimeBuildResult.bindings);
+        this->bindingScope.Clear();
+        this->runtimeBindingScope.reset();
+        this->page = std::move(runtimeBuildResult.root);
+        this->runtimeBindingScope = std::move(runtimeBuildResult.bindings);
     }
 #endif
 
@@ -400,7 +400,7 @@ namespace mobileclock::application::ui::page {
         if (alarm.IsEnabled() == value) {
             return;
         }
-        if (this->context.alarmRepository.SetAlarmEnabled(alarm.Id(), value)) { alarm.SetIsEnabled(value); }
+        if (this->pageContext.alarmRepository.SetAlarmEnabled(alarm.Id(), value)) { alarm.SetIsEnabled(value); }
     }
 
     bool MainPageViewModel::PersistAlarms() {

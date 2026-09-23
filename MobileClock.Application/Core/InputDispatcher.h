@@ -26,13 +26,13 @@ namespace mobileclock::application::core {
             bool active = false;
         };
         preview_RuntimePanState preview_CaptureRuntimePan() const;
-        void preview_RestoreRuntimePan(xaml::Element& root, const preview_RuntimePanState& state);
+        void preview_RestoreRuntimePan(xaml::Element& root, const preview_RuntimePanState& previewRuntimePanState);
 #endif
-        void PointerDown(xaml::Element& root, float x, float y, xaml::AnimationController* animations = nullptr);
+        void PointerDown(xaml::Element& root, float x, float y, xaml::AnimationController* animationController = nullptr);
         bool PointerMove(float x, float y);
-        xaml::Element* PointerUp(xaml::Element& root, float x, float y, xaml::AnimationController& animations);
+        xaml::Element* PointerUp(xaml::Element& root, float x, float y, xaml::AnimationController& animationController);
         void Cancel();
-        bool Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
+        bool Update(xaml::Element& pageRoot, xaml::AnimationController& animationController);
 
     private:
         enum class ActiveGesture {

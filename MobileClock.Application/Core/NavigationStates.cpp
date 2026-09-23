@@ -46,27 +46,27 @@ namespace mobileclock::application::core {
 #endif
 
     std::string AlarmEditNavigationState::Serialize() const {
-        _details::AlarmEditNavigationStateDocument document;
-        document.AlarmId = this->alarmId;
-        document.Hour = this->settings.hour;
-        document.Minute = this->settings.minute;
-        return JS::serializeStruct(document);
+        _details::AlarmEditNavigationStateDocument alarmEditNavigationStateDocument;
+        alarmEditNavigationStateDocument.AlarmId = this->alarmId;
+        alarmEditNavigationStateDocument.Hour = this->settings.hour;
+        alarmEditNavigationStateDocument.Minute = this->settings.minute;
+        return JS::serializeStruct(alarmEditNavigationStateDocument);
     }
 
     bool AlarmEditNavigationState::Deserialize(std::string_view json, std::string& error) {
-        _details::AlarmEditNavigationStateDocument document;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(document) != JS::Error::NoError || document.AlarmId.empty()) {
-            error = document.AlarmId.empty()
+        _details::AlarmEditNavigationStateDocument alarmEditNavigationStateDocument;
+        JS::ParseContext parseContext(json.data(), json.size());
+        if (parseContext.parseTo(alarmEditNavigationStateDocument) != JS::Error::NoError || alarmEditNavigationStateDocument.AlarmId.empty()) {
+            error = alarmEditNavigationStateDocument.AlarmId.empty()
                 ? "Navigation data requires alarmId"
-                : std::format("Invalid alarm edit navigation data: {}", context.makeErrorString());
+                : std::format("Invalid alarm edit navigation data: {}", parseContext.makeErrorString());
             return false;
         }
-        this->alarmId = std::move(document.AlarmId);
+        this->alarmId = std::move(alarmEditNavigationStateDocument.AlarmId);
         this->settings = model::Alarm{};
         this->settings.id = this->alarmId;
-        this->settings.hour = document.Hour;
-        this->settings.minute = document.Minute;
+        this->settings.hour = alarmEditNavigationStateDocument.Hour;
+        this->settings.minute = alarmEditNavigationStateDocument.Minute;
         return true;
     }
 
@@ -97,23 +97,23 @@ namespace mobileclock::application::core {
 #endif
 
     std::string preview_AlarmMelodyNavigationState::Serialize() const {
-        _details::AlarmMelodyNavigationStateDocument document;
-        document.Id = this->alarmMelody.id;
-        document.Name = this->alarmMelody.name;
-        document.Uri = this->alarmMelody.uri;
-        return JS::serializeStruct(document);
+        _details::AlarmMelodyNavigationStateDocument alarmMelodyNavigationStateDocument;
+        alarmMelodyNavigationStateDocument.Id = this->alarmMelody.id;
+        alarmMelodyNavigationStateDocument.Name = this->alarmMelody.name;
+        alarmMelodyNavigationStateDocument.Uri = this->alarmMelody.uri;
+        return JS::serializeStruct(alarmMelodyNavigationStateDocument);
     }
 
     bool preview_AlarmMelodyNavigationState::Deserialize(std::string_view json, std::string& error) {
-        _details::AlarmMelodyNavigationStateDocument document;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(document) != JS::Error::NoError || document.Id.empty()) {
-            error = document.Id.empty()
+        _details::AlarmMelodyNavigationStateDocument alarmMelodyNavigationStateDocument;
+        JS::ParseContext parseContext(json.data(), json.size());
+        if (parseContext.parseTo(alarmMelodyNavigationStateDocument) != JS::Error::NoError || alarmMelodyNavigationStateDocument.Id.empty()) {
+            error = alarmMelodyNavigationStateDocument.Id.empty()
                 ? "Navigation data requires id"
-                : std::format("Invalid alarm melody navigation data: {}", context.makeErrorString());
+                : std::format("Invalid alarm melody navigation data: {}", parseContext.makeErrorString());
             return false;
         }
-        this->alarmMelody = {std::move(document.Id), std::move(document.Name), std::move(document.Uri)};
+        this->alarmMelody = {std::move(alarmMelodyNavigationStateDocument.Id), std::move(alarmMelodyNavigationStateDocument.Name), std::move(alarmMelodyNavigationStateDocument.Uri)};
         return true;
     }
 

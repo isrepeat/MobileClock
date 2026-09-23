@@ -26,18 +26,18 @@ namespace mobileclock::application::ui::page {
         };
     } // namespace _details
 
-    SettingsPageViewModel::SettingsPageViewModel(core::PageContext& context)
-        : navigateToMainCommand([&context]() {
-            context.navigator.Trigger(core::NavigationTrigger::navigateBack);
+    SettingsPageViewModel::SettingsPageViewModel(core::PageContext& pageContext)
+        : navigateToMainCommand([&pageContext]() {
+            pageContext.navigator.Trigger(core::NavigationTrigger::navigateBack);
         })
-        , resetAlarmMelodySelectionCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::resetAlarmMelodySelection, {});
+        , resetAlarmMelodySelectionCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::resetAlarmMelodySelection, {});
         })
-        , shareLogsCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::shareLogs, {});
+        , shareLogsCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::shareLogs, {});
         })
-        , exportLogsCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::exportLogs, {});
+        , exportLogsCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::exportLogs, {});
         }) {
     }
 
@@ -53,9 +53,9 @@ namespace mobileclock::application::ui::page {
 
     bool SettingsPageViewModel::Deserialize(std::string_view json, std::string& error) {
         _details::SettingsPageSerializationDocument scenario;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid serialized JSON: {}", context.makeErrorString());
+        JS::ParseContext pageContext(json.data(), json.size());
+        if (pageContext.parseTo(scenario) != JS::Error::NoError) {
+            error = std::format("Invalid serialized JSON: {}", pageContext.makeErrorString());
             return false;
         }
         if (scenario.Theme) {
@@ -121,19 +121,19 @@ namespace mobileclock::application::ui::page {
     }
 
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
-        this->bindings.Clear();
+        this->bindingScope.Clear();
 #if defined(ANDROID_APP_PREVIEWER)
-        this->runtimeBindings.reset();
+        this->runtimeBindingScope.reset();
 #endif
-        this->page = xaml::generated::SettingsPage::Create(*this, this->bindings);
+        this->page = xaml::generated::SettingsPage::Create(*this, this->bindingScope);
         xaml::layout(*this->page, availableSize);
     }
 
     void SettingsPageViewModel::HandleTap(xaml::Element& element) {
-        this->bindings.UpdateSource(element);
+        this->bindingScope.UpdateSource(element);
 #if defined(ANDROID_APP_PREVIEWER)
-        if (this->runtimeBindings) {
-            this->runtimeBindings->UpdateSource(element);
+        if (this->runtimeBindingScope) {
+            this->runtimeBindingScope->UpdateSource(element);
         }
 #endif
         element.ExecuteCommand();
@@ -144,8 +144,8 @@ namespace mobileclock::application::ui::page {
 
     void SettingsPageViewModel::Render(
         xaml::IRenderBackend& renderer,
-        const xaml::RendererRegistry& renderers) const {
-        xaml::Render(*this->page, renderer, renderers);
+        const xaml::RendererRegistry& rendererRegistry) const {
+        xaml::Render(*this->page, renderer, rendererRegistry);
     }
 
     xaml::Element& SettingsPageViewModel::Root() {
@@ -170,18 +170,18 @@ namespace mobileclock::application::ui::page {
         publisher.Command("ResetAlarmMelodySelectionCommand", &SettingsPageViewModel::ResetAlarmMelodySelectionCommand);
         publisher.Command("ShareLogsCommand", &SettingsPageViewModel::ShareLogsCommand);
         publisher.Command("ExportLogsCommand", &SettingsPageViewModel::ExportLogsCommand);
-        xaml::runtime::RuntimeBindingContext result{registry, "SettingsPageViewModel", {}};
-        result.xamlNamespace = "urn:mobileclock:xaml";
-        result.controlXmlNamespace = "using:mobileclock.ui.control";
+        xaml::runtime::RuntimeBindingContext runtimeBindingContext{registry, "SettingsPageViewModel", {}};
+        runtimeBindingContext.xamlNamespace = "urn:mobileclock:xaml";
+        runtimeBindingContext.controlXmlNamespace = "using:mobileclock.ui.control";
 
-        return result;
+        return runtimeBindingContext;
     }
 
-    void SettingsPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        this->bindings.Clear();
-        this->runtimeBindings.reset();
-        this->page = std::move(result.root);
-        this->runtimeBindings = std::move(result.bindings);
+    void SettingsPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult) {
+        this->bindingScope.Clear();
+        this->runtimeBindingScope.reset();
+        this->page = std::move(runtimeBuildResult.root);
+        this->runtimeBindingScope = std::move(runtimeBuildResult.bindings);
     }
 #endif
 }

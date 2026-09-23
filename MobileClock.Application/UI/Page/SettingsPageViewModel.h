@@ -35,7 +35,7 @@ namespace mobileclock::application::ui::page {
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        explicit SettingsPageViewModel(core::PageContext& context);
+        explicit SettingsPageViewModel(core::PageContext& pageContext);
         ~SettingsPageViewModel() = default;
 
         SettingsPageViewModel(const SettingsPageViewModel&) = delete;
@@ -64,13 +64,13 @@ namespace mobileclock::application::ui::page {
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();
-        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& rendererRegistry) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
 #if defined(ANDROID_APP_PREVIEWER)
         xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
-        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult);
 #endif
 
     private:
@@ -78,9 +78,9 @@ namespace mobileclock::application::ui::page {
         std::string sound = "Мелодия по умолчанию";
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
-        xaml::BindingScope bindings;
+        xaml::BindingScope bindingScope;
 #if defined(ANDROID_APP_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+        std::unique_ptr<xaml::BindingScope> runtimeBindingScope;
 #endif
         xaml::Element::Command navigateToMainCommand;
         xaml::Element::Command resetAlarmMelodySelectionCommand;

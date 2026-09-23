@@ -50,6 +50,6 @@ namespace mobileclock::application::core {
 
     private:
         PageManager pageManager;
-        xaml::RendererRegistry renderers;
+        xaml::RendererRegistry rendererRegistry;
     };
 }

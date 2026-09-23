@@ -84,14 +84,14 @@ namespace mobileclock::preview::session {
     class PreviewSession::State final {
     public:
         explicit State(int width, int height)
-            : stateStorage(_details::PreviewerStatePath())
-            , stateStore(stateStorage.Load(), [this](const application::model::ApplicationStateDocument& data) {
-                return this->stateStorage.Save(data);
+            : previewerStateStorage(_details::PreviewerStatePath())
+            , applicationStateStore(previewerStateStorage.Load(), [this](const application::model::ApplicationStateDocument& data) {
+                return this->previewerStateStorage.Save(data);
             })
-            , alarmRepository(stateStore)
-            , alarmMelodyRepository(stateStore)
+            , alarmRepository(applicationStateStore)
+            , alarmMelodyRepository(applicationStateStore)
             , appSessionController(alarmRepository, alarmMelodyRepository)
-            , navigation(appSessionController.Session()) {
+            , previewNavigationController(appSessionController.Session()) {
             if (width <= 0 || height <= 0) {
                 throw std::invalid_argument("Session dimensions must be positive");
             }
@@ -111,12 +111,12 @@ namespace mobileclock::preview::session {
             this->appSessionController.Session().Initialize({static_cast<float>(width), static_cast<float>(height)});
         }
 
-        _details::PreviewerStateStorage stateStorage;
-        application::core::ApplicationStateStore stateStore;
+        _details::PreviewerStateStorage previewerStateStorage;
+        application::core::ApplicationStateStore applicationStateStore;
         application::model::AlarmRepository alarmRepository;
         application::model::AlarmMelodyRepository alarmMelodyRepository;
         application::core::AppSessionController appSessionController;
-        PreviewNavigationController navigation;
+        PreviewNavigationController previewNavigationController;
     };
 
     PreviewSession::PreviewSession(int width, int height)
@@ -134,7 +134,7 @@ namespace mobileclock::preview::session {
     }
 
     PreviewNavigationController& PreviewSession::Navigation() {
-        return this->state->navigation;
+        return this->state->previewNavigationController;
     }
 
     bool PreviewSession::ExportState() {
@@ -146,7 +146,7 @@ namespace mobileclock::preview::session {
     }
 
     bool PreviewSession::CanSaveState() const {
-        return !this->state->alarmRepository.preview_IsSessionDocumentEquivalentTo(this->state->stateStorage.Load());
+        return !this->state->alarmRepository.preview_IsSessionDocumentEquivalentTo(this->state->previewerStateStorage.Load());
     }
 
     void PreviewSession::Resize(int width, int height) {

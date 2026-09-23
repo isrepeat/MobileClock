@@ -13,21 +13,21 @@ namespace mobileclock::application::base {
         virtual ~AppRepositoryBase() = default;
 
 #if defined(ANDROID_APP_PREVIEWER)
-        void preview_LoadScenarioState(model::ApplicationStateDocument document);
+        void preview_LoadScenarioState(model::ApplicationStateDocument applicationStateDocument);
         bool preview_SaveStateToPersistentStorage();
-        virtual bool preview_IsSessionDocumentEquivalentTo(const model::ApplicationStateDocument& document) const = 0;
+        virtual bool preview_IsSessionDocumentEquivalentTo(const model::ApplicationStateDocument& applicationStateDocument) const = 0;
         virtual void preview_ReloadFromStateStore() = 0;
 #endif
 
     protected:
-        explicit AppRepositoryBase(core::ApplicationStateStore& store);
+        explicit AppRepositoryBase(core::ApplicationStateStore& applicationStateStore);
 
         const model::ApplicationStateDocument& State() const;
-        bool Commit(model::ApplicationStateDocument document);
+        bool Commit(model::ApplicationStateDocument applicationStateDocument);
         static std::string CreateAlarmId();
         static std::string CreateMelodyId();
 
     private:
-        core::ApplicationStateStore& store;
+        core::ApplicationStateStore& applicationStateStore;
     };
 }

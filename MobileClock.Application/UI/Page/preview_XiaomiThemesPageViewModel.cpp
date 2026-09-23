@@ -1,5 +1,5 @@
 #if defined(ANDROID_APP_PREVIEWER)
-#include "XiaomiThemesPageViewModel.h"
+#include "preview_XiaomiThemesPageViewModel.h"
 
 #include <XamlRuntime/RenderEngine.h>
 #include <JsonParser/json_struct/json_struct.h>
@@ -44,8 +44,8 @@ namespace mobileclock::application::ui::page::_details {
 } // namespace _details
 
 namespace mobileclock::application::ui::page {
-    preview_XiaomiThemesPageViewModel::preview_XiaomiThemesPageViewModel(core::PageContext& context)
-        : context(context) {
+    preview_XiaomiThemesPageViewModel::preview_XiaomiThemesPageViewModel(core::PageContext& pageContext)
+        : pageContext(pageContext) {
         this->melodies.emplace_back(model::AlarmMelody{"morning", "Morning", "preview://xiaomi-themes/morning"});
         this->melodies.emplace_back(model::AlarmMelody{"lone-grass", "Lone Grass, Solitary Flower", "preview://xiaomi-themes/lone-grass"});
         this->melodies.emplace_back(model::AlarmMelody{"positive-uplift", "Positive Uplift", "preview://xiaomi-themes/positive-uplift"});
@@ -56,25 +56,25 @@ namespace mobileclock::application::ui::page {
     // ISerializable
     //
     std::string preview_XiaomiThemesPageViewModel::Serialize() const {
-        _details::preview_XiaomiThemesSerializationDocument scenario;
-        scenario.Melodies.emplace();
-        for (const view_model::AlarmMelodyViewModel& melody : this->melodies) {
-            scenario.Melodies->push_back({melody.Name(), melody.Uri()});
+        _details::preview_XiaomiThemesSerializationDocument previewXiaomiThemesSerializationDocument;
+        previewXiaomiThemesSerializationDocument.Melodies.emplace();
+        for (const view_model::AlarmMelodyViewModel& alarmMelodyViewModel : this->melodies) {
+            previewXiaomiThemesSerializationDocument.Melodies->push_back({alarmMelodyViewModel.Name(), alarmMelodyViewModel.Uri()});
         }
-        return JS::serializeStruct(scenario);
+        return JS::serializeStruct(previewXiaomiThemesSerializationDocument);
     }
 
     bool preview_XiaomiThemesPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::preview_XiaomiThemesSerializationDocument scenario;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid serialized JSON: {}", context.makeErrorString());
+        _details::preview_XiaomiThemesSerializationDocument previewXiaomiThemesSerializationDocument;
+        JS::ParseContext parseContext(json.data(), json.size());
+        if (parseContext.parseTo(previewXiaomiThemesSerializationDocument) != JS::Error::NoError) {
+            error = std::format("Invalid serialized JSON: {}", parseContext.makeErrorString());
             return false;
         }
-        if (scenario.Melodies) {
+        if (previewXiaomiThemesSerializationDocument.Melodies) {
             this->melodies.clear();
-            for (const _details::preview_XiaomiThemesMelody& melody : *scenario.Melodies) {
-                this->melodies.emplace_back(model::AlarmMelody{"", melody.Name, melody.Uri});
+            for (const _details::preview_XiaomiThemesMelody& previewXiaomiThemesMelody : *previewXiaomiThemesSerializationDocument.Melodies) {
+                this->melodies.emplace_back(model::AlarmMelody{"", previewXiaomiThemesMelody.Name, previewXiaomiThemesMelody.Uri});
             }
             this->selectedMelody = this->melodies.empty() ? std::nullopt : std::optional<size_t>{0};
             this->preview_RebuildMelodies();
@@ -98,9 +98,9 @@ namespace mobileclock::application::ui::page {
     // API
     //
     void preview_XiaomiThemesPageViewModel::preview_Initialize(xaml::Size availableSize) {
-        this->bindings.Clear();
-        this->runtimeBindings.reset();
-        this->page = xaml::generated::XiaomiThemesPage::Create(*this, this->bindings);
+        this->bindingScope.Clear();
+        this->runtimeBindingScope.reset();
+        this->page = xaml::generated::XiaomiThemesPage::Create(*this, this->bindingScope);
         this->preview_ConnectControls();
         xaml::layout(*this->page, availableSize);
     }
@@ -114,8 +114,8 @@ namespace mobileclock::application::ui::page {
 
     void preview_XiaomiThemesPageViewModel::preview_Render(
         xaml::IRenderBackend& renderer,
-        const xaml::RendererRegistry& renderers) const {
-        xaml::Render(*this->page, renderer, renderers);
+        const xaml::RendererRegistry& rendererRegistry) const {
+        xaml::Render(*this->page, renderer, rendererRegistry);
     }
 
     xaml::Element& preview_XiaomiThemesPageViewModel::preview_Root() {
@@ -123,20 +123,20 @@ namespace mobileclock::application::ui::page {
     }
 
     xaml::runtime::RuntimeBindingContext preview_XiaomiThemesPageViewModel::preview_RuntimeContext() {
-        xaml::runtime::RuntimeBindingContext result{
+        xaml::runtime::RuntimeBindingContext runtimeBindingContext{
             std::make_shared<xaml::runtime::RuntimeBindingRegistry>(),
             "preview_XiaomiThemesPageViewModel",
             {}};
-        result.xamlNamespace = "urn:mobileclock:xaml";
-        result.controlXmlNamespace = "using:mobileclock.ui.control";
-        return result;
+        runtimeBindingContext.xamlNamespace = "urn:mobileclock:xaml";
+        runtimeBindingContext.controlXmlNamespace = "using:mobileclock.ui.control";
+        return runtimeBindingContext;
     }
 
-    void preview_XiaomiThemesPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        this->bindings.Clear();
-        this->runtimeBindings.reset();
-        this->page = std::move(result.root);
-        this->runtimeBindings = std::move(result.bindings);
+    void preview_XiaomiThemesPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult) {
+        this->bindingScope.Clear();
+        this->runtimeBindingScope.reset();
+        this->page = std::move(runtimeBuildResult.root);
+        this->runtimeBindingScope = std::move(runtimeBuildResult.bindings);
         this->preview_ConnectControls();
     }
 
@@ -146,7 +146,7 @@ namespace mobileclock::application::ui::page {
     void preview_XiaomiThemesPageViewModel::preview_ConnectControls() {
         if (auto* back = this->preview_Find("backNavigation")) {
             back->SetCommand([this]() {
-                this->context.navigator.Trigger(core::NavigationTrigger::navigateBack);
+                this->pageContext.navigator.Trigger(core::NavigationTrigger::navigateBack);
             });
         }
         if (auto* apply = this->preview_Find("applyButton")) {
@@ -165,7 +165,7 @@ namespace mobileclock::application::ui::page {
         // Применение и обычный возврат используют один маршрут истории. Payload нужен только
         // этому действию: стрелка «Назад» возвращается без изменения черновика будильника.
         const view_model::AlarmMelodyViewModel& melody = this->melodies[*this->selectedMelody];
-        this->context.navigator.NavigateBack(std::make_unique<core::preview_AlarmMelodyNavigationState>(melody.Value()));
+        this->pageContext.navigator.NavigateBack(std::make_unique<core::preview_AlarmMelodyNavigationState>(melody.Value()));
     }
 
     void preview_XiaomiThemesPageViewModel::preview_RebuildMelodies() {
