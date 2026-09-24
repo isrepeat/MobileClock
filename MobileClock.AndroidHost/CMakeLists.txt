@@ -12,6 +12,29 @@ if (NOT mobileclock_package_version)
 endif()
 get_filename_component(mobileclock_project_root "${CMAKE_CURRENT_SOURCE_DIR}" DIRECTORY)
 set(mobileclock_generated_root "${mobileclock_project_root}/!Generated")
+set(mobileclock_xaml_generator_script
+    "${mobileclock_project_root}/Scripts/PowerShell/generate-xaml.ps1")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${mobileclock_xaml_generator_script}")
+
+# Generated XAML C++ sources are part of the source list below, so they must
+# exist before CMake scans the project.  Running the incremental generator at
+# configure time lets both Visual Studio presets work from a clean checkout.
+execute_process(
+    COMMAND powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass
+        -File "${mobileclock_xaml_generator_script}"
+        -CMakeExecutable "${CMAKE_COMMAND}"
+    WORKING_DIRECTORY "${mobileclock_project_root}"
+    RESULT_VARIABLE mobileclock_xaml_generator_result
+    OUTPUT_VARIABLE mobileclock_xaml_generator_output
+    ERROR_VARIABLE mobileclock_xaml_generator_error
+)
+if (NOT mobileclock_xaml_generator_result EQUAL 0)
+    message(FATAL_ERROR
+        "XAML generation failed with exit code ${mobileclock_xaml_generator_result}.\n"
+        "${mobileclock_xaml_generator_output}${mobileclock_xaml_generator_error}")
+endif()
+message(STATUS "${mobileclock_xaml_generator_output}")
 set(mobileclock_generated_build_dir "${mobileclock_generated_root}/Build")
 set(mobileclock_application_xaml_generated_root "${mobileclock_generated_root}/MobileClock.Application/Xaml")
 set(mobileclock_ui_xaml_generated_root "${mobileclock_generated_root}/MobileClock.UI/Xaml")
@@ -27,10 +50,8 @@ if (NOT ANDROID)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif()
 
-# В пресетах выбран target-specific драйвер NDK, например
-# x86_64-linux-android24-clang++.cmd. Поэтому и компилятор, и IntelliSense
-# получают один и тот же Android target, sysroot и predefined macros напрямую
-# от Clang — без ручного дублирования системных include-путей.
+# CMake selects the NDK Clang executable, target and sysroot through the
+# Android toolchain; no generated compiler wrappers under .vs are needed.
 if (ANDROID)
     # NDK Clang передаёт эти каталоги неявно, но VS 2026 не переносит его
     # implicit include list в CMake IntelliSense. Публикуем их на уровне
@@ -38,6 +59,10 @@ if (ANDROID)
     # и для всех будущих C++-целей этого Android-проекта.
     set(mobileclock_ndk_toolchain
         "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/windows-x86_64")
+    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" --print-resource-dir
+        OUTPUT_VARIABLE mobileclock_clang_resource_dir
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        COMMAND_ERROR_IS_FATAL ANY)
     set(mobileclock_intellisense_abi "${CMAKE_ANDROID_ARCH_ABI}")
     if (NOT mobileclock_intellisense_abi)
         set(mobileclock_intellisense_abi "${ANDROID_ABI}")
@@ -59,7 +84,7 @@ if (ANDROID)
 
     add_compile_options(
         "SHELL:-I \"${mobileclock_ndk_toolchain}/sysroot/usr/include/c++/v1\""
-        "SHELL:-I \"${mobileclock_ndk_toolchain}/lib/clang/18/include\""
+        "SHELL:-I \"${mobileclock_clang_resource_dir}/include\""
         "SHELL:-I \"${mobileclock_ndk_toolchain}/sysroot/usr/include/${mobileclock_ndk_sysroot_arch_include}\""
         "SHELL:-I \"${mobileclock_ndk_toolchain}/sysroot/usr/include\""
     )
@@ -82,6 +107,10 @@ file(GLOB_RECURSE mobileclock_xaml_source CONFIGURE_DEPENDS
     "${mobileclock_project_root}/MobileClock.Application/*.xaml"
     "${CMAKE_CURRENT_SOURCE_DIR}/../MobileClock.UI/*.xaml"
 )
+# CONFIGURE_DEPENDS notices additions and removals; track the discovered files
+# too, so an edit to an existing XAML file reruns the generator before build.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${mobileclock_xaml_source})
 file(GLOB_RECURSE mobileclock_xaml_generated CONFIGURE_DEPENDS
     "${mobileclock_application_xaml_generated_root}/*.xaml.cpp"
     "${mobileclock_ui_xaml_generated_root}/*.xaml.cpp"
@@ -213,11 +242,11 @@ set_target_properties(mobileclock_presentation PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 target_link_libraries(mobileclock_presentation PUBLIC
-    utility_helpers::xaml_runtime
+    XamlRuntime::Runtime
 )
 if (ANDROID)
     target_link_libraries(mobileclock_presentation PUBLIC
-        utility_helpers::open_gles_renderer
+        XamlRuntime::OpenGLESRenderer
     )
 endif()
 
@@ -244,7 +273,7 @@ set_target_properties(mobileclock_ui PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 target_link_libraries(mobileclock_ui PUBLIC
-    utility_helpers::xaml_runtime
+    XamlRuntime::Runtime
 )
 
 # Application — общий platform-neutral runtime. Android и desktop previewer
@@ -265,8 +294,8 @@ if (NOT ANDROID)
     target_sources(mobileclock_application PRIVATE
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared/JsonParser/JsonParser.cpp"
     )
-    target_compile_definitions(mobileclock_application PUBLIC MOBILECLOCK_XAML_PREVIEWER=1)
-    target_compile_definitions(mobileclock_ui PRIVATE MOBILECLOCK_XAML_PREVIEWER=1)
+    target_compile_definitions(mobileclock_application PUBLIC ANDROID_APP_PREVIEWER=1)
+    target_compile_definitions(mobileclock_ui PRIVATE ANDROID_APP_PREVIEWER=1)
     target_include_directories(mobileclock_application PRIVATE
         "${mobileclock_project_root}/UtilityHelpersLib/3rdParty/JsonParser/JsonParser.Shared"
         "${mobileclock_project_root}/UtilityHelpersLib/Helpers/Helpers.Shared"
@@ -288,7 +317,7 @@ set_target_properties(mobileclock_application PROPERTIES
 target_link_libraries(mobileclock_application PUBLIC
     mobileclock_ui
     mobileclock_presentation
-    utility_helpers::xaml_runtime
+    XamlRuntime::Runtime
 )
 
 # Android host owns JNI, EGL, Android assets and platform actions. Its public
@@ -333,9 +362,9 @@ if (ANDROID)
     # берём из UtilityHelpersLib. Локальный spdlog в MobileClock больше не нужен.
     target_link_libraries(mobileclock_android_host
         mobileclock_application
-        utility_helpers::open_gles_renderer
+        XamlRuntime::OpenGLESRenderer
         utility_helpers::new
-        utility_helpers::xaml_runtime
+        XamlRuntime::Runtime
         # В CMake 4.3 Android-модуль не добавляет c++abi при этом standalone-NDK
         # preset. Линкуем рантайм статически, не требуя отдельный libc++_shared.so.
         c++_static

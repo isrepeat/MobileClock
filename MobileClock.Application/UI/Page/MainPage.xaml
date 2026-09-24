@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?mobileclock-preview-scenario path="Scenario/MainPage.json"?>
+<?xaml-preview-scenario path="Scenario/MainPage.json"?>
 <Page id="root"
       padding="0 0 0 0"
       background="#171813"
@@ -104,6 +104,13 @@
                                       source="Icons/menu.svg"
                                       tint="#8A8567"/>
                         </Button>
+                        <TextBlock id="timelinePackageVersion"
+                                   gridColumn="2"
+                                   verticalAlignment="Center"
+                                   horizontalAlignment="Center"
+                                   fontSize="64"
+                                   foreground="#8A8567"
+                                   text="{Binding PackageVersion}"/>
                         <Button id="timelineMoreIcon"
                                 gridColumn="3"
                                 width="60"

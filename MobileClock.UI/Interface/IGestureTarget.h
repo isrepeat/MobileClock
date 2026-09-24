@@ -43,15 +43,15 @@ namespace mobileclock::ui::interface {
             const PanState& state,
             GestureDirection direction);
         static xaml::Element* FindContainingScrollViewer(const xaml::Element& element);
-        static void Update(xaml::Element& pageRoot, xaml::AnimationController& animations);
+        static void Update(xaml::Element& pageRoot, xaml::AnimationController& animationController);
 
         virtual xaml::Element* FindScrollViewer(const xaml::Element& element) const = 0;
         virtual GestureHandling ResolveGesture(const PanState& state, GestureDirection direction) const;
         virtual void BeginGesture(const PanState& state);
         virtual void UpdateGesture(const PanState& state);
-        virtual bool EndGesture(const PanState& state, xaml::AnimationController& animations);
+        virtual bool EndGesture(const PanState& state, xaml::AnimationController& animationController);
         virtual void CancelGesture(xaml::Element& element);
-        virtual void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) = 0;
+        virtual void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) = 0;
 
     protected:
         void RegisterGestureTarget();

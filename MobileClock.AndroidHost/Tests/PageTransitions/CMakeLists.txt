@@ -37,7 +37,7 @@ add_executable(PageTransitionsTests
 )
 target_include_directories(PageTransitionsTests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_LIST_DIR}/../../.." "${CMAKE_CURRENT_LIST_DIR}/../..")
 target_sources(PageTransitionsTests PRIVATE ${page_transition_presentation_source_files})
-target_link_libraries(PageTransitionsTests PRIVATE utility_helpers::xaml_runtime)
+target_link_libraries(PageTransitionsTests PRIVATE XamlRuntime::Runtime)
 target_compile_features(PageTransitionsTests PRIVATE cxx_std_20)
 enable_testing()
 add_test(NAME PageTransitions COMMAND PageTransitionsTests)

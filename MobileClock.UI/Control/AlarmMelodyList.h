@@ -4,8 +4,8 @@
 #include "!Generated/MobileClock.UI/Xaml/Control/AlarmMelodyList.xaml.h"
 #include "../Base/InteractiveListBase.h"
 
-#include <type_traits>
 #include <string_view>
+#include <type_traits>
 #include <functional>
 #include <memory>
 
@@ -26,11 +26,12 @@ namespace mobileclock::ui::control {
         static std::unique_ptr<AlarmMelodyList> Create(
             TViewModel& viewModel,
             const TItemsSource& itemsSource,
-            xaml::BindingScope& bindings) {
+            xaml::BindingScope&) {
             auto control = std::make_unique<AlarmMelodyList>();
             control->itemsSource.Set(static_cast<const void*>(&itemsSource));
-            control->InitializeComponent(
-                xaml::generated::AlarmMelodyListXaml::BuildContent(viewModel, itemsSource, bindings));
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::AlarmMelodyListXaml::BuildContent(viewModel, itemsSource, *bindings);
+            control->InitializeComponent(std::move(content), std::move(bindings));
             using Item = std::remove_cvref_t<decltype(*itemsSource.begin())>;
             control->SetSelectionPredicate([&viewModel](const void* dataContext) {
                 const auto* item = static_cast<const Item*>(dataContext);
@@ -39,7 +40,7 @@ namespace mobileclock::ui::control {
             return control;
         }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
@@ -52,8 +53,8 @@ namespace mobileclock::ui::control {
     private:
         std::string_view ScrollViewerId() const override;
         std::string_view ListViewId() const override;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        void OnTemplateReplaced() override;
+#if defined(ANDROID_APP_PREVIEWER)
+        void preview_OnTemplateReplaced() override;
 #endif
 
         //
@@ -64,7 +65,7 @@ namespace mobileclock::ui::control {
             interface::GestureDirection direction) const override;
         void BeginInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelInteractiveGesture(xaml::Element& element) override;
 
     private:

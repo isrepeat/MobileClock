@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/ObservableCollection.h>
@@ -7,15 +7,17 @@
 #include <XamlRuntime/Binding.h>
 
 #include "../../Interface/INavigationPage.h"
+#if defined(ANDROID_APP_PREVIEWER)
 #include "../../Interface/ISerializable.h"
+#endif
 #include "../../Core/PageRegistry.h"
 #include "../../Core/Navigation.h"
 #include "../ViewModel/AlarmViewModel.h"
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace xaml {
     class IRenderBackend;
@@ -23,10 +25,14 @@ namespace xaml {
 }
 
 namespace mobileclock::application::ui::page {
-    class MainPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
+    class MainPageViewModel final :
+#if defined(ANDROID_APP_PREVIEWER)
+        public interface::ISerializable,
+#endif
+        public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "MainPage";
-        inline static constexpr std::string_view PreviewGraphTitle = "⌂  Главная";
+        inline static constexpr std::string_view preview_GraphTitle = "⌂  Главная";
 
         enum class Property {
             clockText,
@@ -37,16 +43,17 @@ namespace mobileclock::application::ui::page {
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        explicit MainPageViewModel(core::PageContext& context);
+        explicit MainPageViewModel(core::PageContext& pageContext);
         ~MainPageViewModel() = default;
 
         MainPageViewModel(const MainPageViewModel&) = delete;
         MainPageViewModel& operator=(const MainPageViewModel&) = delete;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
 #endif
         //
@@ -64,7 +71,7 @@ namespace mobileclock::application::ui::page {
         void AddAlarm(const model::Alarm& alarmSettings);
         bool UpdateAlarm(const void* dataContext, const model::Alarm& alarmSettings);
         void CreateAlarm();
-        void EditAlarm(const void* dataContext);
+        void EditAlarm(const std::string& id);
         void NavigateToSettings();
         xaml::Element::Command CreateAlarmCommand() const;
         xaml::Element::Command NavigateToSettingsCommand() const;
@@ -76,13 +83,13 @@ namespace mobileclock::application::ui::page {
         void HandleTap(xaml::Element& element);
         bool RemoveItem(const void* dataContext);
         void Update();
-        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& rendererRegistry) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        xaml::runtime::RuntimeBindingContext RuntimeContext();
-        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+#if defined(ANDROID_APP_PREVIEWER)
+        xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult);
 #endif
 
     private:
@@ -92,26 +99,21 @@ namespace mobileclock::application::ui::page {
         bool PersistAlarms();
 
     private:
-        core::PageContext& context;
+        core::PageContext& pageContext;
         std::string clockText;
         std::string packageVersion;
         std::string status = "Готово к проверке обновлений";
-        xaml::ObservableCollection<view_model::AlarmViewModel> alarms{
-            {"05:55", "Пн, Вт, Ср, Чт, Пт", true},
-            {"06:18", "Сб, Вс", false},
-            {"06:30", "Ежедневно", true},
-        };
+        xaml::ObservableCollection<view_model::AlarmViewModel> alarms;
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
-        xaml::BindingScope bindings;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+        xaml::BindingScope bindingScope;
+#if defined(ANDROID_APP_PREVIEWER)
+        std::unique_ptr<xaml::BindingScope> runtimeBindingScope;
 #endif
         xaml::Element::Command createAlarmCommand;
         xaml::Element::Command navigateToSettingsCommand;
         xaml::Element::Command toggleAlarmCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
-        const view_model::AlarmViewModel* alarmBeingEdited = nullptr;
     };
 }

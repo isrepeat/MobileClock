@@ -8,16 +8,16 @@
 #include <format>
 
 namespace mobileclock::application::base {
-    AppRepositoryBase::AppRepositoryBase(core::ApplicationStateStore& store)
-        : store(store) {
+    AppRepositoryBase::AppRepositoryBase(core::ApplicationStateStore& applicationStateStore)
+        : applicationStateStore(applicationStateStore) {
     }
 
     const model::ApplicationStateDocument& AppRepositoryBase::State() const {
-        return this->store.CurrentDocument();
+        return this->applicationStateStore.CurrentDocument();
     }
 
-    bool AppRepositoryBase::Commit(model::ApplicationStateDocument document) {
-        return this->store.TrySaveDocument(std::move(document));
+    bool AppRepositoryBase::Commit(model::ApplicationStateDocument applicationStateDocument) {
+        return this->applicationStateStore.TrySaveDocument(std::move(applicationStateDocument));
     }
 
     std::string AppRepositoryBase::CreateAlarmId() {
@@ -30,21 +30,21 @@ namespace mobileclock::application::base {
         return std::format("melody-{}-{}", std::chrono::steady_clock::now().time_since_epoch().count(), ++sequence);
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    void AppRepositoryBase::LoadPreviewScenarioState(model::ApplicationStateDocument document) {
-        this->store.LoadPreviewSessionDocument(std::move(document));
+#if defined(ANDROID_APP_PREVIEWER)
+    void AppRepositoryBase::preview_LoadScenarioState(model::ApplicationStateDocument applicationStateDocument) {
+        this->applicationStateStore.preview_LoadSessionDocument(std::move(applicationStateDocument));
     }
 
-    bool AppRepositoryBase::SavePreviewStateToPersistentStorage() {
-        model::ApplicationStateDocument document = this->store.CurrentDocument();
+    bool AppRepositoryBase::preview_SaveStateToPersistentStorage() {
+        model::ApplicationStateDocument applicationStateDocument = this->applicationStateStore.CurrentDocument();
         std::vector<std::pair<std::string, std::string>> melodyIds;
-        for (model::AlarmMelody& melody : document.alarmMelodies) {
+        for (model::AlarmMelody& melody : applicationStateDocument.alarmMelodies) {
             if (melody.id.starts_with("preview-")) {
                 melodyIds.emplace_back(melody.id, this->CreateMelodyId());
                 melody.id = melodyIds.back().second;
             }
         }
-        for (model::Alarm& alarm : document.alarms) {
+        for (model::Alarm& alarm : applicationStateDocument.alarms) {
             if (alarm.id.starts_with("preview-")) {
                 alarm.id = this->CreateAlarmId();
             }
@@ -55,8 +55,8 @@ namespace mobileclock::application::base {
                 alarm.melodyId = melody->second;
             }
         }
-        this->store.LoadPreviewSessionDocument(std::move(document));
-        return this->store.SavePreviewSessionDocumentToPersistentStorage();
+        this->applicationStateStore.preview_LoadSessionDocument(std::move(applicationStateDocument));
+        return this->applicationStateStore.preview_SaveSessionDocumentToPersistentStorage();
     }
 #endif
 }

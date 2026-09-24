@@ -7,6 +7,6 @@ namespace xaml {
 }
 
 namespace mobileclock::presentation::renderer {
-    void RegisterAnimationRenderers(xaml::RendererRegistry& renderers);
-    void RegisterAnimations(xaml::AnimationRegistry& animations);
+    void RegisterAnimationRenderers(xaml::RendererRegistry& rendererRegistry);
+    void RegisterAnimations(xaml::AnimationRegistry& animationRegistry);
 }

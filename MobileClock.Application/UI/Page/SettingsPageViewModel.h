@@ -1,12 +1,14 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/XamlLayout.h>
 #include <XamlRuntime/Binding.h>
 
 #include "../../Interface/INavigationPage.h"
+#if defined(ANDROID_APP_PREVIEWER)
 #include "../../Interface/ISerializable.h"
+#endif
 #include "../../Core/PageRegistry.h"
 #include "../../Core/Navigation.h"
 
@@ -22,10 +24,14 @@ namespace xaml {
 
 namespace mobileclock::application::ui::page {
 
-    class SettingsPageViewModel final : public interface::ISerializable, public interface::INavigationPage {
+    class SettingsPageViewModel final :
+#if defined(ANDROID_APP_PREVIEWER)
+        public interface::ISerializable,
+#endif
+        public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "SettingsPage";
-        inline static constexpr std::string_view PreviewGraphTitle = "⚙  Настройки";
+        inline static constexpr std::string_view preview_GraphTitle = "⚙  Настройки";
 
         enum class Property {
             theme,
@@ -35,16 +41,17 @@ namespace mobileclock::application::ui::page {
         using PropertyChangedHandler = std::function<void(Property)>;
         using Unsubscribe = std::function<void()>;
 
-        explicit SettingsPageViewModel(core::PageContext& context);
+        explicit SettingsPageViewModel(core::PageContext& pageContext);
         ~SettingsPageViewModel() = default;
 
         SettingsPageViewModel(const SettingsPageViewModel&) = delete;
         SettingsPageViewModel& operator=(const SettingsPageViewModel&) = delete;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
 #endif
 
@@ -65,13 +72,13 @@ namespace mobileclock::application::ui::page {
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();
-        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& rendererRegistry) const;
         xaml::Element& Root();
         Unsubscribe Subscribe(PropertyChangedHandler handler);
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        xaml::runtime::RuntimeBindingContext RuntimeContext();
-        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+#if defined(ANDROID_APP_PREVIEWER)
+        xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult);
 #endif
 
     private:
@@ -79,9 +86,9 @@ namespace mobileclock::application::ui::page {
         std::string sound = "Мелодия по умолчанию";
         std::vector<PropertyChangedHandler> propertyChangedHandlers;
         std::unique_ptr<xaml::Element> page;
-        xaml::BindingScope bindings;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+        xaml::BindingScope bindingScope;
+#if defined(ANDROID_APP_PREVIEWER)
+        std::unique_ptr<xaml::BindingScope> runtimeBindingScope;
 #endif
         xaml::Element::Command navigateToMainCommand;
         xaml::Element::Command resetAlarmMelodySelectionCommand;

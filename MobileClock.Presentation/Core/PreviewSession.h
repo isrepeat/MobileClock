@@ -34,6 +34,6 @@ namespace mobileclock::presentation::core {
         static es_renderer::OpenGlRenderer::ShaderProgramSources CreateShaderPrograms();
 
     private:
-        xaml::AnimationController animations;
+        xaml::AnimationController animationController;
     };
 }

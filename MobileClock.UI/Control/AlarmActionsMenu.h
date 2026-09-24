@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include <XamlRuntime/UserControl.h>
@@ -16,7 +16,7 @@
 
 namespace mobileclock::ui::control {
     class AlarmActionsMenu final : public xaml::UserControl, public interface::IGestureTarget
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         , public xaml::runtime::IRuntimeReloadableControl
 #endif
     {
@@ -45,26 +45,26 @@ namespace mobileclock::ui::control {
         interface::GestureHandling ResolveGesture(const interface::IGestureTarget::PanState& state, interface::GestureDirection direction) const override;
         void BeginGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelGesture(xaml::Element& element) override;
-        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
+        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) override;
 
     private:
         bool IsIn(const xaml::Element& pageRoot) const override;
         bool Owns(const xaml::Element& element) const override;
 
     public:
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
 #endif
 
         template<typename TViewModel>
-        static std::unique_ptr<AlarmActionsMenu> Create(TViewModel& viewModel, xaml::BindingScope& bindings) {
+        static std::unique_ptr<AlarmActionsMenu> Create(TViewModel& viewModel, xaml::BindingScope&) {
             auto control = std::make_unique<AlarmActionsMenu>();
             control->status = viewModel.Status();
             control->updateApplicationCommand = viewModel.UpdateApplicationCommand();
@@ -75,8 +75,9 @@ namespace mobileclock::ui::control {
             control->parentUnsubscribe = viewModel.Subscribe([menu = control.get(), &viewModel](auto) {
                 menu->SetStatus(viewModel.Status());
             });
-            control->InitializeComponent(
-                xaml::generated::AlarmActionsMenuXaml::BuildContent(*control, bindings));
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::AlarmActionsMenuXaml::BuildContent(*control, *bindings);
+            control->InitializeComponent(std::move(content), std::move(bindings));
             return control;
         }
 
@@ -87,8 +88,8 @@ namespace mobileclock::ui::control {
         bool IsExpanded() const;
         void SetIsExpanded(bool value);
         Unsubscribe Subscribe(PropertyChangedHandler handler);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        static void PreserveState(const xaml::Element& previous, xaml::Element& replacement);
+#if defined(ANDROID_APP_PREVIEWER)
+        static void preview_PreserveState(const xaml::Element& previous, xaml::Element& replacement);
 #endif
 
     private:
@@ -108,8 +109,5 @@ namespace mobileclock::ui::control {
         xaml::Element::Command toggleMenuCommand;
         xaml::Element::Command updateApplicationCommand;
         xaml::Element::Command uploadScreenshotCommand;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

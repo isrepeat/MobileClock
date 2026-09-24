@@ -47,16 +47,16 @@ namespace mobileclock::ui::base {
         this->UpdateInteractiveGesture(state);
     }
 
-    bool InteractiveListBase::EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) {
-        return this->EndInteractiveGesture(state, animations);
+    bool InteractiveListBase::EndGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) {
+        return this->EndInteractiveGesture(state, animationController);
     }
 
     void InteractiveListBase::CancelGesture(xaml::Element& element) {
         this->CancelInteractiveGesture(element);
     }
 
-    void InteractiveListBase::UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) {
-        this->UpdateRemoval(pageRoot, animations);
+    void InteractiveListBase::UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) {
+        this->UpdateRemoval(pageRoot, animationController);
     }
 
     //
@@ -114,7 +114,7 @@ namespace mobileclock::ui::base {
         return state;
     }
 
-    void InteractiveListBase::UpdateRemoval(xaml::Element& pageRoot, xaml::AnimationController& animations) {
+    void InteractiveListBase::UpdateRemoval(xaml::Element& pageRoot, xaml::AnimationController& animationController) {
         if (this->pendingRemoval == nullptr || std::chrono::steady_clock::now() < this->pendingRemovalAt) {
             return;
         }
@@ -122,20 +122,20 @@ namespace mobileclock::ui::base {
         const RemovalState state = std::move(this->pendingRemovalState);
         this->pendingRemoval = nullptr;
         if (this->removeHandler && this->removeHandler(dataContext)) {
-            this->RestoreViewportAndAnimate(state, pageRoot, animations, std::chrono::milliseconds(840));
+            this->RestoreViewportAndAnimate(state, pageRoot, animationController, std::chrono::milliseconds(840));
         }
     }
 
     void InteractiveListBase::RestoreViewportAndAnimate(
         const RemovalState& state,
         xaml::Element& pageRoot,
-        xaml::AnimationController& animations,
+        xaml::AnimationController& animationController,
         std::chrono::milliseconds duration) {
         if (!state.isPresent) {
             return;
         }
         this->RestoreViewport(state, pageRoot);
-        this->AnimateRemainingItems(state, animations, duration);
+        this->AnimateRemainingItems(state, animationController, duration);
     }
 
     void InteractiveListBase::RestoreViewport(const RemovalState& state, xaml::Element& pageRoot) {
@@ -158,7 +158,7 @@ namespace mobileclock::ui::base {
 
     void InteractiveListBase::AnimateRemainingItems(
         const RemovalState& state,
-        xaml::AnimationController& animations,
+        xaml::AnimationController& animationController,
         std::chrono::milliseconds duration) {
         xaml::Element* const list = this->FindElement(this->ListViewId());
         xaml::Element* const scrollViewer = this->FindElement(this->ScrollViewerId());
@@ -166,7 +166,7 @@ namespace mobileclock::ui::base {
             return;
         }
         if (scrollViewer != nullptr && !state.isAtBottom) {
-            animations.ReleaseScrollExtentAfter(*scrollViewer, duration);
+            animationController.ReleaseScrollExtentAfter(*scrollViewer, duration);
         }
         const auto& items = list->Children();
         const size_t count = std::min(items.size(), state.previousBounds.size() - 1);
@@ -176,7 +176,7 @@ namespace mobileclock::ui::base {
             const float offsetY = state.previousBounds[previousIndex].y - item.Bounds().y
                 + (scrollViewer == nullptr ? 0.0f : scrollViewer->VerticalOffset() - state.verticalOffset);
             item.SetRenderOffsetY(offsetY);
-            animations.Animate(item, xaml::AnimatedProperty::renderOffsetY, offsetY, 0.0f, duration);
+            animationController.Animate(item, xaml::AnimatedProperty::renderOffsetY, offsetY, 0.0f, duration);
         }
     }
 }

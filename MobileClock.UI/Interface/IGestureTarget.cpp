@@ -40,12 +40,12 @@ namespace mobileclock::ui::interface {
         return nullptr;
     }
 
-    void IGestureTarget::Update(xaml::Element& pageRoot, xaml::AnimationController& animations) {
+    void IGestureTarget::Update(xaml::Element& pageRoot, xaml::AnimationController& animationController) {
         for (IGestureTarget* const target : _details::gestureTargets) {
             // Update has no hit-tested element, so page membership is required
             // to exclude registered controls belonging to other page trees.
             if (target->IsIn(pageRoot)) {
-                target->UpdateGestures(pageRoot, animations);
+                target->UpdateGestures(pageRoot, animationController);
             }
         }
     }

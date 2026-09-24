@@ -1,6 +1,6 @@
 #include "InputDispatcher.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <Helpers.Logging/Logging.h>
 #endif
 #include <XamlRuntime/XamlLayout.h>
@@ -48,11 +48,11 @@ namespace mobileclock::application::core::_details {
 
 namespace mobileclock::application::core {
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // API
     //
-    InputDispatcher::RuntimePanState InputDispatcher::CaptureRuntimePan() const {
+    InputDispatcher::preview_RuntimePanState InputDispatcher::preview_CaptureRuntimePan() const {
         // Состояние прокрутки восстанавливает сам ScrollViewer. Сохраняем только
         // уже захваченный контролом жест, чтобы hot reload не обрывал swipe.
         if (this->activeGesture != ActiveGesture::target || this->panElement == nullptr) {
@@ -62,14 +62,14 @@ namespace mobileclock::application::core {
             this->touchDownY, this->lastTouchX, this->lastTouchY, this->gestureDirection, true};
     }
 
-    void InputDispatcher::RestoreRuntimePan(xaml::Element& root, const RuntimePanState& state) {
-        if (!state.active) {
+    void InputDispatcher::preview_RestoreRuntimePan(xaml::Element& root, const preview_RuntimePanState& previewRuntimePanState) {
+        if (!previewRuntimePanState.active) {
             return;
         }
         // id недостаточно при повторяющихся строках списка, поэтому сверяем и
         // DataContext — это тот же объект модели, который был под пальцем.
-        const auto find = [&state](auto&& self, xaml::Element& element) -> xaml::Element* {
-            if (element.Id() == state.id && element.DataContext() == state.dataContext) {
+        const auto find = [&previewRuntimePanState](auto&& self, xaml::Element& element) -> xaml::Element* {
+            if (element.Id() == previewRuntimePanState.id && element.DataContext() == previewRuntimePanState.dataContext) {
                 return &element;
             }
             for (const auto& child : element.Children()) {
@@ -83,35 +83,35 @@ namespace mobileclock::application::core {
         if (element == nullptr) {
             return;
         }
-        const mobileclock::ui::interface::IGestureTarget::PanState panState{
+        const mobileclock::ui::interface::IGestureTarget::PanState gestureTargetPanState{
             root,
             *element,
-            state.downX,
-            state.downY,
-            state.currentX,
-            state.currentY,
-            state.currentX,
-            state.currentY,
+            previewRuntimePanState.downX,
+            previewRuntimePanState.downY,
+            previewRuntimePanState.currentX,
+            previewRuntimePanState.currentY,
+            previewRuntimePanState.currentX,
+            previewRuntimePanState.currentY,
         };
         // После перестройки дерева контрол мог исчезнуть или перестать принимать
         // это направление. В таком случае не восстанавливаем устаревший жест.
-        auto* target = mobileclock::ui::interface::IGestureTarget::Find(*element, panState, state.direction);
+        auto* target = mobileclock::ui::interface::IGestureTarget::Find(*element, gestureTargetPanState, previewRuntimePanState.direction);
         if (target == nullptr) {
             return;
         }
         this->inputRoot = &root;
         this->panElement = element;
         this->panTarget = target;
-        this->touchDownX = state.downX;
-        this->touchDownY = state.downY;
-        this->lastTouchX = state.currentX;
-        this->lastTouchY = state.currentY;
+        this->touchDownX = previewRuntimePanState.downX;
+        this->touchDownY = previewRuntimePanState.downY;
+        this->lastTouchX = previewRuntimePanState.currentX;
+        this->lastTouchY = previewRuntimePanState.currentY;
         this->activeGesture = ActiveGesture::target;
-        this->gestureDirection = state.direction;
-        if (_details::IsVertical(state.direction)) {
-            this->panElement->SetRenderOffsetY(state.currentY - state.downY);
+        this->gestureDirection = previewRuntimePanState.direction;
+        if (_details::IsVertical(previewRuntimePanState.direction)) {
+            this->panElement->SetRenderOffsetY(previewRuntimePanState.currentY - previewRuntimePanState.downY);
         } else {
-            this->panElement->SetRenderOffsetX(state.currentX - state.downX);
+            this->panElement->SetRenderOffsetX(previewRuntimePanState.currentX - previewRuntimePanState.downX);
         }
     }
 #endif
@@ -122,8 +122,8 @@ namespace mobileclock::application::core {
         xaml::Element& root,
         float x,
         float y,
-        xaml::AnimationController* animations) {
-        if (animations == nullptr) {
+        xaml::AnimationController* animationController) {
+        if (animationController == nullptr) {
             return;
         }
         // Hit-test выполняется один раз: даже если строка сместится из-под пальца,
@@ -158,13 +158,13 @@ namespace mobileclock::application::core {
         this->interactionController.SetPanTargetPredicate([](const xaml::Element&) {
             return false;
         });
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         LOG_DEBUG(
             "MobileClock.Input",
             "Pointer down: target='{}'",
             target == nullptr ? "" : target->Id());
 #endif
-        this->interactionController.PointerDown(root, *animations, x, y);
+        this->interactionController.PointerDown(root, *animationController, x, y);
     }
 
     bool InputDispatcher::PointerMove(float x, float y) {
@@ -234,7 +234,7 @@ namespace mobileclock::application::core {
         xaml::Element& root,
         float x,
         float y,
-        xaml::AnimationController& animations) {
+        xaml::AnimationController& animationController) {
         if (this->activeGesture == ActiveGesture::scroll) {
             // UP завершает инерцию прокрутки и никогда не превращается в tap.
             this->scrollController.End();
@@ -258,8 +258,8 @@ namespace mobileclock::application::core {
                 this->lastTouchY,
                 x,
                 y,
-            }, animations);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+            }, animationController);
+#if defined(ANDROID_APP_PREVIEWER)
             LOG_DEBUG(
                 "MobileClock.Input",
                 "Pan completed: target='{}', handled={}",
@@ -276,7 +276,7 @@ namespace mobileclock::application::core {
         }
         this->scrollViewer = nullptr;
         // Только незахваченная последовательность передаётся recognizer-у tap.
-        const xaml::GestureResult result = this->interactionController.PointerUp(root, animations, x, y);
+        const xaml::GestureResult result = this->interactionController.PointerUp(root, animationController, x, y);
         this->panTarget = nullptr;
         this->inputRoot = nullptr;
         this->panElement = nullptr;
@@ -302,12 +302,12 @@ namespace mobileclock::application::core {
         this->gestureDirection = mobileclock::ui::interface::GestureDirection::none;
     }
 
-    bool InputDispatcher::Update(xaml::Element& pageRoot, xaml::AnimationController& animations) {
+    bool InputDispatcher::Update(xaml::Element& pageRoot, xaml::AnimationController& animationController) {
         // Вводные события не вызывают эти обновления сами: кадр продвигает инерцию
         // ScrollViewer и отложенные действия интерактивных контролов отдельно.
         const bool interactionUpdated = this->interactionController.Update();
         const bool scrollUpdated = this->scrollController.Update();
-        mobileclock::ui::interface::IGestureTarget::Update(pageRoot, animations);
+        mobileclock::ui::interface::IGestureTarget::Update(pageRoot, animationController);
         return interactionUpdated || scrollUpdated;
     }
 }

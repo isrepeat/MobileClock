@@ -1,10 +1,10 @@
 #include "SettingsPageViewModel.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
-#include <JsonParser/json_struct/json_struct.h>
 #endif
 #include <XamlRuntime/RenderEngine.h>
+#include <JsonParser/json_struct/json_struct.h>
 
 #include "!Generated/MobileClock.Application/Xaml/Page/SettingsPage.xaml.h"
 #include "../../Core/AppSessionController.h"
@@ -14,41 +14,49 @@
 #include <format>
 
 namespace mobileclock::application::ui::page {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
     namespace _details {
-        struct SettingsPagePreviewScenario final {
+        struct SettingsPageSerializationDocument final {
             std::optional<std::string> Theme = "Тёмная";
             std::optional<std::string> Sound = "Мелодия по умолчанию";
 
-            JS_OBJECT(JS_MEMBER(Theme), JS_MEMBER(Sound));
+            JS_OBJECT(
+                JS_MEMBER(Theme),
+                JS_MEMBER(Sound)
+            );
         };
     } // namespace _details
-#endif
 
-    SettingsPageViewModel::SettingsPageViewModel(core::PageContext& context)
-        : navigateToMainCommand([&context]() {
-            context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
+    SettingsPageViewModel::SettingsPageViewModel(core::PageContext& pageContext)
+        : navigateToMainCommand([&pageContext]() {
+            pageContext.navigator.Trigger(core::NavigationTrigger::navigateBack);
         })
-        , resetAlarmMelodySelectionCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::resetAlarmMelodySelection, {});
+        , resetAlarmMelodySelectionCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::resetAlarmMelodySelection, {});
         })
-        , shareLogsCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::shareLogs, {});
+        , shareLogsCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::shareLogs, {});
         })
-        , exportLogsCommand([&context]() {
-            context.appSessionController.Dispatch(core::AppSessionSignal::exportLogs, {});
+        , exportLogsCommand([&pageContext]() {
+            pageContext.appSessionController.Dispatch(core::AppSessionSignal::exportLogs, {});
         }) {
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // ISerializable
     //
+    std::string SettingsPageViewModel::Serialize() const {
+        _details::SettingsPageSerializationDocument scenario;
+        scenario.Theme = this->theme;
+        scenario.Sound = this->sound;
+        return JS::serializeStruct(scenario);
+    }
+
     bool SettingsPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        _details::SettingsPagePreviewScenario scenario;
-        JS::ParseContext context(json.data(), json.size());
-        if (context.parseTo(scenario) != JS::Error::NoError) {
-            error = std::format("Invalid preview scenario JSON: {}", context.makeErrorString());
+        _details::SettingsPageSerializationDocument scenario;
+        JS::ParseContext pageContext(json.data(), json.size());
+        if (pageContext.parseTo(scenario) != JS::Error::NoError) {
+            error = std::format("Invalid serialized JSON: {}", pageContext.makeErrorString());
             return false;
         }
         if (scenario.Theme) {
@@ -70,6 +78,7 @@ namespace mobileclock::application::ui::page {
         return true;
     }
 #endif
+
 
     //
     // INavigationPage
@@ -114,19 +123,19 @@ namespace mobileclock::application::ui::page {
     }
 
     void SettingsPageViewModel::Initialize(xaml::Size availableSize) {
-        this->bindings.Clear();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        this->runtimeBindings.reset();
+        this->bindingScope.Clear();
+#if defined(ANDROID_APP_PREVIEWER)
+        this->runtimeBindingScope.reset();
 #endif
-        this->page = xaml::generated::SettingsPage::Create(*this, this->bindings);
+        this->page = xaml::generated::SettingsPage::Create(*this, this->bindingScope);
         xaml::layout(*this->page, availableSize);
     }
 
     void SettingsPageViewModel::HandleTap(xaml::Element& element) {
-        this->bindings.UpdateSource(element);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        if (this->runtimeBindings) {
-            this->runtimeBindings->UpdateSource(element);
+        this->bindingScope.UpdateSource(element);
+#if defined(ANDROID_APP_PREVIEWER)
+        if (this->runtimeBindingScope) {
+            this->runtimeBindingScope->UpdateSource(element);
         }
 #endif
         element.ExecuteCommand();
@@ -137,8 +146,8 @@ namespace mobileclock::application::ui::page {
 
     void SettingsPageViewModel::Render(
         xaml::IRenderBackend& renderer,
-        const xaml::RendererRegistry& renderers) const {
-        xaml::Render(*this->page, renderer, renderers);
+        const xaml::RendererRegistry& rendererRegistry) const {
+        xaml::Render(*this->page, renderer, rendererRegistry);
     }
 
     xaml::Element& SettingsPageViewModel::Root() {
@@ -153,8 +162,8 @@ namespace mobileclock::application::ui::page {
         };
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    xaml::runtime::RuntimeBindingContext SettingsPageViewModel::RuntimeContext() {
+#if defined(ANDROID_APP_PREVIEWER)
+    xaml::runtime::RuntimeBindingContext SettingsPageViewModel::preview_RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
         xaml::runtime::RuntimeBindingPublisher publisher{*registry, *this};
         publisher.Text("Theme", Property::theme, &SettingsPageViewModel::Theme);
@@ -163,18 +172,18 @@ namespace mobileclock::application::ui::page {
         publisher.Command("ResetAlarmMelodySelectionCommand", &SettingsPageViewModel::ResetAlarmMelodySelectionCommand);
         publisher.Command("ShareLogsCommand", &SettingsPageViewModel::ShareLogsCommand);
         publisher.Command("ExportLogsCommand", &SettingsPageViewModel::ExportLogsCommand);
-        xaml::runtime::RuntimeBindingContext result{registry, "SettingsPageViewModel", {}};
-        result.xamlNamespace = "urn:mobileclock:xaml";
-        result.controlXmlNamespace = "using:mobileclock.ui.control";
+        xaml::runtime::RuntimeBindingContext runtimeBindingContext{registry, "SettingsPageViewModel", {}};
+        runtimeBindingContext.xamlNamespace = "urn:mobileclock:xaml";
+        runtimeBindingContext.controlXmlNamespace = "using:mobileclock.ui.control";
 
-        return result;
+        return runtimeBindingContext;
     }
 
-    void SettingsPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        this->bindings.Clear();
-        this->runtimeBindings.reset();
-        this->page = std::move(result.root);
-        this->runtimeBindings = std::move(result.bindings);
+    void SettingsPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult) {
+        this->bindingScope.Clear();
+        this->runtimeBindingScope.reset();
+        this->page = std::move(runtimeBuildResult.root);
+        this->runtimeBindingScope = std::move(runtimeBuildResult.bindings);
     }
 #endif
 }

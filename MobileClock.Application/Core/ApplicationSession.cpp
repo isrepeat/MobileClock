@@ -7,8 +7,8 @@
 namespace mobileclock::application::core {
     ApplicationSession::ApplicationSession(AppSessionController& appSessionController, model::AlarmRepository& alarmRepository, model::AlarmMelodyRepository& alarmMelodyRepository)
         : pageManager(appSessionController, alarmRepository, alarmMelodyRepository)
-        , renderers() {
-        mobileclock::presentation::core::RegisterRenderers(this->renderers);
+        , rendererRegistry() {
+        mobileclock::presentation::core::RegisterRenderers(this->rendererRegistry);
     }
 
     //
@@ -50,30 +50,38 @@ namespace mobileclock::application::core {
         this->pageManager.SetAlarmMelody(std::move(alarmMelody));
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    bool ApplicationSession::NavigatePreviewRoute(std::string_view target, std::string& error) {
-        return this->pageManager.NavigatePreviewRoute(target, error);
+#if defined(ANDROID_APP_PREVIEWER)
+    bool ApplicationSession::preview_NavigateRoute(std::string_view target, std::string& error) {
+        return this->pageManager.preview_NavigateRoute(target, error);
     }
 
-    bool ApplicationSession::NavigatePreviewRoute(std::span<const std::string_view> path, std::string& error) {
-        return this->pageManager.NavigatePreviewRoute(path, error);
+    bool ApplicationSession::preview_NavigateTransitions(std::span<const std::string_view> transitionIds, std::string& error) {
+        return this->pageManager.preview_NavigateTransitions(transitionIds, error);
     }
 
-    std::string ApplicationSession::PreviewRouteGraph() const {
-        return this->pageManager.PreviewRouteGraph();
+    bool ApplicationSession::preview_NavigateRoute(std::span<const std::string_view> path, std::string& error) {
+        return this->pageManager.preview_NavigateRoute(path, error);
     }
 
-    std::string_view ApplicationSession::PreviewPageTitle(std::string_view pageName) const {
-        return this->pageManager.PreviewPageTitle(pageName);
+    std::string ApplicationSession::preview_RouteGraph() const {
+        return this->pageManager.preview_RouteGraph();
     }
 
-    bool ApplicationSession::ApplyPreviewScenario(std::string_view page, std::string_view json, std::string& error) {
-        return this->pageManager.ApplyPreviewScenario(page, json, error);
+    std::vector<PageManager::preview_Route> ApplicationSession::preview_Routes() const {
+        return this->pageManager.preview_Routes();
     }
 
-    bool ApplicationSession::ReloadMarkup(std::string_view page, std::string_view markup,
+    std::string_view ApplicationSession::preview_PageTitle(std::string_view pageName) const {
+        return this->pageManager.preview_PageTitle(pageName);
+    }
+
+    bool ApplicationSession::preview_ApplyScenario(std::string_view page, std::string_view json, std::string& error) {
+        return this->pageManager.preview_ApplyScenario(page, json, error);
+    }
+
+    bool ApplicationSession::preview_ReloadMarkup(std::string_view page, std::string_view markup,
         std::string_view sourcePath, std::string& diagnostics) {
-        return this->pageManager.ReloadMarkup(page, markup, sourcePath, diagnostics);
+        return this->pageManager.preview_ReloadMarkup(page, markup, sourcePath, diagnostics);
     }
 #endif
 
@@ -102,6 +110,6 @@ namespace mobileclock::application::core {
     }
 
     void ApplicationSession::Render(xaml::IRenderBackend& renderer) const {
-        this->pageManager.Render(renderer, this->renderers);
+        this->pageManager.Render(renderer, this->rendererRegistry);
     }
 }

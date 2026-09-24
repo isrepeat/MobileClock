@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$BatDir = $null,
     [string]$Head = $null,
     [string]$Base = $null,
@@ -6,6 +6,10 @@ param(
     [string]$NewBranch = $null
 )
 
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 $callerLocation = Get-Location
 Set-Location -Path $PSScriptRoot
 

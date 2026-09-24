@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include "!Generated/MobileClock.UI/Xaml/Control/TimelineTabs.xaml.h"
@@ -8,7 +8,7 @@
 
 namespace mobileclock::ui::control {
     class TimelineTabs final : public xaml::UserControl
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         , public xaml::runtime::IRuntimeReloadableControl
 #endif
     {
@@ -16,29 +16,25 @@ namespace mobileclock::ui::control {
         TimelineTabs() = default;
         ~TimelineTabs() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
 #endif
 
         template <typename TViewModel>
-        static std::unique_ptr<TimelineTabs> Create(TViewModel& viewModel, xaml::BindingScope& bindings) {
+        static std::unique_ptr<TimelineTabs> Create(TViewModel& viewModel, xaml::BindingScope&) {
             auto control = std::make_unique<TimelineTabs>();
-            control->InitializeComponent(
-                xaml::generated::TimelineTabsXaml::BuildContent(viewModel, bindings));
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::TimelineTabsXaml::BuildContent(viewModel, *bindings);
+            control->InitializeComponent(std::move(content), std::move(bindings));
             return control;
         }
 
     private:
         void OnInitialized() override;
-
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    private:
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

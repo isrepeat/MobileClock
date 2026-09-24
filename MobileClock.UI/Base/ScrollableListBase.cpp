@@ -1,6 +1,6 @@
 #include "ScrollableListBase.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -42,16 +42,16 @@ namespace mobileclock::ui::base {
     void ScrollableListBase::UpdateGestures(xaml::Element&, xaml::AnimationController&) {
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
     bool ScrollableListBase::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) {
         try {
             const auto& content = templateNode.name == "UserControl"
                 ? templateNode.children.at(0) : templateNode;
-            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(content, context,
+            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(content, runtimeBindingContext,
                 {this->Bounds().width, this->Bounds().height});
             xaml::Element* const scrollViewer = _details::FindPannableElement(*result.root, this->ScrollViewerId());
             if (scrollViewer == nullptr || scrollViewer->Type() != xaml::ElementType::scrollViewer) {
@@ -61,15 +61,14 @@ namespace mobileclock::ui::base {
                 scrollViewer->SetHorizontalOffset(previous->HorizontalOffset());
                 scrollViewer->SetVerticalOffset(previous->VerticalOffset());
             }
-            if (context.prepareTree) {
-                context.prepareTree(*result.root);
+            if (runtimeBindingContext.prepareTree) {
+                runtimeBindingContext.prepareTree(*result.root);
             }
-            if (context.beforeCommit) {
-                context.beforeCommit();
+            if (runtimeBindingContext.beforeCommit) {
+                runtimeBindingContext.beforeCommit();
             }
-            this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
-            this->OnTemplateReplaced();
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
+            this->preview_OnTemplateReplaced();
             diagnostics.clear();
             return true;
         } catch (const std::exception& error) {
@@ -78,7 +77,7 @@ namespace mobileclock::ui::base {
         }
     }
 
-    void ScrollableListBase::OnTemplateReplaced() {
+    void ScrollableListBase::preview_OnTemplateReplaced() {
     }
 #endif
 

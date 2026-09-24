@@ -4,7 +4,7 @@
 
 Runtime Hot Reload работает только в `XamlPreviewer`. После первоначальной сборки Previewer передаёт сохранённый UTF-8 текст XAML и путь к файлу в native bridge. Новый XAML разбирается и строится в памяти библиотекой `XamlRuntime`; `XamlCompiler` и C++-сборка при этом не запускаются.
 
-Android-приложение продолжает использовать generated C++ XAML и не включает runtime-механизм: точки входа находятся под `MOBILECLOCK_XAML_PREVIEWER`.
+Android-приложение продолжает использовать generated C++ XAML и не включает runtime-механизм: точки входа находятся под `ANDROID_APP_PREVIEWER`.
 
 Новая разметка может менять структуру поддерживаемых элементов, статические атрибуты, binding, команды, шаблоны `ListView`, storyboard и visual states. Новый C++ тип контрола, новое свойство ViewModel или новая анимация требуют обычной C++-сборки и явной регистрации.
 
@@ -14,8 +14,8 @@ Android-приложение продолжает использовать gener
 Сохранение XAML
     -> WPF watcher
     -> mc_reload_markup
-    -> ApplicationSession::ReloadMarkup
-    -> PageManager::ReloadMarkup
+    -> ApplicationSession::preview_ReloadMarkup
+    -> PageManager::preview_ReloadMarkup
     -> RuntimeReloadTransaction::Prepare
     -> RuntimeTreeBuilder
     -> IPage::ReplaceRuntimeTree
@@ -23,7 +23,7 @@ Android-приложение продолжает использовать gener
 
 Watcher объединяет файловые события с задержкой 200 мс и не перезагружает неизменившийся текст. Native bridge передаёт имя страницы, текст XAML и путь файла в `ApplicationSession`.
 
-`PageManager::ReloadMarkup` сначала разбирает XAML в AST. Затем он выбирает один из двух путей:
+`PageManager::preview_ReloadMarkup` сначала разбирает XAML в AST. Затем он выбирает один из двух путей:
 
 1. Корень `Page` означает замену полного дерева страницы.
 2. Корень `UserControl` с `x:Class` означает замену шаблона существующего native-контрола, реализующего `IRuntimeReloadableControl`.
@@ -131,7 +131,7 @@ result.controls["AlarmList"] = [this](xaml::BindingScope& scope) {
 
 `prepareTree` позволяет синхронизировать новое дерево с состоянием ViewModel до замены страницы.
 
-Состояние нижнего меню принадлежит контролу `AlarmActionsMenu`, а не `MainPageViewModel`. Контрол хранит `IsExpanded`, обрабатывает вертикальный pan ручки и применяет состояния `AlarmActionsPanelStates` из своего шаблона. При полной перезагрузке страницы `AlarmActionsMenu::PreserveState` переносит состояние в новый контрол по его `id`. При замене шаблона состояние сохраняет сам контрол. В обоих случаях оно применяется без анимации.
+Состояние нижнего меню принадлежит контролу `AlarmActionsMenu`, а не `MainPageViewModel`. Контрол хранит `IsExpanded`, обрабатывает вертикальный pan ручки и применяет состояния `AlarmActionsPanelStates` из своего шаблона. При полной перезагрузке страницы `AlarmActionsMenu::preview_PreserveState` переносит состояние в новый контрол по его `id`. При замене шаблона состояние сохраняет сам контрол. В обоих случаях оно применяется без анимации.
 
 Разметка меню находится в `MobileClock.UI/Controls/AlarmActionsMenu.xaml`. Команды его содержимого получают привязки к ViewModel страницы через `Create` и runtime-фабрику контрола.
 

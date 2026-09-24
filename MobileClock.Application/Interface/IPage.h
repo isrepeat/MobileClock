@@ -1,7 +1,7 @@
 #pragma once
 #include <XamlRuntime/XamlLayout.h>
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include "../Base/NavigationStateBase.h"
@@ -32,11 +32,11 @@ namespace mobileclock::application::interface {
         virtual void Update() = 0;
         virtual xaml::Element& Root() = 0;
         virtual void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const = 0;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        virtual std::string_view PreviewGraphTitle() const = 0;
-        virtual bool ApplyScenario(std::string_view json, std::string& error) = 0;
-        virtual xaml::runtime::RuntimeBindingContext RuntimeContext() = 0;
-        virtual void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) = 0;
+#if defined(ANDROID_APP_PREVIEWER)
+        virtual std::string_view preview_GraphTitle() const = 0;
+        virtual bool preview_ApplyScenario(std::string_view json, std::string& error) = 0;
+        virtual xaml::runtime::RuntimeBindingContext preview_RuntimeContext() = 0;
+        virtual void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) = 0;
 #endif
     };
 }

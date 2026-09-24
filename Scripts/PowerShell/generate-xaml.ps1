@@ -1,7 +1,11 @@
-[CmdletBinding()]
-param()
+﻿[CmdletBinding()]
+param([string]$CMakeExecutable)
 
 $ErrorActionPreference = 'Stop'
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $applicationRoot = Join-Path $projectRoot 'MobileClock.Application'
@@ -36,16 +40,28 @@ function Invoke-Checked {
     }
 }
 
-$visualStudioCmake = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
-if (Test-Path $visualStudioCmake) {
-    $cmake = $visualStudioCmake
-} else {
-    $cmake = (Get-Command cmake -ErrorAction Stop).Source
+. (Join-Path $PSScriptRoot 'Resolve-BuildTools.ps1')
+$tools = Resolve-MobileClockBuildTools -CMakeExecutable $CMakeExecutable
+$cmake = $tools.CMake
+
+$xamlCompilerNeedsBuild = -not (Test-Path $xamlCompiler)
+if (-not $xamlCompilerNeedsBuild) {
+    $xamlCompilerExecutableTime = (Get-Item -LiteralPath $xamlCompiler).LastWriteTimeUtc
+    $xamlCompilerNeedsBuild = $null -ne (Get-ChildItem -LiteralPath $xamlCompilerRoot -Recurse -File | Where-Object {
+        $_.LastWriteTimeUtc -gt $xamlCompilerExecutableTime
+    } | Select-Object -First 1)
 }
 
-Write-Host '==> Building XamlCompiler host tool'
-Invoke-Checked $cmake @('--fresh', '-S', $xamlCompilerRoot, '-B', $xamlCompilerBuild, '-G', 'Visual Studio 18 2026', '-A', 'x64')
-Invoke-Checked $cmake @('--build', $xamlCompilerBuild, '--config', 'Debug')
+if ($xamlCompilerNeedsBuild) {
+    Write-Host '==> Building XamlCompiler host tool'
+    $xamlCompilerCache = Join-Path $xamlCompilerBuild 'CMakeCache.txt'
+    if (Test-Path $xamlCompilerCache) {
+        Invoke-Checked $cmake @('-S', $xamlCompilerRoot, '-B', $xamlCompilerBuild)
+    } else {
+        Invoke-Checked $cmake @('-S', $xamlCompilerRoot, '-B', $xamlCompilerBuild, '-G', $tools.Generator, '-A', 'x64', "-DCMAKE_GENERATOR_INSTANCE=$($tools.VisualStudio)")
+    }
+    Invoke-Checked $cmake @('--build', $xamlCompilerBuild, '--config', 'Debug')
+}
 if (-not (Test-Path $xamlCompiler)) {
     throw "XamlCompiler build completed but did not produce $xamlCompiler"
 }

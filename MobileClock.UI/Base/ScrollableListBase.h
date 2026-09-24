@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include <XamlRuntime/UserControl.h>
@@ -12,7 +12,7 @@
 
 namespace mobileclock::ui::base {
     class ScrollableListBase : public xaml::UserControl, public interface::IGestureTarget
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         , public xaml::runtime::IRuntimeReloadableControl
 #endif
     {
@@ -24,20 +24,20 @@ namespace mobileclock::ui::base {
         // IGestureTarget
         //
         xaml::Element* FindScrollViewer(const xaml::Element& element) const override;
-        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animations) override;
+        void UpdateGestures(xaml::Element& pageRoot, xaml::AnimationController& animationController) override;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
 #endif
 
     protected:
         virtual std::string_view ScrollViewerId() const = 0;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        virtual void OnTemplateReplaced();
+#if defined(ANDROID_APP_PREVIEWER)
+        virtual void preview_OnTemplateReplaced();
 #endif
         xaml::Element* FindElement(std::string_view id) const;
         bool Owns(const xaml::Element& element) const override;
@@ -45,9 +45,5 @@ namespace mobileclock::ui::base {
     private:
         void OnInitialized() override;
         bool IsIn(const xaml::Element& pageRoot) const override;
-
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }

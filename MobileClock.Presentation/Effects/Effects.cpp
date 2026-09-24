@@ -177,36 +177,36 @@ namespace mobileclock::presentation::effects {
     }
 
     StateRegistry CreateStates() {
-        StateRegistry states;
-        states.Register<ContainerAnimation>();
-        states.Register<PageTransitionAnimation>();
-        states.Register<WaveAnimation>();
-        states.Register<Glow>();
-        return states;
+        StateRegistry stateRegistry;
+        stateRegistry.Register<ContainerAnimation>();
+        stateRegistry.Register<PageTransitionAnimation>();
+        stateRegistry.Register<WaveAnimation>();
+        stateRegistry.Register<Glow>();
+        return stateRegistry;
     }
 
     AnimationRegistry CreateAnimations() {
-        AnimationRegistry animations(CreateStates());
-        RegisterAnimations(animations);
-        return animations;
+        AnimationRegistry animationRegistry(CreateStates());
+        RegisterAnimations(animationRegistry);
+        return animationRegistry;
     }
 
     RendererRegistry CreateRenderers() {
-        RendererRegistry renderers(CreateStates());
-        RegisterRenderers(renderers);
-        return renderers;
+        RendererRegistry rendererRegistry(CreateStates());
+        RegisterRenderers(rendererRegistry);
+        return rendererRegistry;
     }
 
-    void RegisterAnimations(AnimationRegistry& animations) {
-        animations.Register<ContainerAnimation>("animationFade", {
+    void RegisterAnimations(AnimationRegistry& animationRegistry) {
+        animationRegistry.Register<ContainerAnimation>("animationFade", {
             Option("duration", &ContainerAnimation::duration, _details::NonNegativeDuration),
         }, _details::ConfigureFade);
-        animations.Register<ContainerAnimation>("animationSlideFade", {
+        animationRegistry.Register<ContainerAnimation>("animationSlideFade", {
             Option("duration", &ContainerAnimation::duration, _details::NonNegativeDuration),
             Option("distance", &ContainerAnimation::distance),
         }, _details::ConfigureSlideFade);
         for (const char* name : {"animationSoftPulse", "animationRippleWave"}) {
-            animations.Register<WaveAnimation>(name, {
+            animationRegistry.Register<WaveAnimation>(name, {
                 Option("from", &WaveAnimation::from, _details::WaveFrom),
                 Option("to", &WaveAnimation::to),
                 Option("duration", &WaveAnimation::duration, _details::NonNegativeDuration),
@@ -216,11 +216,11 @@ namespace mobileclock::presentation::effects {
                 Option("fadeExponent", &WaveAnimation::fadeExponent, _details::Positive),
             }, _details::ConfigureWave);
         }
-        animations.Register<Glow>("animationGlow", {
+        animationRegistry.Register<Glow>("animationGlow", {
             Option("intensity", &Glow::targetIntensity, _details::UnitInterval),
             Option("duration", &Glow::duration, _details::NonNegativeDuration),
         }, _details::ConfigureGlow);
-        animations.Register<WaveAnimation>("animationWaveOpacity", {
+        animationRegistry.Register<WaveAnimation>("animationWaveOpacity", {
             Option("from", &WaveAnimation::opacityFrom, _details::WaveFrom),
             Option("to", &WaveAnimation::targetOpacity, _details::UnitInterval),
             Option("duration", &WaveAnimation::duration, _details::NonNegativeDuration),
@@ -228,10 +228,10 @@ namespace mobileclock::presentation::effects {
         }, _details::ConfigureWaveOpacity);
     }
 
-    void RegisterRenderers(RendererRegistry& renderers) {
-        renderers.Register<EmptyState>("rendererTopEdgeFade", _details::RenderTopEdgeFade);
-        renderers.Register<EmptyState>("rendererBottomEdgeFade", _details::RenderBottomEdgeFade);
-        renderers.Register<Glow>("rendererGlow", _details::RenderGlow);
-        renderers.Register<WaveAnimation>("rendererWave", _details::RenderWave);
+    void RegisterRenderers(RendererRegistry& rendererRegistry) {
+        rendererRegistry.Register<EmptyState>("rendererTopEdgeFade", _details::RenderTopEdgeFade);
+        rendererRegistry.Register<EmptyState>("rendererBottomEdgeFade", _details::RenderBottomEdgeFade);
+        rendererRegistry.Register<Glow>("rendererGlow", _details::RenderGlow);
+        rendererRegistry.Register<WaveAnimation>("rendererWave", _details::RenderWave);
     }
 }

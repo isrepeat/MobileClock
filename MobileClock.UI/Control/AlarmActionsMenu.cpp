@@ -1,6 +1,6 @@
 #include "AlarmActionsMenu.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -40,6 +40,10 @@ namespace mobileclock::ui::control {
     // UserControl
     //
     AlarmActionsMenu::~AlarmActionsMenu() {
+        // Подписки шаблона обращаются к полям меню. Снимаем их до уничтожения
+        // членов производного класса, а не в деструкторе базового UserControl.
+        this->ClearContentBindings();
+        // Отдельная подписка на ViewModel также не должна вызывать удалённое меню.
         if (this->parentUnsubscribe) {
             this->parentUnsubscribe();
         }
@@ -114,7 +118,7 @@ namespace mobileclock::ui::control {
     }
 
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -123,11 +127,11 @@ namespace mobileclock::ui::control {
     }
 
     bool AlarmActionsMenu::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) {
         try {
-            auto bindings = std::make_shared<xaml::runtime::RuntimeBindingRegistry>(context.bindings);
+            auto bindings = std::make_shared<xaml::runtime::RuntimeBindingRegistry>(runtimeBindingContext.bindings);
             bindings->AddCommand("ToggleMenuCommand", this->ToggleMenuCommand());
-            auto controlContext = context;
+            auto controlContext = runtimeBindingContext;
             controlContext.bindings = std::move(bindings);
             auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), controlContext,
                 {this->Bounds().width, this->Bounds().height});
@@ -135,11 +139,10 @@ namespace mobileclock::ui::control {
                 this->isExpanded ? "Expanded" : "Collapsed", false)) {
                 throw std::invalid_argument("Alarm actions menu visual state was not found");
             }
-            if (context.beforeCommit) {
-                context.beforeCommit();
+            if (runtimeBindingContext.beforeCommit) {
+                runtimeBindingContext.beforeCommit();
             }
-            this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             this->ApplyState(false);
             diagnostics.clear();
             return true;
@@ -186,8 +189,8 @@ namespace mobileclock::ui::control {
         };
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    void AlarmActionsMenu::PreserveState(const xaml::Element& previous, xaml::Element& replacement) {
+#if defined(ANDROID_APP_PREVIEWER)
+    void AlarmActionsMenu::preview_PreserveState(const xaml::Element& previous, xaml::Element& replacement) {
         if (auto* menu = dynamic_cast<AlarmActionsMenu*>(&replacement)) {
             const auto restore = [menu](auto&& self, const xaml::Element& node) -> bool {
                 const auto* oldMenu = dynamic_cast<const AlarmActionsMenu*>(&node);
@@ -206,7 +209,7 @@ namespace mobileclock::ui::control {
             restore(restore, previous);
         }
         for (const auto& child : replacement.Children()) {
-            PreserveState(previous, *child);
+            preview_PreserveState(previous, *child);
         }
     }
 #endif
@@ -241,8 +244,8 @@ namespace mobileclock::ui::control {
             // The collapsed panel is positioned above the bottom by its margin.
             // While expanding, the same distance becomes a render offset so the
             // lower edge reaches the screen bottom while the explicit height grows up.
-            xaml::AnimationController animations;
-            animations.Animate(
+            xaml::AnimationController animationController;
+            animationController.Animate(
                 *panel,
                 xaml::AnimatedProperty::renderOffsetY,
                 panel->RenderOffsetY(),
@@ -279,7 +282,7 @@ namespace mobileclock::ui::control {
     }
 
     void AlarmActionsMenu::SetDragProgress(float progress) {
-        xaml::AnimationController animations;
+        xaml::AnimationController animationController;
         for (const char* id : {"alarmActionsPanel", "alarmActionsMenu", "alarmActionsContent"}) {
             auto* element = this->FindElement(id);
             if (element == nullptr) {
@@ -291,10 +294,10 @@ namespace mobileclock::ui::control {
             const float expanded = this->StateValue("Expanded", id, property);
             const float value = collapsed + (expanded - collapsed) * progress;
             // Replacing the property track also stops a previous settling animation.
-            animations.Animate(*element, property, value, value, std::chrono::milliseconds(0));
+            animationController.Animate(*element, property, value, value, std::chrono::milliseconds(0));
         }
         if (auto* panel = this->FindElement("alarmActionsPanel")) {
-            animations.Animate(
+            animationController.Animate(
                 *panel,
                 xaml::AnimatedProperty::renderOffsetY,
                 panel->Margin().bottom * progress,

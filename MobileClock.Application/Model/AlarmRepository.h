@@ -66,12 +66,12 @@ namespace mobileclock::application::model {
         AlarmRepository(const AlarmRepository&) = delete;
         AlarmRepository& operator=(const AlarmRepository&) = delete;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // AppRepositoryBase
         //
-        void ReloadFromStateStore() override;
-        bool IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const override;
+        void preview_ReloadFromStateStore() override;
+        bool preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const override;
 #endif
         const std::vector<Alarm>& Alarms() const;
         bool CreateAlarm(const Alarm& alarm);
@@ -97,12 +97,12 @@ namespace mobileclock::application::model {
         AlarmMelodyRepository(const AlarmMelodyRepository&) = delete;
         AlarmMelodyRepository& operator=(const AlarmMelodyRepository&) = delete;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // AppRepositoryBase
         //
-        void ReloadFromStateStore() override;
-        bool IsPreviewSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const override;
+        void preview_ReloadFromStateStore() override;
+        bool preview_IsSessionDocumentEquivalentTo(const ApplicationStateDocument& document) const override;
 #endif
         const std::vector<AlarmMelody>& Melodies() const;
         bool SaveMelody(AlarmMelody& value);

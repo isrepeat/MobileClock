@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/ObservableCollection.h>
@@ -8,7 +8,9 @@
 
 #include "MobileClock.UI/Interface/IGestureTarget.h"
 #include "../../Interface/INavigationPage.h"
+#if defined(ANDROID_APP_PREVIEWER)
 #include "../../Interface/ISerializable.h"
+#endif
 #include "../../Core/PageRegistry.h"
 #include "../ViewModel/AlarmMelodyViewModel.h"
 
@@ -22,18 +24,23 @@ namespace xaml {
 }
 
 namespace mobileclock::application::ui::page {
-    class AddAlarmPageViewModel final : public interface::ISerializable, public mobileclock::ui::interface::IGestureTarget, public interface::INavigationPage {
+    class AddAlarmPageViewModel final :
+#if defined(ANDROID_APP_PREVIEWER)
+        public interface::ISerializable,
+#endif
+        public mobileclock::ui::interface::IGestureTarget, public interface::INavigationPage {
     public:
         inline static constexpr std::string_view PageName = "AddAlarmPage";
-        inline static constexpr std::string_view PreviewGraphTitle = "Новый будильник";
+        inline static constexpr std::string_view preview_GraphTitle = "Новый будильник";
 
-        explicit AddAlarmPageViewModel(core::PageContext& context);
+        explicit AddAlarmPageViewModel(core::PageContext& pageContext);
         ~AddAlarmPageViewModel() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // ISerializable
         //
+        std::string Serialize() const override;
         bool Deserialize(std::string_view json, std::string& error) override;
 #endif
 
@@ -65,11 +72,11 @@ namespace mobileclock::application::ui::page {
         void Initialize(xaml::Size availableSize);
         void HandleTap(xaml::Element& element);
         void Update();
-        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& renderers) const;
+        void Render(xaml::IRenderBackend& renderer, const xaml::RendererRegistry& rendererRegistry) const;
         xaml::Element& Root();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        xaml::runtime::RuntimeBindingContext RuntimeContext();
-        void ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result);
+#if defined(ANDROID_APP_PREVIEWER)
+        xaml::runtime::RuntimeBindingContext preview_RuntimeContext();
+        void preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult);
 #endif
 
     private:
@@ -91,15 +98,15 @@ namespace mobileclock::application::ui::page {
         xaml::Element* Find(std::string_view id) const;
 
     private:
-        core::PageContext& context;
+        core::PageContext& pageContext;
         model::Alarm settings;
         model::Alarm initialSettings;
         xaml::ObservableCollection<view_model::AlarmMelodyViewModel> melodies;
         model::AlarmMelodyRepository::Unsubscribe storageSubscription;
         std::unique_ptr<xaml::Element> page;
-        xaml::BindingScope bindings;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
+        xaml::BindingScope bindingScope;
+#if defined(ANDROID_APP_PREVIEWER)
+        std::unique_ptr<xaml::BindingScope> runtimeBindingScope;
 #endif
         int activeColumn = 0;
         int startValue = 0;

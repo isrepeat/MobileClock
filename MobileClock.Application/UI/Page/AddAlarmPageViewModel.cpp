@@ -1,7 +1,7 @@
 #include "AddAlarmPageViewModel.h"
 
 #include <XamlRuntime/RenderEngine.h>
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeBindingPublisher.h>
 #endif
 
@@ -64,27 +64,32 @@ namespace mobileclock::application::ui::page::_details {
 
 namespace mobileclock::application::ui::page {
 
-    AddAlarmPageViewModel::AddAlarmPageViewModel(core::PageContext& context)
-        : context(context) {
-        for (const model::AlarmMelody& melody : this->context.alarmMelodyRepository.Melodies()) {
+    AddAlarmPageViewModel::AddAlarmPageViewModel(core::PageContext& pageContext)
+        : pageContext(pageContext) {
+        for (const model::AlarmMelody& melody : this->pageContext.alarmMelodyRepository.Melodies()) {
             this->AddMelody(melody);
         }
-        this->storageSubscription = this->context.alarmMelodyRepository.Subscribe([this]() {
+        this->storageSubscription = this->pageContext.alarmMelodyRepository.Subscribe([this]() {
             this->OnRepositoryChange();
         });
         this->RegisterGestureTarget();
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // ISerializable
     //
+    std::string AddAlarmPageViewModel::Serialize() const {
+        return "{}";
+    }
+
     bool AddAlarmPageViewModel::Deserialize(std::string_view json, std::string& error) {
-        // The form has its own editable draft; no external preview scenario is required.
+        // У формы есть собственный редактируемый черновик; внешнее состояние ей не требуется.
         error.clear();
         return true;
     }
 #endif
+
 
     //
     // mobileclock::ui::interface::IGestureTarget
@@ -173,9 +178,12 @@ namespace mobileclock::application::ui::page {
             this->Refresh();
             return true;
         }
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        case core::NavigationTrigger::applySelectedMelody: {
-            const auto* const melody = dynamic_cast<const core::AlarmMelodyNavigationState*>(state.get());
+#if defined(ANDROID_APP_PREVIEWER)
+        case core::NavigationTrigger::navigateBack: {
+            if (state == nullptr) {
+                return true;
+            }
+            const auto* const melody = dynamic_cast<const core::preview_AlarmMelodyNavigationState*>(state.get());
             if (melody == nullptr) {
                 return false;
             }
@@ -225,7 +233,7 @@ namespace mobileclock::application::ui::page {
     }
 
     void AddAlarmPageViewModel::SetMelody(model::AlarmMelody alarmMelody) {
-        if (!this->context.alarmMelodyRepository.SaveMelody(alarmMelody)) {
+        if (!this->pageContext.alarmMelodyRepository.SaveMelody(alarmMelody)) {
             return;
         }
         const bool changed = this->settings.melodyId != alarmMelody.id;
@@ -237,7 +245,7 @@ namespace mobileclock::application::ui::page {
     }
 
     void AddAlarmPageViewModel::DeleteMelody(std::string_view uri) {
-        this->context.alarmMelodyRepository.DeleteMelody(uri);
+        this->pageContext.alarmMelodyRepository.DeleteMelody(uri);
     }
 
     const xaml::ObservableCollection<view_model::AlarmMelodyViewModel>& AddAlarmPageViewModel::Melodies() const {
@@ -245,19 +253,19 @@ namespace mobileclock::application::ui::page {
     }
 
     void AddAlarmPageViewModel::ChooseAlarmMelody() {
-        this->context.appSessionController.Dispatch(core::AppSessionSignal::requestAlarmMelody, {});
+        this->pageContext.appSessionController.Dispatch(core::AppSessionSignal::requestAlarmMelody, {});
     }
 
     void AddAlarmPageViewModel::NavigateToMain() {
-        this->context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
+        this->pageContext.navigator.Trigger(core::NavigationTrigger::navigateBack);
     }
 
     void AddAlarmPageViewModel::Initialize(xaml::Size availableSize) {
-        this->bindings.Clear();
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        this->runtimeBindings.reset();
+        this->bindingScope.Clear();
+#if defined(ANDROID_APP_PREVIEWER)
+        this->runtimeBindingScope.reset();
 #endif
-        this->page = xaml::generated::AddAlarmPage::Create(*this, this->bindings);
+        this->page = xaml::generated::AddAlarmPage::Create(*this, this->bindingScope);
         this->ConnectControls();
         xaml::layout(*this->page, availableSize);
     }
@@ -271,20 +279,20 @@ namespace mobileclock::application::ui::page {
 
     void AddAlarmPageViewModel::Render(
         xaml::IRenderBackend& renderer,
-        const xaml::RendererRegistry& renderers) const {
-        xaml::Render(*this->page, renderer, renderers);
+        const xaml::RendererRegistry& rendererRegistry) const {
+        xaml::Render(*this->page, renderer, rendererRegistry);
     }
 
     xaml::Element& AddAlarmPageViewModel::Root() {
         return *this->page;
     }
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-    xaml::runtime::RuntimeBindingContext AddAlarmPageViewModel::RuntimeContext() {
+#if defined(ANDROID_APP_PREVIEWER)
+    xaml::runtime::RuntimeBindingContext AddAlarmPageViewModel::preview_RuntimeContext() {
         auto registry = std::make_shared<xaml::runtime::RuntimeBindingRegistry>();
-        xaml::runtime::RuntimeBindingContext result{registry, "AddAlarmPageViewModel", {}};
-        result.xamlNamespace = "urn:mobileclock:xaml";
-        result.controlXmlNamespace = "using:mobileclock.ui.control";
+        xaml::runtime::RuntimeBindingContext runtimeBindingContext{registry, "AddAlarmPageViewModel", {}};
+        runtimeBindingContext.xamlNamespace = "urn:mobileclock:xaml";
+        runtimeBindingContext.controlXmlNamespace = "using:mobileclock.ui.control";
         xaml::runtime::RuntimeCollectionDescriptor collection;
         collection.itemBindings = [](const void* value) {
             const auto* melody = static_cast<const view_model::AlarmMelodyViewModel*>(value);
@@ -299,17 +307,17 @@ namespace mobileclock::application::ui::page {
         };
         registry->AddCollection("Melodies", collection);
         registry->AddCollection("ItemsSource", collection);
-        result.controls["AlarmMelodyList"] = [this](xaml::BindingScope& scope) {
+        runtimeBindingContext.controls["AlarmMelodyList"] = [this](xaml::BindingScope& scope) {
             return mobileclock::ui::control::AlarmMelodyList::Create(*this, this->melodies, scope);
         };
-        return result;
+        return runtimeBindingContext;
     }
 
-    void AddAlarmPageViewModel::ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult result) {
-        this->bindings.Clear();
-        this->runtimeBindings.reset();
-        this->page = std::move(result.root);
-        this->runtimeBindings = std::move(result.bindings);
+    void AddAlarmPageViewModel::preview_ReplaceRuntimeTree(xaml::runtime::RuntimeBuildResult runtimeBuildResult) {
+        this->bindingScope.Clear();
+        this->runtimeBindingScope.reset();
+        this->page = std::move(runtimeBuildResult.root);
+        this->runtimeBindingScope = std::move(runtimeBuildResult.bindings);
         this->dragging = false;
         this->remainder = 0.0f;
         this->ConnectControls();
@@ -348,13 +356,13 @@ namespace mobileclock::application::ui::page {
                 return;
             }
             const bool saved = this->isEditing
-                ? this->context.alarmRepository.UpdateAlarm(this->editingAlarmId, this->settings)
-                : this->context.alarmRepository.CreateAlarm(this->settings);
+                ? this->pageContext.alarmRepository.UpdateAlarm(this->editingAlarmId, this->settings)
+                : this->pageContext.alarmRepository.CreateAlarm(this->settings);
             if (!saved) {
                 return;
             }
             this->saved = true;
-            this->context.navigator.Trigger(core::NavigationTrigger::navigateToMain);
+            this->pageContext.navigator.Trigger(core::NavigationTrigger::navigateBack);
         });
         for (int column = 0; column < 2; ++column) {
             connect(std::format("wheel{}", column), []() {});
@@ -379,7 +387,7 @@ namespace mobileclock::application::ui::page {
 
     void AddAlarmPageViewModel::OnRepositoryChange() {
         this->melodies.Clear();
-        for (const model::AlarmMelody& melody : this->context.alarmMelodyRepository.Melodies()) {
+        for (const model::AlarmMelody& melody : this->pageContext.alarmMelodyRepository.Melodies()) {
             this->AddMelody(melody);
         }
     }

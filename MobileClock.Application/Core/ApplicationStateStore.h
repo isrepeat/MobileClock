@@ -19,15 +19,15 @@ namespace mobileclock::application::core {
 
         const model::ApplicationStateDocument& CurrentDocument() const;
         bool TrySaveDocument(model::ApplicationStateDocument candidate);
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        void LoadPreviewSessionDocument(model::ApplicationStateDocument candidate);
-        bool SavePreviewSessionDocumentToPersistentStorage();
+#if defined(ANDROID_APP_PREVIEWER)
+        void preview_LoadSessionDocument(model::ApplicationStateDocument candidate);
+        bool preview_SaveSessionDocumentToPersistentStorage();
 #endif
 
     private:
         std::unique_ptr<model::ApplicationStateDocument> document;
         DocumentSaveHandler documentSaveHandler;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         bool isUsingPreviewSessionDocument = false;
 #endif
     };

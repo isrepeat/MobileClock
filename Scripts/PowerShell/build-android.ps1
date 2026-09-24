@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     # Recreates CMake's build directory before compiling the native library.
     [switch]$Clean,
@@ -6,21 +6,31 @@ param(
     # Builds only the C++ library. Useful while editing renderer code.
     [switch]$NativeOnly,
 
+    # Конфигурация нативной и Android-сборки.
+    [ValidateSet('Debug', 'Release')]
+    [string]$Configuration = 'Debug',
+
     # Проект поддерживает только физические устройства ARM64.
     [ValidateSet('arm64-v8a')]
     [string]$Architecture = 'arm64-v8a'
 )
 
 $ErrorActionPreference = 'Stop'
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $androidHostRoot = Join-Path $projectRoot 'MobileClock.AndroidHost'
 $applicationRoot = Join-Path $projectRoot 'MobileClock.Application'
 $uiRoot = Join-Path $projectRoot 'MobileClock.UI'
-$gradleRoot = Join-Path $projectRoot 'Build\Gradle'
+$gradleRoot = Join-Path $projectRoot 'Tools\Gradle'
 $gradleWrapper = Join-Path $gradleRoot 'gradlew.bat'
-$apkPath = Join-Path $projectRoot 'Build\MobileClock.Android\outputs\apk\debug\MobileClock.Android-debug.apk'
-$updaterApkPath = Join-Path $projectRoot 'Build\MobileClock.AndroidUpdater\outputs\apk\debug\MobileClock.AndroidUpdater-debug.apk'
+$configurationDirectory = $Configuration.ToLowerInvariant()
+$apkSuffix = if ($Configuration -eq 'Release') { 'release-unsigned' } else { 'debug' }
+$apkPath = Join-Path $projectRoot "Build\MobileClock.Android\outputs\apk\$configurationDirectory\MobileClock.Android-$apkSuffix.apk"
+$updaterApkPath = Join-Path $projectRoot "Build\MobileClock.AndroidUpdater\outputs\apk\$configurationDirectory\MobileClock.AndroidUpdater-$apkSuffix.apk"
 
 function Invoke-Checked {
     param(
@@ -34,25 +44,27 @@ function Invoke-Checked {
     }
 }
 
-# Prefer the CMake bundled with Visual Studio, but permit a standalone CMake
-# installation when this script is run outside Visual Studio.
-$visualStudioCmake = 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
-if (Test-Path $visualStudioCmake) {
-    $cmake = $visualStudioCmake
-} else {
-    $cmake = (Get-Command cmake -ErrorAction Stop).Source
-}
+# Resolve the installed Visual Studio tools without fixing an edition or path.
+. (Join-Path $PSScriptRoot 'Resolve-BuildTools.ps1')
+$tools = Resolve-MobileClockBuildTools
+$cmake = $tools.CMake
+$javaHome = Resolve-MobileClockJavaHome
+$androidSdk = Resolve-MobileClockAndroidSdk
+$env:JAVA_HOME = $javaHome
+$env:ANDROID_HOME = $androidSdk
+$env:ANDROID_SDK_ROOT = $androidSdk
+$env:Path = "$(Join-Path $javaHome 'bin');$env:Path"
 
 & (Join-Path $PSScriptRoot 'generate-xaml.ps1')
 
 Push-Location $projectRoot
 try {
-    $cmakePreset = 'android-arm64-debug'
-    Write-Host "==> Building native $Architecture library with CMake"
+    $cmakePreset = "android-arm64-$configurationDirectory"
+    Write-Host "==> Building native $Architecture $Configuration library with CMake"
     if ($Clean) {
-        Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset)
+        Invoke-Checked $cmake @('--fresh', '--preset', $cmakePreset, "-DCMAKE_MAKE_PROGRAM=$($tools.Ninja)")
     } else {
-        Invoke-Checked $cmake @('--preset', $cmakePreset)
+        Invoke-Checked $cmake @('--preset', $cmakePreset, "-DCMAKE_MAKE_PROGRAM=$($tools.Ninja)")
     }
     Invoke-Checked $cmake @('--build', '--preset', $cmakePreset)
 } finally {
@@ -71,10 +83,15 @@ if ($NativeOnly) {
 
 # Gradle deliberately does not invoke CMake here. MobileClock.Android/build.gradle.kts no
 # longer has externalNativeBuild, so it only packages the .so emitted above.
-$gradleTasks = @(':MobileClock.Android:assembleDebug', ':MobileClock.AndroidUpdater:assembleDebug')
+$gradleTasks = @(
+    ":MobileClock.Android:assemble$Configuration",
+    ":MobileClock.AndroidUpdater:assemble$Configuration"
+)
 Write-Host "==> Running Gradle tasks: $($gradleTasks -join ', ')"
-# gradlew determines the Android project from the current directory. The .bat
-# launchers and settings live in Build/Gradle, therefore invoke Gradle there.
+Write-Host "==> Using Java: $javaHome"
+Write-Host "==> Using Android SDK: $androidSdk"
+# Gradle определяет Android-проект по текущему каталогу. Launcher и settings
+# находятся в Tools/Gradle, поэтому Gradle запускается оттуда.
 Push-Location $gradleRoot
 try {
     Invoke-Checked $gradleWrapper (@('--no-daemon') + $gradleTasks)

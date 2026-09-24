@@ -1,11 +1,11 @@
 #include "TimelineTabs.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 
 namespace mobileclock::ui::control {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -14,20 +14,17 @@ namespace mobileclock::ui::control {
     }
 
     bool TimelineTabs::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) {
         try {
-            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), context,
+            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(templateNode.children.at(0), runtimeBindingContext,
                 {this->Bounds().width, this->Bounds().height});
-            if (context.prepareTree) {
-                context.prepareTree(*result.root);
+            if (runtimeBindingContext.prepareTree) {
+                runtimeBindingContext.prepareTree(*result.root);
             }
-              if (context.beforeCommit) {
-                  context.beforeCommit();
+              if (runtimeBindingContext.beforeCommit) {
+                  runtimeBindingContext.beforeCommit();
               }
-              // TimelineTabs остаётся тем же native-экземпляром; меняется только
-              // дерево его шаблона и связанный с ним набор runtime-подписок.
-              this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             diagnostics.clear();
             return true;
         } catch (const std::exception& error) {

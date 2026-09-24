@@ -1,0 +1,34 @@
+{
+    "rules": [
+        {
+            "path": "MobileClock.AndroidHost",
+            "maxDepth": -1,
+            "extensions": [".cmake", ".cpp", ".h", ".hpp", ".json", ".kt", ".md", ".properties", ".txt", ".xml", ".yml", ".yaml"],
+            "fileNames": ["CMakeLists.txt"]
+        },
+        {
+            "path": "MobileClock.Application",
+            "maxDepth": -1,
+            "extensions": [".cmake", ".cpp", ".h", ".hpp", ".json", ".kt", ".md", ".properties", ".txt", ".xml", ".yml", ".yaml"],
+            "fileNames": ["CMakeLists.txt"]
+        },
+        {
+            "path": "MobileClock.Presentation",
+            "maxDepth": -1,
+            "extensions": [".cpp", ".h", ".hpp", ".json", ".md", ".txt", ".vcxproj", ".xaml", ".xml"],
+            "fileNames": []
+        },
+        {
+            "path": "MobileClock.PreviewPlugin",
+            "maxDepth": -1,
+            "extensions": [".cmake", ".cpp", ".h", ".hpp", ".json", ".md", ".ps1", ".txt", ".vcxproj", ".xml"],
+            "fileNames": ["CMakeLists.txt"]
+        },
+        {
+            "path": "MobileClock.UI",
+            "maxDepth": -1,
+            "extensions": [".cpp", ".h", ".hpp", ".json", ".md", ".txt", ".xaml", ".xml"],
+            "fileNames": []
+        }
+    ]
+}

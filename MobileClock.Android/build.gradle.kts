@@ -17,13 +17,13 @@ plugins {
 android {
     namespace = "com.example.mobileclock"
     compileSdk {
-        version = release(37)
+        version = release(36)
     }
 
     defaultConfig {
         applicationId = "com.example.mobileclock"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
 

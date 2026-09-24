@@ -1,6 +1,6 @@
 #include "AlarmList.h"
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/RuntimeTreeBuilder.h>
 #endif
 #include <XamlRuntime/Animation.h>
@@ -30,7 +30,7 @@ namespace mobileclock::ui::control::_details {
 }
 
 namespace mobileclock::ui::control {
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
     //
     // IRuntimeReloadableControl
     //
@@ -39,10 +39,10 @@ namespace mobileclock::ui::control {
     }
 
     bool AlarmList::ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-        const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) {
+        const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) {
         try {
             const auto& content = templateNode.name == "UserControl" ? templateNode.children.at(0) : templateNode;
-            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(content, context,
+            auto result = xaml::runtime::RuntimeTreeBuilder{}.BuildPage(content, runtimeBindingContext,
                 {this->Bounds().width, this->Bounds().height});
             xaml::Element* const newList = _details::FindElement(*result.root, "interactiveListItems");
             xaml::Element* const newScroll = _details::FindElement(*result.root, "interactiveListScrollViewer");
@@ -54,14 +54,13 @@ namespace mobileclock::ui::control {
                 newScroll->SetHorizontalOffset(scroll->HorizontalOffset());
                 newScroll->SetVerticalOffset(scroll->VerticalOffset());
             }
-            if (context.prepareTree) {
-                context.prepareTree(*result.root);
+            if (runtimeBindingContext.prepareTree) {
+                runtimeBindingContext.prepareTree(*result.root);
             }
-            if (context.beforeCommit) {
-                context.beforeCommit();
+            if (runtimeBindingContext.beforeCommit) {
+                runtimeBindingContext.beforeCommit();
             }
-            this->ReplaceContent(std::move(result.root));
-            this->runtimeBindings = std::move(result.bindings);
+            this->ReplaceContent(std::move(result.root), std::move(result.bindings));
             diagnostics.clear();
             return true;
         } catch (const std::exception& error) {
@@ -73,7 +72,7 @@ namespace mobileclock::ui::control {
     //
     // API
     //
-    void AlarmList::PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
+    void AlarmList::preview_PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings) {
         std::vector<AlarmList*> oldControls;
         std::vector<AlarmList*> newControls;
         const auto collect = [](auto&& self, xaml::Element& node, std::vector<AlarmList*>& controls) -> void {
@@ -136,10 +135,10 @@ namespace mobileclock::ui::control {
         state.target.SetRenderOffsetX(state.currentX - state.downX);
     }
 
-    bool AlarmList::EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) {
+    bool AlarmList::EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) {
         const float horizontalDistance = state.currentX - state.downX;
         if (std::abs(horizontalDistance) < _details::PanCompletionThreshold || !this->RequestRemoval(state.target)) {
-            animations.Animate(
+            animationController.Animate(
                 state.target,
                 xaml::AnimatedProperty::renderOffsetX,
                 state.target.RenderOffsetX(),
@@ -152,7 +151,7 @@ namespace mobileclock::ui::control {
         const float targetOffset = horizontalDistance < 0.0f
             ? -targetBounds.x - targetBounds.width
             : rootBounds.width - targetBounds.x;
-        animations.Animate(
+        animationController.Animate(
             state.target,
             xaml::AnimatedProperty::renderOffsetX,
             state.target.RenderOffsetX(),

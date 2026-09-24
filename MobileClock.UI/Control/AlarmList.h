@@ -1,5 +1,5 @@
 #pragma once
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
 #include <XamlRuntime/RuntimeMarkup/IRuntimeReloadableControl.h>
 #endif
 #include <XamlRuntime/DependentProperty.h>
@@ -19,26 +19,27 @@ namespace mobileclock::ui::control {
         AlarmList() = default;
         ~AlarmList() override = default;
 
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
+#if defined(ANDROID_APP_PREVIEWER)
         //
         // IRuntimeReloadableControl
         //
         std::string_view RuntimeClassName() const override;
         bool ReplaceTemplate(const xaml::runtime::XamlElementNode& templateNode,
-            const xaml::runtime::RuntimeBindingContext& context, std::string& diagnostics) override;
-        static void PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings);
+            const xaml::runtime::RuntimeBindingContext& runtimeBindingContext, std::string& diagnostics) override;
+        static void preview_PreserveInstances(xaml::Element& previous, xaml::Element& replacement, xaml::BindingScope& bindings);
 #endif
 
         template <typename TViewModel, typename TItemsSource>
         static std::unique_ptr<AlarmList> Create(
             TViewModel& viewModel,
             const TItemsSource& itemsSource,
-            xaml::BindingScope& bindings) {
+            xaml::BindingScope&) {
             auto control = std::make_unique<AlarmList>();
             control->SetItemsSource(itemsSource);
             control->SetRemoveHandler([&viewModel](const void* dataContext) { return viewModel.RemoveItem(dataContext); });
-            control->InitializeComponent(
-                xaml::generated::AlarmListXaml::BuildContent(viewModel, itemsSource, bindings));
+            auto bindings = std::make_unique<xaml::BindingScope>();
+            auto content = xaml::generated::AlarmListXaml::BuildContent(viewModel, itemsSource, *bindings);
+            control->InitializeComponent(std::move(content), std::move(bindings));
             return control;
         }
 
@@ -56,15 +57,12 @@ namespace mobileclock::ui::control {
             interface::GestureDirection direction) const override;
         void BeginInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
         void UpdateInteractiveGesture(const interface::IGestureTarget::PanState& state) override;
-        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animations) override;
+        bool EndInteractiveGesture(const interface::IGestureTarget::PanState& state, xaml::AnimationController& animationController) override;
         void CancelInteractiveGesture(xaml::Element& element) override;
         template <typename TItemsSource>
         void SetItemsSource(const TItemsSource& value) {
             this->itemsSource.Set(static_cast<const void*>(&value));
         }
         xaml::DependentProperty<const void*> itemsSource;
-#if defined(MOBILECLOCK_XAML_PREVIEWER)
-        std::unique_ptr<xaml::BindingScope> runtimeBindings;
-#endif
     };
 }
